@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-[#0d0d12] text-stone-100 antialiased overflow-hidden select-none;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom subtle frosted scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+}
+
+/* Realistic Console Faders */
+.channel-fader {
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  outline: none;
+}
+
+.channel-fader::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 22px;
+  border-radius: 2px;
+  background: 
+    linear-gradient(to bottom, transparent 9.5px, #0f172a 9.5px, #0f172a 12.5px, transparent 12.5px),
+    linear-gradient(135deg, #f8fafc 0%, #cbd5e1 30%, #94a3b8 70%, #64748b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+.channel-fader::-moz-range-thumb {
+  width: 14px;
+  height: 22px;
+  border-radius: 2px;
+  background: 
+    linear-gradient(to bottom, transparent 9.5px, #0f172a 9.5px, #0f172a 12.5px, transparent 12.5px),
+    linear-gradient(135deg, #f8fafc 0%, #cbd5e1 30%, #94a3b8 70%, #64748b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+.master-fader {
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  outline: none;
+}
+
+.master-fader::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 26px;
+  border-radius: 3px;
+  background: 
+    linear-gradient(to bottom, transparent 11.5px, #0f172a 11.5px, #0f172a 14.5px, transparent 14.5px),
+    linear-gradient(135deg, #f8fafc 0%, #cbd5e1 30%, #94a3b8 70%, #64748b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.master-fader::-moz-range-thumb {
+  width: 18px;
+  height: 26px;
+  border-radius: 3px;
+  background: 
+    linear-gradient(to bottom, transparent 11.5px, #0f172a 11.5px, #0f172a 14.5px, transparent 14.5px),
+    linear-gradient(135deg, #f8fafc 0%, #cbd5e1 30%, #94a3b8 70%, #64748b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+@keyframes signalPulseFlow {
+  0% {
+    stroke-dashoffset: 40;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-signal-flow {
+  animation: signalPulseFlow 1.2s linear infinite;
+}
+
+.animate-signal-flow-fast {
+  animation: signalPulseFlow 0.8s linear infinite;
+}
+
+
