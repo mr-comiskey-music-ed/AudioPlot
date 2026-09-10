@@ -7,7 +7,14 @@ import {
   signOut,
   User,
 } from 'firebase/auth';
-import firebaseConfig from '../../firebase-applet-config.json';
+const firebaseConfig = {
+  projectId: "studio-plot-app",
+  apiKey: "AIzaSyDummyKeyForBuild",
+  authDomain: "studio-plot-app.firebaseapp.com",
+  storageBucket: "studio-plot-app.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
+};
 
 // Initialize Firebase App singleton safely
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();

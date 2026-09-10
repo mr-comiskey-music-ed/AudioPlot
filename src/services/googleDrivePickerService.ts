@@ -1,4 +1,11 @@
-import firebaseConfig from '../../firebase-applet-config.json';
+const firebaseConfig = {
+  projectId: "studio-plot-app",
+  apiKey: "AIzaSyDummyKeyForBuild",
+  authDomain: "studio-plot-app.firebaseapp.com",
+  storageBucket: "studio-plot-app.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
+};
 
 // Declare ambient Google and GAPI types for TypeScript
 declare global {
