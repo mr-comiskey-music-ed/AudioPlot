@@ -11,13 +11,15 @@ import {
   FileText,
   Loader2,
   User,
+  ShieldCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import { StudioProjectState, RubricEvaluation } from '../types';
 import {
-  generateShareUrl,
   exportProjectJson,
   printGradingReport,
   exportStudioPlotToPdf,
+  cC,
 } from '../services/shareService';
 
 interface ShareSubmitModalProps {
@@ -27,7 +29,7 @@ interface ShareSubmitModalProps {
   evaluation: RubricEvaluation;
   studentName: string;
   onUpdateStudentName: (name: string) => void;
-  onOpenGoogleDriveModal?: () => void;
+  onVerifyProject?: (project: StudioProjectState) => void;
 }
 
 export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
@@ -37,12 +39,14 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
   evaluation,
   studentName,
   onUpdateStudentName,
-  onOpenGoogleDriveModal,
+  onVerifyProject,
 }) => {
-  const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [localName, setLocalName] = useState(studentName || '');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [pdfStatus, setPdfStatus] = useState<string | null>(null);
+  const [teacherCodeInput, setTeacherCodeInput] = useState('');
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   useEffect(() => {
     setLocalName(studentName || '');
@@ -50,28 +54,26 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Update project studentName temporarily for sharing URL generation
+  const isNameValid = localName.trim().length > 0;
+
+  // Update project studentName temporarily for student code and PDF export
   const updatedProject = { ...project, studentName: localName };
-  const shareUrl = generateShareUrl(updatedProject);
+  const studentCode = isNameValid ? String(cC(updatedProject)) : '';
 
   const handleNameChange = (val: string) => {
     setLocalName(val);
     onUpdateStudentName(val);
   };
 
-  const handleCopyLink = async () => {
-    if (!isNameValid) return;
+  const handleCopyCode = async () => {
+    if (!isNameValid || !studentCode) return;
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      await navigator.clipboard.writeText(studentCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2500);
     } catch (err) {
       console.error('Clipboard error:', err);
     }
-  };
-
-  const handleDownloadDrivePackage = () => {
-    exportProjectJson(updatedProject);
   };
 
   const handleExportPdf = async () => {
@@ -95,11 +97,23 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
     }
   };
 
-  const handlePrint = () => {
-    printGradingReport(updatedProject, evaluation);
+  const handleVerifyGrade = () => {
+    setVerificationError(null);
+    if (!teacherCodeInput.trim()) {
+      setVerificationError('Please paste a student submission code.');
+      return;
+    }
+    const result = cC(teacherCodeInput);
+    if (!result || typeof result !== 'object' || !result.project) {
+      setVerificationError('Invalid or tampered student code. Please check the code and try again.');
+      return;
+    }
+    if (onVerifyProject) {
+      onVerifyProject(result.project);
+    }
+    setTeacherCodeInput('');
+    onClose();
   };
-
-  const isNameValid = localName.trim().length > 0;
 
   return (
     <div
@@ -134,62 +148,74 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
         </div>
 
         <div className="space-y-4 overflow-y-auto pr-1">
-          {/* AudioPlot Share Link & Required Name Entry */}
-          <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-2xl space-y-3 backdrop-blur-md">
+          {/* Student Name Entry Section */}
+          <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-2xl space-y-2.5 backdrop-blur-md">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-orange-300 flex items-center gap-1.5">
-                <FileCheck className="w-4 h-4 text-orange-400" />
-                AudioPlot Share Link
+                <User className="w-4 h-4 text-orange-400" />
+                Student Name <span className="text-orange-400">*</span>
               </span>
             </div>
             <p className="text-[11px] text-stone-300">
-              Enter your student name below to label your shared link and exported report.
+              Enter your full name to label your student assignment code and exported report.
             </p>
-
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-stone-300 flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-orange-400" />
-                Student Name <span className="text-orange-400">*</span>
-              </label>
-              <input
-                id="input-share-student-name"
-                type="text"
-                value={localName}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="Enter your full name (required)"
-                className="w-full bg-white/10 border border-white/20 focus:border-orange-400 rounded-xl px-3 py-2 text-xs text-stone-100 outline-none backdrop-blur-xs transition-all placeholder:text-stone-500"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 mt-2">
-              <input
-                id="input-share-link-url"
-                type="text"
-                readOnly
-                value={isNameValid ? shareUrl : 'Please enter student name above to generate share link...'}
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-stone-400 font-mono select-all outline-none truncate backdrop-blur-xs"
-              />
-              <button
-                id="btn-copy-share-link"
-                onClick={handleCopyLink}
-                disabled={!isNameValid}
-                className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-lg cursor-pointer ${
-                  !isNameValid
-                    ? 'bg-stone-800 text-stone-500 cursor-not-allowed opacity-50'
-                    : copied
-                    ? 'bg-emerald-500 text-stone-950 font-black shadow-emerald-950/40'
-                    : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 font-black shadow-orange-950/40'
-                }`}
-              >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? 'Copied!' : 'Copy Link'}</span>
-              </button>
-            </div>
+            <input
+              id="input-share-student-name"
+              type="text"
+              value={localName}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="Enter your full name (required)"
+              className="w-full bg-stone-900/90 border border-white/20 focus:border-orange-400 rounded-xl px-3 py-2 text-xs text-stone-100 outline-none backdrop-blur-xs transition-all placeholder:text-stone-500"
+            />
             {!isNameValid && (
               <p className="text-[10px] text-amber-400 font-medium italic">
-                * Student name entry is required before copying the link or exporting the PDF.
+                * Student name entry is required before copying the code or exporting the PDF.
               </p>
             )}
+          </div>
+
+          {/* Student Assignment Code Section (Google Apps Script / Classroom Compatible) */}
+          <div className="p-4 bg-teal-500/10 border border-teal-500/30 rounded-2xl space-y-3 backdrop-blur-md">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-teal-300 flex items-center gap-1.5">
+                <FileCheck className="w-4 h-4 text-teal-400" />
+                Student Assignment Code (Apps Script / Classroom)
+              </span>
+            </div>
+            <p className="text-[11px] text-stone-300">
+              Copy this code and paste it into your Google Classroom assignment or send it to your teacher.
+            </p>
+
+            <div className="space-y-2">
+              <textarea
+                id="textarea-student-code"
+                readOnly
+                rows={3}
+                value={isNameValid ? studentCode : 'Please enter student name above to generate code string...'}
+                className="w-full bg-stone-900/90 border border-white/20 rounded-xl p-2.5 text-[11px] text-teal-300 font-mono select-all outline-none resize-none backdrop-blur-xs"
+                placeholder="Student code string..."
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-stone-400">
+                  {isNameValid ? 'Self-contained compressed string with tamper-proof signature' : 'Name required'}
+                </span>
+                <button
+                  id="btn-copy-student-code"
+                  onClick={handleCopyCode}
+                  disabled={!isNameValid}
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-lg cursor-pointer ${
+                    !isNameValid
+                      ? 'bg-stone-800 text-stone-500 cursor-not-allowed opacity-50'
+                      : codeCopied
+                      ? 'bg-emerald-500 text-stone-950 font-black shadow-emerald-950/40'
+                      : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-stone-950 font-black shadow-teal-950/40'
+                  }`}
+                >
+                  {codeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{codeCopied ? 'Code Copied!' : 'Copy Code'}</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Primary Action: Export Stage Plot & Grading Report PDF */}
@@ -236,6 +262,47 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
                 * Please enter your student name above to enable PDF export.
               </p>
             )}
+          </div>
+
+          {/* Teacher Code Check Section (Orange Theme) */}
+          <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-2xl space-y-3 backdrop-blur-md">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-orange-300 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-orange-400" />
+                Teacher Code Check
+              </span>
+            </div>
+            <p className="text-[11px] text-stone-300">
+              Paste student code below to instantly verify their assignment grade and inspect their stage plot.
+            </p>
+
+            <div className="space-y-2">
+              <textarea
+                id="textarea-teacher-code-input"
+                rows={2}
+                value={teacherCodeInput}
+                onChange={(e) => {
+                  setTeacherCodeInput(e.target.value);
+                  if (verificationError) setVerificationError(null);
+                }}
+                placeholder="Paste Student Code..."
+                className="w-full bg-stone-900/90 border border-white/25 focus:border-orange-400 rounded-xl p-2.5 text-[11px] text-orange-300 font-mono outline-none resize-none backdrop-blur-xs placeholder:text-stone-500"
+              />
+              {verificationError && (
+                <p className="text-[11px] text-rose-400 font-bold flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{verificationError}</span>
+                </p>
+              )}
+              <button
+                id="btn-verify-student-grade"
+                onClick={handleVerifyGrade}
+                className="w-full py-2.5 px-4 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 font-black text-xs shadow-lg shadow-orange-950/40 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Verify Grade</span>
+              </button>
+            </div>
           </div>
         </div>
 

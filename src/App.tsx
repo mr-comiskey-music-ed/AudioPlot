@@ -32,8 +32,8 @@ import { ModeSwitchModal } from './components/ModeSwitchModal';
 import { ChallengeModal } from './components/ChallengeModal';
 import { PerfectionModal } from './components/PerfectionModal';
 import { GuidedTourModal } from './components/GuidedTourModal';
-import { GoogleDriveSaveModal } from './components/GoogleDriveSaveModal';
 import { MobileDeviceNotice } from './components/MobileDeviceNotice';
+import { VerifiedGradeModal } from './components/VerifiedGradeModal';
 import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES } from './data/challenges';
 import { useUndoRedo, DEFAULT_MASTER_BUS } from './hooks/useUndoRedo';
 
@@ -93,13 +93,31 @@ export default function App() {
   // Modals & Soundcheck state
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isGoogleDriveModalOpen, setIsGoogleDriveModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isIntroModalOpen, setIsIntroModalOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
   const [isPerfectionModalOpen, setIsPerfectionModalOpen] = useState(false);
+  const [verifiedProject, setVerifiedProject] = useState<StudioProjectState | null>(null);
+  const [isVerifiedModalOpen, setIsVerifiedModalOpen] = useState(false);
   const [hasCelebratedA, setHasCelebratedA] = useState(false);
+
+  const handleLoadProject = useCallback((loaded: StudioProjectState) => {
+    setProjectTitle(loaded.title || 'Studio Setup Assignment');
+    setStudentName(loaded.studentName || 'Student');
+    setPeriod(loaded.period || '1');
+    setClassName(loaded.className || 'Audio Production');
+    setEnvironment(loaded.environment || 'recording_studio');
+    resetHistory({
+      placedGear: loaded.placedGear || [],
+      connections: loaded.connections || [],
+      mixerChannels:
+        loaded.mixerChannels && loaded.mixerChannels.length > 0
+          ? loaded.mixerChannels
+          : INITIAL_CHANNELS,
+      masterBus: loaded.masterBus || DEFAULT_MASTER_BUS,
+    });
+  }, [resetHistory]);
 
   const triggerTourIfFirstTime = useCallback(() => {
     const hasSeenTour = localStorage.getItem('audioplot_tour_seen');
@@ -576,7 +594,6 @@ export default function App() {
         environment={environment}
         onEnvironmentChange={handleRequestEnvironmentChange}
         onOpenShareModal={handleOpenShareModal}
-        onOpenGoogleDriveModal={() => setIsGoogleDriveModalOpen(true)}
         onExportPdf={handleExportPdf}
         onOpenGuideModal={() => setIsGuideModalOpen(true)}
         onOpenTour={() => setIsTourOpen(true)}
@@ -646,7 +663,6 @@ export default function App() {
           onUpdateChannel={handleUpdateChannel}
           isPlayingAudio={isPlayingAudio}
           onOpenShareModal={handleOpenShareModal}
-          onOpenGoogleDriveModal={() => setIsGoogleDriveModalOpen(true)}
           onPrintReport={() => printGradingReport(currentProjectState, evaluation)}
           onExportPdf={handleExportPdf}
           onOpenGuideModal={() => setIsGuideModalOpen(true)}
@@ -710,15 +726,20 @@ export default function App() {
         evaluation={evaluation}
         studentName={studentName}
         onUpdateStudentName={setStudentName}
-        onOpenGoogleDriveModal={() => setIsGoogleDriveModalOpen(true)}
+        onVerifyProject={(project) => {
+          setVerifiedProject(project);
+          setIsVerifiedModalOpen(true);
+        }}
       />
 
-      {/* Google Drive Save & Folder Picker Modal */}
-      <GoogleDriveSaveModal
-        isOpen={isGoogleDriveModalOpen}
-        onClose={() => setIsGoogleDriveModalOpen(false)}
-        project={currentProjectState}
-        evaluation={evaluation}
+      {/* Verified Grade Report Modal */}
+      <VerifiedGradeModal
+        isOpen={isVerifiedModalOpen}
+        onClose={() => setIsVerifiedModalOpen(false)}
+        studentName={verifiedProject?.studentName || ''}
+        project={verifiedProject || currentProjectState}
+        evaluation={verifiedProject ? evaluateStudioSetup(verifiedProject.environment || 'recording_studio', verifiedProject.placedGear || [], verifiedProject.connections || [], verifiedProject.mixerChannels || []) : evaluation}
+        onLoadProject={handleLoadProject}
       />
 
       {/* Microphone & Signal Chain Field Guide Modal */}

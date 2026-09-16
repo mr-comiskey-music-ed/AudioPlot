@@ -33,7 +33,6 @@ interface GradingPanelProps {
   onUpdateChannel?: (channelNumber: number, updates: Partial<MixerChannelState>) => void;
   isPlayingAudio?: boolean;
   onOpenShareModal?: () => void;
-  onOpenGoogleDriveModal?: () => void;
   onPrintReport?: () => void;
   onExportPdf?: () => void;
   onOpenGuideModal?: () => void;
@@ -52,7 +51,6 @@ export const GradingPanel: React.FC<GradingPanelProps> = ({
   onUpdateChannel,
   isPlayingAudio = false,
   onOpenShareModal,
-  onOpenGoogleDriveModal,
   onExportPdf,
   isExpanded: propIsExpanded,
   onToggleExpanded,
