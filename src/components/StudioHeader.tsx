@@ -22,7 +22,6 @@ interface StudioHeaderProps {
   environment: EnvironmentMode;
   onEnvironmentChange: (env: EnvironmentMode) => void;
   onOpenShareModal: () => void;
-  onOpenGoogleDriveModal?: () => void;
   onExportPdf?: () => void;
   onOpenGuideModal: () => void;
   onOpenTour?: () => void;
@@ -46,7 +45,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   environment,
   onEnvironmentChange,
   onOpenShareModal,
-  onOpenGoogleDriveModal,
   onExportPdf,
   onOpenGuideModal,
   onOpenTour,
@@ -176,12 +174,12 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
 
 
-          {/* Share / Google Classroom Modal */}
+          {/* Share / Export Modal */}
           <button
             id="btn-share-submit"
             onClick={onOpenShareModal}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30 transition-all cursor-pointer"
-            title="Generate share URL, assign to Google Classroom, export Drive report"
+            title="Generate share URL & export PDF report"
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>Share & Submit</span>

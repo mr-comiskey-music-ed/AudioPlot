@@ -1,6 +1,6 @@
 {
   "name": "AudioPlot",
-  "description": "Interactive music recording studio and live stage setup planner with automated real-time grading, signal chain routing, mixer patching, and Google Classroom / Drive share exports.",
+  "description": "Interactive music recording studio and live stage setup planner with automated real-time grading, signal chain routing, mixer patching, and share links or PDF exports.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
