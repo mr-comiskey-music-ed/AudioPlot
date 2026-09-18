@@ -7,8 +7,6 @@ import {
   Sliders,
   Trophy,
   Sparkles,
-  Undo2,
-  Redo2,
 } from 'lucide-react';
 import { EnvironmentMode } from '../types';
 import { AppLogo } from './AppLogo';
@@ -53,10 +51,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onOpenChallengeModal,
   activeChallengeId,
   onResetPlot,
-  onUndo,
-  onRedo,
-  canUndo = false,
-  canRedo = false,
 }) => {
   const appName = 'AudioPlot';
 
@@ -122,40 +116,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
           <div className="h-4 w-px bg-white/10 mx-0.5 hidden md:block" />
 
-          {/* Undo & Redo Controls */}
-          {onUndo && (
-            <button
-              id="btn-header-undo"
-              onClick={onUndo}
-              disabled={!canUndo}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full border backdrop-blur-md transition-all text-xs font-semibold ${
-                canUndo
-                  ? 'bg-white/5 hover:bg-white/15 text-stone-200 hover:text-white border-white/15 cursor-pointer'
-                  : 'bg-white/[0.02] text-stone-600 border-white/5 cursor-not-allowed'
-              }`}
-              title="Undo last change (Ctrl+Z / Cmd+Z)"
-            >
-              <Undo2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Undo</span>
-            </button>
-          )}
 
-          {onRedo && (
-            <button
-              id="btn-header-redo"
-              onClick={onRedo}
-              disabled={!canRedo}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full border backdrop-blur-md transition-all text-xs font-semibold ${
-                canRedo
-                  ? 'bg-white/5 hover:bg-white/15 text-stone-200 hover:text-white border-white/15 cursor-pointer'
-                  : 'bg-white/[0.02] text-stone-600 border-white/5 cursor-not-allowed'
-              }`}
-              title="Redo last undone change (Ctrl+Y / Cmd+Shift+Z)"
-            >
-              <Redo2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Redo</span>
-            </button>
-          )}
 
           {/* Clear Plot Button */}
           <button

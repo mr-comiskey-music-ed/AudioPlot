@@ -13,16 +13,12 @@ import {
   User,
   ShieldCheck,
   AlertTriangle,
-  Link2,
-  ExternalLink,
 } from 'lucide-react';
 import { StudioProjectState, RubricEvaluation } from '../types';
 import {
   exportProjectJson,
   printGradingReport,
   exportStudioPlotToPdf,
-  generateShareUrl,
-  generateGoogleClassroomShareUrl,
   cC,
 } from '../services/shareService';
 
@@ -46,7 +42,6 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
   onVerifyProject,
 }) => {
   const [codeCopied, setCodeCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
   const [localName, setLocalName] = useState(studentName || '');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [pdfStatus, setPdfStatus] = useState<string | null>(null);
@@ -61,11 +56,9 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
 
   const isNameValid = localName.trim().length > 0;
 
-  // Update project studentName temporarily for student code, links, and PDF export
+  // Update project studentName temporarily for student code and PDF export
   const updatedProject = { ...project, studentName: localName };
   const studentCode = isNameValid ? String(cC(updatedProject)) : '';
-  const shareUrl = isNameValid ? generateShareUrl(updatedProject) : '';
-  const classroomUrl = isNameValid ? generateGoogleClassroomShareUrl(updatedProject) : '';
 
   const handleNameChange = (val: string) => {
     setLocalName(val);
@@ -78,17 +71,6 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
       await navigator.clipboard.writeText(studentCode);
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2500);
-    } catch (err) {
-      console.error('Clipboard error:', err);
-    }
-  };
-
-  const handleCopyLink = async () => {
-    if (!isNameValid || !shareUrl) return;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2500);
     } catch (err) {
       console.error('Clipboard error:', err);
     }
@@ -232,62 +214,6 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
                   {codeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   <span>{codeCopied ? 'Code Copied!' : 'Copy Code'}</span>
                 </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Interactive Web Share Link & Google Classroom */}
-          <div className="p-4 bg-sky-500/10 border border-sky-500/30 rounded-2xl space-y-3 backdrop-blur-md">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
-                <Link2 className="w-4 h-4 text-sky-400" />
-                Interactive Web Share Link
-              </span>
-              <span className="text-[10px] font-bold text-sky-400 bg-sky-500/20 border border-sky-500/30 px-2 py-0.5 rounded-full">
-                Direct URL
-              </span>
-            </div>
-            <p className="text-[11px] text-stone-300">
-              Share this web link to let others open and interact with your complete stage plot in their browser.
-            </p>
-
-            <div className="space-y-2">
-              <input
-                id="input-share-url"
-                type="text"
-                readOnly
-                value={isNameValid ? shareUrl : 'Please enter student name above to generate share link...'}
-                className="w-full bg-stone-900/90 border border-white/20 rounded-xl px-3 py-2 text-[11px] text-sky-300 font-mono select-all outline-none backdrop-blur-xs"
-              />
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <button
-                  id="btn-copy-share-url"
-                  onClick={handleCopyLink}
-                  disabled={!isNameValid}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-md cursor-pointer ${
-                    !isNameValid
-                      ? 'bg-stone-800 text-stone-500 cursor-not-allowed opacity-50'
-                      : linkCopied
-                      ? 'bg-emerald-500 text-stone-950 font-black'
-                      : 'bg-sky-500 hover:bg-sky-400 text-stone-950 font-black'
-                  }`}
-                >
-                  {linkCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{linkCopied ? 'Link Copied!' : 'Copy Share Link'}</span>
-                </button>
-
-                {classroomUrl && isNameValid && (
-                  <a
-                    id="link-google-classroom-share"
-                    href={classroomUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 transition-all flex items-center gap-1.5"
-                  >
-                    <span>Google Classroom</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                )}
               </div>
             </div>
           </div>

@@ -140,38 +140,30 @@ export default function App() {
     }
   }, [triggerTourIfFirstTime]);
 
-  // Parse URL hash on initial load and hash changes
+  // Parse URL hash on initial load
   useEffect(() => {
-    const handleHashLoad = () => {
-      const hash = window.location.hash;
-      if (hash && hash.includes('plot=')) {
-        const match = hash.match(/plot=([^&]+)/);
-        if (match && match[1]) {
-          setIsSharedView(true);
-          const rawEncoded = match[1];
-          const loaded =
-            deserializeStudioProject(rawEncoded) ||
-            deserializeStudioProject(decodeURIComponent(rawEncoded));
-          if (loaded) {
-            setProjectTitle(loaded.title || 'Studio Setup Assignment');
-            setStudentName(loaded.studentName || 'Student');
-            setPeriod(loaded.period || '1');
-            setClassName(loaded.className || 'Audio Production');
-            setEnvironment(loaded.environment || 'recording_studio');
-            resetHistory({
-              placedGear: loaded.placedGear || [],
-              connections: loaded.connections || [],
-              mixerChannels:
-                loaded.mixerChannels && loaded.mixerChannels.length > 0
-                  ? loaded.mixerChannels
-                  : INITIAL_CHANNELS,
-              masterBus: loaded.masterBus || DEFAULT_MASTER_BUS,
-            });
-            return;
-          }
-        }
+    const hash = window.location.hash;
+    if (hash && hash.includes('#plot=')) {
+      setIsSharedView(true);
+      const encoded = hash.replace('#plot=', '');
+      const loaded = deserializeStudioProject(encoded);
+      if (loaded) {
+        setProjectTitle(loaded.title || 'Studio Setup Assignment');
+        setStudentName(loaded.studentName || 'Student');
+        setPeriod(loaded.period || '1');
+        setClassName(loaded.className || 'Audio Production');
+        setEnvironment(loaded.environment || 'recording_studio');
+        resetHistory({
+          placedGear: loaded.placedGear || [],
+          connections: loaded.connections || [],
+          mixerChannels:
+            loaded.mixerChannels && loaded.mixerChannels.length > 0
+              ? loaded.mixerChannels
+              : INITIAL_CHANNELS,
+          masterBus: loaded.masterBus || DEFAULT_MASTER_BUS,
+        });
       }
-
+    } else {
       // Default blank workspace
       resetHistory({
         placedGear: [],
@@ -179,11 +171,7 @@ export default function App() {
         mixerChannels: INITIAL_CHANNELS,
         masterBus: DEFAULT_MASTER_BUS,
       });
-    };
-
-    handleHashLoad();
-    window.addEventListener('hashchange', handleHashLoad);
-    return () => window.removeEventListener('hashchange', handleHashLoad);
+    }
   }, [resetHistory]);
 
   // Helper: Derive automatic channel label from connected or latched source
@@ -575,7 +563,6 @@ export default function App() {
       placedGear: [],
       connections: [],
       mixerChannels: INITIAL_CHANNELS,
-      masterBus: DEFAULT_MASTER_BUS,
     });
   };
 
