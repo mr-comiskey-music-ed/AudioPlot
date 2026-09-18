@@ -7,7 +7,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 export default defineConfig(() => {
   return {
     // Relative base ensures internal references resolve cleanly
-    base: './',
+    base: '/AudioPlot/',
     plugins: [react(), tailwindcss(), viteSingleFile()],
     build: {
       // Inlines imported MP3 stems up to 5MB as Base64 data strings
