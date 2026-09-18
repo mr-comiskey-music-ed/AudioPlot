@@ -98,6 +98,33 @@ const GainTrimKnob: React.FC<GainTrimKnobProps> = ({ value = 50, onChange }) => 
     window.addEventListener('mouseup', handleMouseUp);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    setIsDragging(true);
+    dragStartY.current = e.touches[0].clientY;
+    startVal.current = value;
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (moveEvent.touches.length !== 1) return;
+      if (moveEvent.cancelable) moveEvent.preventDefault();
+      const deltaY = dragStartY.current - moveEvent.touches[0].clientY;
+      const deltaVal = Math.round(deltaY / 1.5);
+      const nextVal = Math.max(0, Math.min(100, startVal.current + deltaVal));
+      onChange(nextVal);
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+    };
+
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchEnd);
+  };
+
   const handleDoubleClick = () => {
     onChange(72);
   };
@@ -124,6 +151,7 @@ const GainTrimKnob: React.FC<GainTrimKnobProps> = ({ value = 50, onChange }) => 
       </div>
       <div
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         onDoubleClick={handleDoubleClick}
         className={`w-7 h-7 rounded-full bg-stone-900 border-2 flex items-center justify-center cursor-ns-resize shadow-md transition-all relative ${
           isDragging
@@ -188,6 +216,33 @@ const PanKnob: React.FC<PanKnobProps> = ({ value, onChange }) => {
     window.addEventListener('mouseup', handleMouseUp);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    setIsDragging(true);
+    dragStartY.current = e.touches[0].clientY;
+    startVal.current = value;
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      if (moveEvent.touches.length !== 1) return;
+      if (moveEvent.cancelable) moveEvent.preventDefault();
+      const deltaY = dragStartY.current - moveEvent.touches[0].clientY;
+      const deltaVal = Math.round(deltaY / 1.5);
+      const nextVal = Math.max(-50, Math.min(50, startVal.current + deltaVal));
+      onChange(nextVal);
+    };
+
+    const handleTouchEnd = () => {
+      setIsDragging(false);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+    };
+
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchEnd);
+  };
+
   const handleDoubleClick = () => {
     onChange(0);
   };
@@ -212,6 +267,7 @@ const PanKnob: React.FC<PanKnobProps> = ({ value, onChange }) => {
       </div>
       <div
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         onDoubleClick={handleDoubleClick}
         className={`w-7 h-7 rounded-full bg-stone-900 border-2 flex items-center justify-center cursor-ns-resize shadow-md transition-all relative ${
           isDragging
