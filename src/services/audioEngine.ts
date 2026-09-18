@@ -1,29 +1,49 @@
+import * as Tone from 'tone';
 import { PlacedGear, MixerChannelState, CableConnection, EnvironmentMode, MasterBusState } from '../types';
 import { validateChannelSignalChain } from './gradingEngine';
 
+// Direct ES module imports of all compressed soundcheck MP3 stems
+import acousticGuitarAudio from '../assets/soundcheck/Acoustic Guitar.mp3';
+import acousticPianoAudio from '../assets/soundcheck/Acoustic Piano.mp3';
+import bassGuitarAudio from '../assets/soundcheck/Bass Guitar.mp3';
+import celloAudio from '../assets/soundcheck/Cello.mp3';
+import choirAudio from '../assets/soundcheck/Choir.mp3';
+import cymbalsOverheadsAudio from '../assets/soundcheck/Cymbals_Overheads.mp3';
+import doubleBassAudio from '../assets/soundcheck/Double Bass.mp3';
+import electricGuitarAudio from '../assets/soundcheck/Electric Guitar.mp3';
+import fluteAudio from '../assets/soundcheck/Flute.mp3';
+import keyboardAudio from '../assets/soundcheck/Keyboard.mp3';
+import kickDrumAudio from '../assets/soundcheck/Kick Drum.mp3';
+import saxophoneAudio from '../assets/soundcheck/Saxophone.mp3';
+import snareDrumAudio from '../assets/soundcheck/Snare Drum.mp3';
+import tomDrumAudio from '../assets/soundcheck/Tom Drum.mp3';
+import trumpetAudio from '../assets/soundcheck/Trumpet.mp3';
+import violinAudio from '../assets/soundcheck/Violin.mp3';
+import voiceAudio from '../assets/soundcheck/Voice.mp3';
+
 /**
  * Mapping of all 17 studio and stage instrument sources to their corresponding
- * multitrack WAV audio files in /public/audio/
+ * compressed soundcheck MP3 stems.
  */
 export const INSTRUMENT_AUDIO_FILES: Record<string, string> = {
-  inst_voice: '/audio/Voice.wav',
-  inst_acoustic_guitar: '/audio/Acoustic%20Guitar.wav',
-  inst_electric_guitar: '/audio/Electric%20Guitar.wav',
-  inst_acoustic_piano: '/audio/Acoustic%20Piano.wav',
-  inst_keyboard: '/audio/Keyboard.wav',
-  inst_bass_guitar: '/audio/Bass%20Guitar.wav',
-  inst_kick_drum: '/audio/Kick%20Drum.wav',
-  inst_snare_drum: '/audio/Snare%20Drum.wav',
-  inst_tom_drum: '/audio/Tom%20Drum.wav',
-  inst_hi_hat: '/audio/Cymbals_Overheads.wav',
-  inst_drum_cymbals: '/audio/Cymbals_Overheads.wav',
-  inst_violin: '/audio/Violin.wav',
-  inst_cello: '/audio/Cello.wav',
-  inst_double_bass: '/audio/Double%20Bass.wav',
-  inst_trumpet: '/audio/Trumpet.wav',
-  inst_saxophone: '/audio/Saxophone.wav',
-  inst_flute: '/audio/Flute.wav',
-  inst_choir: '/audio/Choir.wav',
+  inst_voice: voiceAudio,
+  inst_acoustic_guitar: acousticGuitarAudio,
+  inst_electric_guitar: electricGuitarAudio,
+  inst_acoustic_piano: acousticPianoAudio,
+  inst_keyboard: keyboardAudio,
+  inst_bass_guitar: bassGuitarAudio,
+  inst_kick_drum: kickDrumAudio,
+  inst_snare_drum: snareDrumAudio,
+  inst_tom_drum: tomDrumAudio,
+  inst_hi_hat: cymbalsOverheadsAudio,
+  inst_drum_cymbals: cymbalsOverheadsAudio,
+  inst_violin: violinAudio,
+  inst_cello: celloAudio,
+  inst_double_bass: doubleBassAudio,
+  inst_trumpet: trumpetAudio,
+  inst_saxophone: saxophoneAudio,
+  inst_flute: fluteAudio,
+  inst_choir: choirAudio,
 };
 
 interface ActiveTrackNode {
@@ -32,6 +52,9 @@ interface ActiveTrackNode {
   analyserNode: AnalyserNode;
   pannerNode: StereoPannerNode | null;
 }
+
+// 4-bar musical loop duration at 90 BPM (511,998 samples at 48kHz = 10.666625 seconds)
+export const LOOP_DURATION_SECONDS = 511998 / 48000;
 
 class StudioAudioEngine {
   private ctx: AudioContext | null = null;
@@ -45,9 +68,10 @@ class StudioAudioEngine {
   private masterLeftAnalyser: AnalyserNode | null = null;
   private masterRightAnalyser: AnalyserNode | null = null;
   
-  // Decoded WAV AudioBuffers cached in memory
+  // Tone.ToneAudioBuffers and decoded AudioBuffers cached in memory
+  private toneAudioBuffers: Tone.ToneAudioBuffers | null = null;
   private audioBuffers: Map<string, AudioBuffer> = new Map();
-  private loadingPromises: Map<string, Promise<AudioBuffer | null>> = new Map();
+  private loadPromise: Promise<void> | null = null;
   
   // Active playing source & routing nodes
   private activeTracks: Map<string, ActiveTrackNode> = new Map();
@@ -69,15 +93,20 @@ class StudioAudioEngine {
     masterBus?: MasterBusState;
   }) | null = null;
 
-  public init() {
-    if (!this.ctx) {
-      const AudioCtxClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      this.ctx = new AudioCtxClass();
+  public async init() {
+    try {
+      await Tone.start();
+    } catch {
+      // Ignore user gesture restrictions on early init
     }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    const rawContext = Tone.getContext().rawContext as AudioContext;
+    this.ctx = rawContext;
+    if (this.ctx && this.ctx.state === 'suspended') {
+      try {
+        await this.ctx.resume();
+      } catch {
+        // Handled on first user click
+      }
     }
     // Eagerly preload all audio tracks
     this.preloadAllAudio();
@@ -94,7 +123,7 @@ class StudioAudioEngine {
 
   private applyMasterGainDirectly() {
     if (!this.ctx || !this.masterGainNode) return;
-    const now = this.ctx.currentTime;
+    const now = Tone.now();
     const master = this.masterBusState;
 
     if (master.muted || master.fader <= 2) {
@@ -122,50 +151,130 @@ class StudioAudioEngine {
   }
 
   /**
-   * Preload and decode all WAV audio files into memory
+   * Trims MP3 encoder delay (~47ms / 2257 samples at 48kHz) and trailing container padding
+   * to produce an exact, gapless, sample-accurate loop matching the musical 4-bar measure (10.666625s at 90 BPM).
+   * Also applies a micro 2.5ms Hann taper at both loop boundaries to eliminate clicks and pops.
    */
-  public async preloadAllAudio(): Promise<void> {
-    const promises = Object.entries(INSTRUMENT_AUDIO_FILES).map(([gearId, url]) =>
-      this.loadAudioBuffer(gearId, url)
+  private prepareSeamlessBuffer(rawBuffer: AudioBuffer): AudioBuffer {
+    // If already trimmed or not an elongated MP3 buffer, return as is
+    if (rawBuffer.duration < 10.70) {
+      return rawBuffer;
+    }
+
+    const ctx = this.ctx || (Tone.getContext().rawContext as AudioContext);
+    if (!ctx) return rawBuffer;
+
+    const sampleRate = rawBuffer.sampleRate;
+    // 2257 samples at 48kHz is standard LAME MP3 encoder delay (~0.04702s)
+    const delaySamples = Math.round((2257 / 48000) * sampleRate);
+    // 511998 samples at 48kHz is the exact 10.666625s 4-bar loop (16 beats at 90 BPM)
+    const targetSamples = Math.min(
+      rawBuffer.length - delaySamples,
+      Math.round((511998 / 48000) * sampleRate)
     );
-    await Promise.all(promises);
+
+    if (targetSamples <= 0) return rawBuffer;
+
+    const seamlessBuffer = ctx.createBuffer(
+      rawBuffer.numberOfChannels,
+      targetSamples,
+      sampleRate
+    );
+
+    const fadeLen = Math.min(Math.round(0.0025 * sampleRate), Math.floor(targetSamples / 20));
+
+    for (let c = 0; c < rawBuffer.numberOfChannels; c++) {
+      const src = rawBuffer.getChannelData(c);
+      const dest = seamlessBuffer.getChannelData(c);
+
+      // Copy the exact musical slice
+      dest.set(src.subarray(delaySamples, delaySamples + targetSamples));
+
+      // Apply seamless micro-fade at boundaries (2.5ms Hann window) to prevent zero-crossing pops
+      for (let i = 0; i < fadeLen; i++) {
+        const t = i / fadeLen;
+        const factor = 0.5 * (1 - Math.cos(Math.PI * t)); // 0 at seam, 1 at fadeLen
+        dest[i] *= factor;
+        dest[targetSamples - 1 - i] *= factor;
+      }
+    }
+
+    return seamlessBuffer;
   }
 
   /**
-   * Load and decode a specific WAV file
+   * Preload and decode all audio files into Tone.ToneAudioBuffers before playback
    */
-  public async loadAudioBuffer(gearId: string, url: string): Promise<AudioBuffer | null> {
+  public async preloadAllAudio(): Promise<void> {
+    if (this.toneAudioBuffers && this.toneAudioBuffers.loaded && this.audioBuffers.size === Object.keys(INSTRUMENT_AUDIO_FILES).length) {
+      return;
+    }
+    if (this.loadPromise) {
+      return this.loadPromise;
+    }
+
+    this.loadPromise = new Promise<void>((resolve) => {
+      let resolved = false;
+      const syncLoadedBuffers = () => {
+        Object.keys(INSTRUMENT_AUDIO_FILES).forEach((gearId) => {
+          if (!this.audioBuffers.has(gearId) && this.toneAudioBuffers?.has(gearId)) {
+            const toneBuffer = this.toneAudioBuffers.get(gearId);
+            if (toneBuffer && toneBuffer.loaded) {
+              const rawBuffer = toneBuffer.get();
+              if (rawBuffer) {
+                this.audioBuffers.set(gearId, this.prepareSeamlessBuffer(rawBuffer));
+              }
+            }
+          }
+        });
+      };
+
+      const finish = () => {
+        if (resolved) return;
+        resolved = true;
+        syncLoadedBuffers();
+        resolve();
+      };
+
+      // Safety timeout: never block audio start for more than 2.5 seconds
+      const timer = setTimeout(finish, 2500);
+
+      this.toneAudioBuffers = new Tone.ToneAudioBuffers(
+        INSTRUMENT_AUDIO_FILES,
+        () => {
+          clearTimeout(timer);
+          finish();
+        }
+      );
+    });
+
+    await this.loadPromise;
+  }
+
+  /**
+   * Load and retrieve a specific decoded AudioBuffer
+   */
+  public async loadAudioBuffer(gearId: string): Promise<AudioBuffer | null> {
     if (this.audioBuffers.has(gearId)) {
       return this.audioBuffers.get(gearId)!;
     }
-    if (this.loadingPromises.has(gearId)) {
-      return this.loadingPromises.get(gearId)!;
-    }
-
-    const loadPromise = (async () => {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status} fetching ${url}`);
+    await this.preloadAllAudio();
+    let buffer = this.audioBuffers.get(gearId) || null;
+    if (!buffer && this.toneAudioBuffers?.has(gearId)) {
+      const toneBuf = this.toneAudioBuffers.get(gearId);
+      if (toneBuf && toneBuf.loaded) {
+        const raw = toneBuf.get();
+        if (raw) {
+          buffer = this.prepareSeamlessBuffer(raw);
+          this.audioBuffers.set(gearId, buffer);
         }
-        const arrayBuf = await res.arrayBuffer();
-        if (!this.ctx) {
-          const AudioCtxClass =
-            window.AudioContext ||
-            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-          this.ctx = new AudioCtxClass();
-        }
-        const audioBuf = await this.ctx.decodeAudioData(arrayBuf);
-        this.audioBuffers.set(gearId, audioBuf);
-        return audioBuf;
-      } catch (err) {
-        console.warn(`[StudioAudioEngine] Failed to load audio file for ${gearId} (${url}):`, err);
-        return null;
       }
-    })();
+    }
+    return buffer;
+  }
 
-    this.loadingPromises.set(gearId, loadPromise);
-    return loadPromise;
+  public getToneAudioBuffers(): Tone.ToneAudioBuffers | null {
+    return this.toneAudioBuffers;
   }
 
   public setStateProvider(
@@ -174,6 +283,7 @@ class StudioAudioEngine {
       mixerChannels: MixerChannelState[];
       connections: CableConnection[];
       environment?: EnvironmentMode;
+      masterBus?: MasterBusState;
     }
   ) {
     this.stateProvider = provider;
@@ -235,8 +345,58 @@ class StudioAudioEngine {
     return this.isPlaying;
   }
 
+  private spawnTrack(gearId: string, startTime: number, offset = 0) {
+    if (!this.ctx || !this.masterGainNode || this.activeTracks.has(gearId)) return;
+    let buffer = this.audioBuffers.get(gearId);
+    if (!buffer && this.toneAudioBuffers?.has(gearId)) {
+      const toneBuf = this.toneAudioBuffers.get(gearId);
+      if (toneBuf && toneBuf.loaded) {
+        const raw = toneBuf.get();
+        if (raw) {
+          buffer = this.prepareSeamlessBuffer(raw);
+          this.audioBuffers.set(gearId, buffer);
+        }
+      }
+    }
+    if (!buffer) return;
+
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    source.loopStart = 0;
+    source.loopEnd = buffer.duration;
+
+    const gainNode = this.ctx.createGain();
+    gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+
+    const analyserNode = this.ctx.createAnalyser();
+    analyserNode.fftSize = 256;
+    analyserNode.smoothingTimeConstant = 0.75;
+
+    let pannerNode: StereoPannerNode | null = null;
+    if (this.ctx.createStereoPanner) {
+      pannerNode = this.ctx.createStereoPanner();
+      pannerNode.pan.setValueAtTime(0, this.ctx.currentTime);
+      source.connect(gainNode);
+      gainNode.connect(analyserNode);
+      analyserNode.connect(pannerNode);
+      pannerNode.connect(this.masterGainNode);
+    } else {
+      source.connect(gainNode);
+      gainNode.connect(analyserNode);
+      analyserNode.connect(this.masterGainNode);
+    }
+
+    if (offset > 0) {
+      source.start(startTime, offset);
+    } else {
+      source.start(startTime);
+    }
+    this.activeTracks.set(gearId, { source, gainNode, analyserNode, pannerNode });
+  }
+
   /**
-   * Start sample-accurate multitrack loop playback of all uploaded WAV tracks.
+   * Start sample-accurate multitrack loop playback of all uploaded soundcheck tracks.
    * All tracks loop in synchrony, with their volume & pan governed in real time
    * by the mixer faders, mutes, solos, and physical microphone & cable patch signal chains.
    */
@@ -246,17 +406,26 @@ class StudioAudioEngine {
     connections: CableConnection[] = [],
     onBeat?: (step: number) => void
   ) {
-    this.init();
-    if (!this.ctx) return;
-    if (this.ctx.state === 'suspended') {
-      await this.ctx.resume();
+    try {
+      await Tone.start();
+    } catch {
+      // AudioContext auto-resume fallback
+    }
+    const rawContext = Tone.getContext().rawContext as AudioContext;
+    this.ctx = rawContext;
+    if (this.ctx && this.ctx.state === 'suspended') {
+      try {
+        await this.ctx.resume();
+      } catch {
+        // Handled by browser
+      }
     }
 
     // Stop any existing tracks
     this.stop();
     this.isPlaying = true;
 
-    // Make sure buffers are being loaded
+    // Make sure all stems are loaded into Tone.ToneAudioBuffers before playback
     await this.preloadAllAudio();
     if (!this.isPlaying || !this.ctx) return;
 
@@ -297,45 +466,13 @@ class StudioAudioEngine {
     // Apply current master gain state
     this.applyMasterGainDirectly();
 
-    // Common loop start time scheduled slightly in advance for sample accuracy
-    this.startTime = this.ctx.currentTime + 0.05;
+    // Common loop start time synchronized with Tone.now() + 0.1 so loops lock in phase
+    const commonStartTime = Tone.now() + 0.1;
+    this.startTime = commonStartTime;
 
-    // Spawn and synchronize all 17 WAV audio tracks
+    // Spawn and synchronize all 17 audio tracks
     Object.entries(INSTRUMENT_AUDIO_FILES).forEach(([gearId]) => {
-      if (!this.ctx || !this.masterGainNode) return;
-      const buffer = this.audioBuffers.get(gearId);
-      if (!buffer) return;
-
-      const source = this.ctx.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-      source.loopStart = 0;
-      source.loopEnd = buffer.duration;
-
-      const gainNode = this.ctx.createGain();
-      // Start silent until current signal chain & mixer validation determines audible gain
-      gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
-
-      const analyserNode = this.ctx.createAnalyser();
-      analyserNode.fftSize = 256;
-      analyserNode.smoothingTimeConstant = 0.75;
-
-      let pannerNode: StereoPannerNode | null = null;
-      if (this.ctx.createStereoPanner) {
-        pannerNode = this.ctx.createStereoPanner();
-        pannerNode.pan.setValueAtTime(0, this.ctx.currentTime);
-        source.connect(gainNode);
-        gainNode.connect(analyserNode);
-        analyserNode.connect(pannerNode);
-        pannerNode.connect(this.masterGainNode);
-      } else {
-        source.connect(gainNode);
-        gainNode.connect(analyserNode);
-        analyserNode.connect(this.masterGainNode);
-      }
-
-      source.start(this.startTime);
-      this.activeTracks.set(gearId, { source, gainNode, analyserNode, pannerNode });
+      this.spawnTrack(gearId, commonStartTime);
     });
 
     // Real-time synchronization loop (30ms interval)
@@ -353,7 +490,29 @@ class StudioAudioEngine {
         current.environment || 'recording_studio'
       );
 
-      const now = this.ctx.currentTime;
+      const now = Tone.now();
+
+      // Catch any track buffer that finished decoding late and spawn it in loop sync
+      Object.keys(INSTRUMENT_AUDIO_FILES).forEach((gearId) => {
+        if (!this.activeTracks.has(gearId)) {
+          let buffer = this.audioBuffers.get(gearId);
+          if (!buffer && this.toneAudioBuffers?.has(gearId)) {
+            const toneBuf = this.toneAudioBuffers.get(gearId);
+            if (toneBuf && toneBuf.loaded) {
+              const raw = toneBuf.get();
+              if (raw) {
+                buffer = this.prepareSeamlessBuffer(raw);
+                this.audioBuffers.set(gearId, buffer);
+              }
+            }
+          }
+          if (buffer) {
+            const elapsed = Math.max(0, now - this.startTime);
+            const loopOffset = elapsed % buffer.duration;
+            this.spawnTrack(gearId, now, loopOffset);
+          }
+        }
+      });
 
       // Update every active track's gain & pan with smooth ramping to prevent clicks
       this.activeTracks.forEach((track, gearId) => {
@@ -384,11 +543,10 @@ class StudioAudioEngine {
       }
       this.applyMasterGainDirectly();
 
-      // Synchronized beat indicator (10.667s loop = 16 8th notes)
+      // Synchronized beat indicator (sample-accurate 4-bar loop at 90 BPM)
       if (onBeat) {
         const elapsed = Math.max(0, now - this.startTime);
-        const loopLength = 10.66667;
-        const progress = (elapsed % loopLength) / loopLength;
+        const progress = (elapsed % LOOP_DURATION_SECONDS) / LOOP_DURATION_SECONDS;
         const step = Math.floor(progress * 16) % 8;
         onBeat(step);
       }
