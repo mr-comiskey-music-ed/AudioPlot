@@ -2,48 +2,29 @@ import * as Tone from 'tone';
 import { PlacedGear, MixerChannelState, CableConnection, EnvironmentMode, MasterBusState } from '../types';
 import { validateChannelSignalChain } from './gradingEngine';
 
-// Direct ES module imports of all compressed soundcheck MP3 stems
-import acousticGuitarAudio from '../assets/soundcheck/Acoustic Guitar.mp3';
-import acousticPianoAudio from '../assets/soundcheck/Acoustic Piano.mp3';
-import bassGuitarAudio from '../assets/soundcheck/Bass Guitar.mp3';
-import celloAudio from '../assets/soundcheck/Cello.mp3';
-import choirAudio from '../assets/soundcheck/Choir.mp3';
-import cymbalsOverheadsAudio from '../assets/soundcheck/Cymbals_Overheads.mp3';
-import doubleBassAudio from '../assets/soundcheck/Double Bass.mp3';
-import electricGuitarAudio from '../assets/soundcheck/Electric Guitar.mp3';
-import fluteAudio from '../assets/soundcheck/Flute.mp3';
-import keyboardAudio from '../assets/soundcheck/Keyboard.mp3';
-import kickDrumAudio from '../assets/soundcheck/Kick Drum.mp3';
-import saxophoneAudio from '../assets/soundcheck/Saxophone.mp3';
-import snareDrumAudio from '../assets/soundcheck/Snare Drum.mp3';
-import tomDrumAudio from '../assets/soundcheck/Tom Drum.mp3';
-import trumpetAudio from '../assets/soundcheck/Trumpet.mp3';
-import violinAudio from '../assets/soundcheck/Violin.mp3';
-import voiceAudio from '../assets/soundcheck/Voice.mp3';
-
 /**
  * Mapping of all 17 studio and stage instrument sources to their corresponding
- * compressed soundcheck MP3 stems.
+ * compressed soundcheck MP3 stems loaded from public/audio/.
  */
 export const INSTRUMENT_AUDIO_FILES: Record<string, string> = {
-  inst_voice: voiceAudio,
-  inst_acoustic_guitar: acousticGuitarAudio,
-  inst_electric_guitar: electricGuitarAudio,
-  inst_acoustic_piano: acousticPianoAudio,
-  inst_keyboard: keyboardAudio,
-  inst_bass_guitar: bassGuitarAudio,
-  inst_kick_drum: kickDrumAudio,
-  inst_snare_drum: snareDrumAudio,
-  inst_tom_drum: tomDrumAudio,
-  inst_hi_hat: cymbalsOverheadsAudio,
-  inst_drum_cymbals: cymbalsOverheadsAudio,
-  inst_violin: violinAudio,
-  inst_cello: celloAudio,
-  inst_double_bass: doubleBassAudio,
-  inst_trumpet: trumpetAudio,
-  inst_saxophone: saxophoneAudio,
-  inst_flute: fluteAudio,
-  inst_choir: choirAudio,
+  inst_voice: '/audio/Voice.mp3',
+  inst_acoustic_guitar: '/audio/Acoustic Guitar.mp3',
+  inst_electric_guitar: '/audio/Electric Guitar.mp3',
+  inst_acoustic_piano: '/audio/Acoustic Piano.mp3',
+  inst_keyboard: '/audio/Keyboard.mp3',
+  inst_bass_guitar: '/audio/Bass Guitar.mp3',
+  inst_kick_drum: '/audio/Kick Drum.mp3',
+  inst_snare_drum: '/audio/Snare Drum.mp3',
+  inst_tom_drum: '/audio/Tom Drum.mp3',
+  inst_hi_hat: '/audio/Cymbals%3AOverheads.mp3',
+  inst_drum_cymbals: '/audio/Cymbals%3AOverheads.mp3',
+  inst_violin: '/audio/Violin.mp3',
+  inst_cello: '/audio/Cello.mp3',
+  inst_double_bass: '/audio/Double Bass.mp3',
+  inst_trumpet: '/audio/Trumpet.mp3',
+  inst_saxophone: '/audio/Saxophone.mp3',
+  inst_flute: '/audio/Flute.mp3',
+  inst_choir: '/audio/Choir.mp3',
 };
 
 interface ActiveTrackNode {
@@ -53,8 +34,8 @@ interface ActiveTrackNode {
   pannerNode: StereoPannerNode | null;
 }
 
-// 4-bar musical loop duration at 90 BPM (511,998 samples at 48kHz = 10.666625 seconds)
-export const LOOP_DURATION_SECONDS = 511998 / 48000;
+// Uniform loop duration across all 17 tracks (10.0 seconds) for sample-accurate sync
+export const LOOP_DURATION_SECONDS = 10.0;
 
 class StudioAudioEngine {
   private ctx: AudioContext | null = null;
@@ -364,7 +345,7 @@ class StudioAudioEngine {
     source.buffer = buffer;
     source.loop = true;
     source.loopStart = 0;
-    source.loopEnd = buffer.duration;
+    source.loopEnd = LOOP_DURATION_SECONDS;
 
     const gainNode = this.ctx.createGain();
     gainNode.gain.setValueAtTime(0, this.ctx.currentTime);

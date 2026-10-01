@@ -1,16 +1,13 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig } from 'vite';
-import { viteSingleFile } from 'vite-plugin-singlefile';
+import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    // Relative base ensures internal references resolve cleanly
-    base: './',
-    plugins: [react(), tailwindcss(), viteSingleFile()],
+    base: '/',
+    plugins: [react(), tailwindcss()],
     build: {
-      // Inlines imported MP3 stems up to 5MB as Base64 data strings
       assetsInlineLimit: 5000000,
     },
     resolve: {
@@ -19,8 +16,10 @@ export default defineConfig(() => {
       },
     },
     server: {
-      // Retained for Google AI Studio environment stability
+      // HMR is disabled in AI Studio via DISABLE_HMR env var.
+      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
+      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   };

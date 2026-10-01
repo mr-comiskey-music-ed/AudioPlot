@@ -140,35 +140,43 @@ export default function App() {
     }
   }, [triggerTourIfFirstTime]);
 
-  // Parse URL hash on initial load and hash changes
+  // Parse URL parameters on initial load and popstate
   useEffect(() => {
-    const handleHashLoad = () => {
-      const hash = window.location.hash;
-      if (hash && hash.includes('plot=')) {
-        const match = hash.match(/plot=([^&]+)/);
-        if (match && match[1]) {
-          setIsSharedView(true);
-          const rawEncoded = match[1];
-          const loaded =
-            deserializeStudioProject(rawEncoded) ||
-            deserializeStudioProject(decodeURIComponent(rawEncoded));
-          if (loaded) {
-            setProjectTitle(loaded.title || 'Studio Setup Assignment');
-            setStudentName(loaded.studentName || 'Student');
-            setPeriod(loaded.period || '1');
-            setClassName(loaded.className || 'Audio Production');
-            setEnvironment(loaded.environment || 'recording_studio');
-            resetHistory({
-              placedGear: loaded.placedGear || [],
-              connections: loaded.connections || [],
-              mixerChannels:
-                loaded.mixerChannels && loaded.mixerChannels.length > 0
-                  ? loaded.mixerChannels
-                  : INITIAL_CHANNELS,
-              masterBus: loaded.masterBus || DEFAULT_MASTER_BUS,
-            });
-            return;
+    const handleUrlLoad = () => {
+      const params = new URLSearchParams(window.location.search);
+      let plotParam = params.get('plot');
+
+      if (!plotParam) {
+        const hash = window.location.hash;
+        if (hash && hash.includes('plot=')) {
+          const match = hash.match(/plot=([^&]+)/);
+          if (match && match[1]) {
+            plotParam = match[1];
           }
+        }
+      }
+
+      if (plotParam) {
+        setIsSharedView(true);
+        const loaded =
+          deserializeStudioProject(plotParam) ||
+          deserializeStudioProject(decodeURIComponent(plotParam));
+        if (loaded) {
+          setProjectTitle(loaded.title || 'Studio Setup Assignment');
+          setStudentName(loaded.studentName || 'Student');
+          setPeriod(loaded.period || '1');
+          setClassName(loaded.className || 'Audio Production');
+          setEnvironment(loaded.environment || 'recording_studio');
+          resetHistory({
+            placedGear: loaded.placedGear || [],
+            connections: loaded.connections || [],
+            mixerChannels:
+              loaded.mixerChannels && loaded.mixerChannels.length > 0
+                ? loaded.mixerChannels
+                : INITIAL_CHANNELS,
+            masterBus: loaded.masterBus || DEFAULT_MASTER_BUS,
+          });
+          return;
         }
       }
 
@@ -181,9 +189,9 @@ export default function App() {
       });
     };
 
-    handleHashLoad();
-    window.addEventListener('hashchange', handleHashLoad);
-    return () => window.removeEventListener('hashchange', handleHashLoad);
+    handleUrlLoad();
+    window.addEventListener('popstate', handleUrlLoad);
+    return () => window.removeEventListener('popstate', handleUrlLoad);
   }, [resetHistory]);
 
   // Helper: Derive automatic channel label from connected or latched source

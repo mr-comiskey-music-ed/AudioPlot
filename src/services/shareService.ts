@@ -29,9 +29,9 @@ export function deserializeStudioProject(encoded: string): StudioProjectState | 
 }
 
 export function generateShareUrl(project: StudioProjectState): string {
-  const hash = serializeStudioProject(project);
+  const encoded = serializeStudioProject(project);
   const baseUrl = window.location.origin + window.location.pathname;
-  return `${baseUrl}#plot=${hash}`;
+  return `${baseUrl}?plot=${encoded}`;
 }
 
 export function generateGoogleClassroomShareUrl(project: StudioProjectState): string {
