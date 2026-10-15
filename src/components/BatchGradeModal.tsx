@@ -55,7 +55,10 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
 
   const entries = result?.entries ?? [];
   const periods = useMemo(
-    () => [...new Set(entries.map((e) => e.project.period || '—'))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    () =>
+      Array.from(new Set<string>(entries.map((e) => e.project.period || '—'))).sort((a: string, b: string) =>
+        a.localeCompare(b, undefined, { numeric: true })
+      ),
     [entries]
   );
 
