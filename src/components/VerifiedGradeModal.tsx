@@ -58,9 +58,6 @@ export const VerifiedGradeModal: React.FC<VerifiedGradeModalProps> = ({
                 <h3 className="text-base font-black text-stone-100">
                   Verified Student Grade Report
                 </h3>
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                  Tamper-Proof Secure ✓
-                </span>
               </div>
               <p className="text-xs text-stone-400">
                 Audio Engineering Assignment Submission Verification

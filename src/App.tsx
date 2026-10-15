@@ -34,6 +34,9 @@ import { PerfectionModal } from './components/PerfectionModal';
 import { GuidedTourModal } from './components/GuidedTourModal';
 import { MobileDeviceNotice } from './components/MobileDeviceNotice';
 import { VerifiedGradeModal } from './components/VerifiedGradeModal';
+import { BatchGradeModal } from './components/BatchGradeModal';
+import { BatchReviewBar } from './components/BatchReviewBar';
+import { parseBatch, BatchParseResult } from './services/batchGrading';
 import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES } from './data/challenges';
 import { useUndoRedo, DEFAULT_MASTER_BUS } from './hooks/useUndoRedo';
 
@@ -102,12 +105,20 @@ export default function App() {
   const [isVerifiedModalOpen, setIsVerifiedModalOpen] = useState(false);
   const [hasCelebratedA, setHasCelebratedA] = useState(false);
 
+  // Batch grading (kept in memory only; nothing is stored)
+  const [isBatchOpen, setIsBatchOpen] = useState(false);
+  const [batchText, setBatchText] = useState('');
+  const [batchResult, setBatchResult] = useState<BatchParseResult | null>(null);
+  const [review, setReview] = useState<{ order: number[]; pos: number } | null>(null);
+  const [savedWorkspace, setSavedWorkspace] = useState<StudioProjectState | null>(null);
+
   const handleLoadProject = useCallback((loaded: StudioProjectState) => {
     setProjectTitle(loaded.title || 'Studio Setup Assignment');
     setStudentName(loaded.studentName || 'Student');
     setPeriod(loaded.period || '1');
     setClassName(loaded.className || 'Audio Production');
     setEnvironment(loaded.environment || 'recording_studio');
+    setActiveChallengeId(loaded.activeChallengeId ?? null);
     resetHistory({
       placedGear: loaded.placedGear || [],
       connections: loaded.connections || [],
@@ -312,6 +323,7 @@ export default function App() {
 
   // Celebrate with confetti on hitting 90%+ (Perfection!)
   useEffect(() => {
+    if (review) return; // no celebrations while the teacher reviews student plots
     if (evaluation.percentage >= 90 && !hasCelebratedA) {
       confetti({
         particleCount: 80,
@@ -325,7 +337,7 @@ export default function App() {
     } else if (evaluation.percentage < 80) {
       setHasCelebratedA(false);
     }
-  }, [evaluation.percentage, hasCelebratedA, activeChallengeId]);
+  }, [evaluation.percentage, hasCelebratedA, activeChallengeId, review]);
 
   // Project state object for sharing & exporting
   const currentProjectState: StudioProjectState = useMemo(() => {
@@ -595,6 +607,26 @@ export default function App() {
     setIsShareModalOpen(true);
   }, []);
 
+  // ---------- Batch review ----------
+  const showReviewAt = (order: number[], pos: number) => {
+    const entry = batchResult?.entries[order[pos]];
+    if (!entry) return;
+    handleLoadProject(entry.project);
+    setSelectedItemId(null);
+    setReview({ order, pos });
+  };
+  const handleStartReview = (order: number[], start: number) => {
+    if (!review) setSavedWorkspace(currentProjectState); // remember the teacher's own work
+    setIsBatchOpen(false);
+    showReviewAt(order, start);
+  };
+  const handleExitReview = () => {
+    if (savedWorkspace) handleLoadProject(savedWorkspace);
+    setSavedWorkspace(null);
+    setReview(null);
+  };
+  const reviewEntry = review && batchResult ? batchResult.entries[review.order[review.pos]] : null;
+
   return (
     <div className="flex flex-col h-screen w-screen bg-[#0c0c11] overflow-hidden text-stone-100 font-sans relative">
       {/* Ambient background illumination */}
@@ -751,7 +783,35 @@ export default function App() {
           setVerifiedProject(project);
           setIsVerifiedModalOpen(true);
         }}
+        onOpenBatchGrade={() => setIsBatchOpen(true)}
       />
+
+      {/* Batch Grading */}
+      <BatchGradeModal
+        isOpen={isBatchOpen}
+        onClose={() => setIsBatchOpen(false)}
+        text={batchText}
+        onTextChange={setBatchText}
+        result={batchResult}
+        onGrade={() => setBatchResult(parseBatch(batchText))}
+        onClear={() => {
+          if (review) handleExitReview();
+          setBatchResult(null);
+          setBatchText('');
+        }}
+        onReview={handleStartReview}
+      />
+      {reviewEntry && review && !isBatchOpen && (
+        <BatchReviewBar
+          entry={reviewEntry}
+          position={review.pos}
+          total={review.order.length}
+          onPrev={() => showReviewAt(review.order, review.pos - 1)}
+          onNext={() => showReviewAt(review.order, review.pos + 1)}
+          onBackToList={() => setIsBatchOpen(true)}
+          onExit={handleExitReview}
+        />
+      )}
 
       {/* Verified Grade Report Modal */}
       <VerifiedGradeModal
