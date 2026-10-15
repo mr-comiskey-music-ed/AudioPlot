@@ -179,7 +179,8 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                     <span>
                       <b>{result.unreadable.length}</b> code{result.unreadable.length > 1 ? 's' : ''} couldn't be read
                       (incomplete, mistyped or edited):{' '}
-                      <span className="font-mono text-amber-300/80">{result.unreadable.join('  ·  ')}</span>
+                      <span className="font-bold text-amber-100">{result.unreadable.join(', ')}</span>. Ask
+                      {result.unreadable.length > 1 ? ' these students' : ' this student'} to copy their code again.
                     </span>
                   </div>
                 )}
@@ -211,7 +212,7 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                           const pct = Math.round((100 * p.studentsMissing) / p.totalApplicable);
                           return (
                             <div key={p.name} className="flex items-center gap-2 text-[11px]">
-                              <span className="w-44 truncate text-stone-200">{p.name}</span>
+                              <span className="w-72 truncate text-stone-200" title={p.name}>{p.name}</span>
                               <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
                                 <div className="h-full bg-sky-400/70" style={{ width: `${pct}%` }} />
                               </div>

@@ -218,7 +218,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             id="btn-share-submit"
             onClick={onOpenShareModal}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30 transition-all cursor-pointer"
-            title="Generate share URL & export PDF report"
+            title="Copy your submission code & export PDF report"
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>Share & Submit</span>

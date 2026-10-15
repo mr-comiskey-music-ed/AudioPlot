@@ -14,7 +14,7 @@ export interface BatchEntry {
 
 export interface BatchParseResult {
   entries: BatchEntry[];
-  unreadable: string[]; // shortened previews of codes that could not be read
+  unreadable: string[]; // the name on that line, or a short preview of the code
   duplicatesRemoved: number;
 }
 
@@ -45,32 +45,35 @@ export function gradeProject(project: StudioProjectState): RubricEvaluation {
  * decode and grade each one.
  */
 export function parseBatch(text: string): BatchParseResult {
-  const tokens = text.split(/[\s,;"'|]+/).filter(Boolean);
   const seen = new Set<string>();
   const unreadable: string[] = [];
   const entries: BatchEntry[] = [];
   let duplicatesRemoved = 0;
 
-  for (const token of tokens) {
-    const looksLikeCode = LOOKS_LIKE_CODE.test(token);
-    if (!looksLikeCode && token.length < LONG_TOKEN) continue; // names, headers, short words
-    if (seen.has(token)) {
-      duplicatesRemoved++;
-      continue;
+  for (const line of text.split(/\r?\n/)) {
+    const tokens = line.split(/[\s,;"'|]+/).filter(Boolean);
+    const candidates = tokens.filter((t) => LOOKS_LIKE_CODE.test(t) || t.length >= LONG_TOKEN);
+    // The rest of the line (usually the student's name) labels a code that can't be read.
+    const label = tokens.filter((t) => !candidates.includes(t)).join(' ').slice(0, 40);
+    for (const token of candidates) {
+      if (seen.has(token)) {
+        duplicatesRemoved++;
+        continue;
+      }
+      seen.add(token);
+      const project = LOOKS_LIKE_CODE.test(token) ? decodeSubmission(token) : null;
+      if (!project) {
+        unreadable.push(label || `code starting ${token.slice(0, 10)}… ending …${token.slice(-6)}`);
+        continue;
+      }
+      entries.push({
+        id: entries.length,
+        project,
+        evaluation: gradeProject(project),
+        challengeTitle: challengeTitle(project.activeChallengeId),
+        hasMultipleSubmissions: false,
+      });
     }
-    seen.add(token);
-    const project = looksLikeCode ? decodeSubmission(token) : null;
-    if (!project) {
-      unreadable.push(token.length > 24 ? `${token.slice(0, 12)}…${token.slice(-8)}` : token);
-      continue;
-    }
-    entries.push({
-      id: entries.length,
-      project,
-      evaluation: gradeProject(project),
-      challengeTitle: challengeTitle(project.activeChallengeId),
-      hasMultipleSubmissions: false,
-    });
   }
 
   const nameCounts = new Map<string, number>();
