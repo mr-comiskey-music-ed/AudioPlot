@@ -1,8 +1,16 @@
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
-import { StudioProjectState, RubricEvaluation, PlacedGear, CableConnection } from '../types';
+import { StudioProjectState, RubricEvaluation, PlacedGear, GearDefinition } from '../types';
 import { getGearById } from '../data/gearCatalog';
+import { getGearBoxDimensions } from '../components/canvas/canvasMath';
 import { calculateXlrCablesCount } from '../utils/cableUtils';
+import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES } from '../data/challenges';
+
+/**
+ * PDF export: a printable stage plot drawn straight from the student's project
+ * data (not a screenshot), plus an input list, equipment list and grade summary.
+ * Laid out like a real stage plot / tech rider. Works the same for a student's
+ * own plot and for a plot the teacher loads from a code.
+ */
 
 export interface PdfExportOptions {
   filename?: string;
@@ -13,823 +21,599 @@ export interface PdfExportOptions {
   download?: boolean;
 }
 
+type RGB = [number, number, number];
+const C = {
+  ink: [17, 24, 39] as RGB,
+  text: [31, 41, 55] as RGB,
+  muted: [107, 114, 128] as RGB,
+  faint: [156, 163, 175] as RGB,
+  line: [209, 213, 219] as RGB,
+  panel: [243, 244, 246] as RGB,
+  white: [255, 255, 255] as RGB,
+  accent: [234, 88, 12] as RGB,
+  good: [5, 150, 105] as RGB,
+  warn: [217, 119, 6] as RGB,
+  bad: [225, 29, 72] as RGB,
+  mic: [30, 41, 59] as RGB,
+  di: [15, 118, 110] as RGB,
+  unpatched: [156, 163, 175] as RGB,
+};
+const CABLE: Record<string, { color: RGB; label: string }> = {
+  xlr: { color: [234, 88, 12], label: 'XLR (mic) cable' },
+  quarter_inch: { color: [2, 132, 199], label: '1/4" instrument cable' },
+  speaker: { color: [22, 163, 74], label: 'Speaker cable' },
+};
+const STAND_LABELS: Record<string, string> = {
+  amp_low: 'Floor / short stand',
+  seated_instrument: 'Seated boom',
+  standing_vocal: 'Standing boom',
+  drum_overhead: 'Overhead boom',
+  clipped: 'Clip-on (no stand)',
+  mounted: 'Mounted (no stand)',
+};
+const NO_STAND = new Set(['clipped', 'mounted']);
+const ALL_CHALLENGES = [...STUDIO_CHALLENGES, ...LIVE_STAGE_CHALLENGES];
+
+const hexToRgb = (hex?: string): RGB => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return [100, 116, 139];
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+const mix = (c: RGB, withWhite: number): RGB => c.map((v) => Math.round(v + (255 - v) * withWhite)) as RGB;
+const darken = (c: RGB, by: number): RGB => c.map((v) => Math.round(v * (1 - by))) as RGB;
+const humanize = (id?: string) => (id ? id.replace(/_/g, ' ').replace(/^\w/, (ch) => ch.toUpperCase()) : '');
+const isMarker = (def?: GearDefinition) => def?.category === 'microphone' || def?.category === 'di_box';
+
+// ---------- Project helpers ----------
+function gearName(item: PlacedGear | undefined) {
+  if (!item) return '';
+  const def = getGearById(item.gearId);
+  return item.label?.trim() || def?.name || item.gearId;
+}
+
+/** Input channel for a mic/DI: from the snake cable, the mixer, or the gear itself. */
+function channelOf(project: StudioProjectState, item: PlacedGear): number | null {
+  const viaSnake = (project.connections || []).find(
+    (c) =>
+      (c.fromInstanceId === item.instanceId && c.toInstanceId.startsWith('snake_in_')) ||
+      (c.toInstanceId === item.instanceId && c.fromInstanceId.startsWith('snake_in_'))
+  );
+  if (viaSnake) {
+    const id = viaSnake.toInstanceId.startsWith('snake_in_') ? viaSnake.toInstanceId : viaSnake.fromInstanceId;
+    const n = parseInt(id.replace('snake_in_', ''), 10);
+    if (!Number.isNaN(n)) return n;
+  }
+  const ch = (project.mixerChannels || []).find((c) => c.assignedGearInstanceId === item.instanceId);
+  if (ch) return ch.channelNumber;
+  return item.assignedChannel ?? null;
+}
+
+/** What a mic or DI is picking up: its latched source, or an instrument cabled into it. */
+function sourceOf(project: StudioProjectState, item: PlacedGear): PlacedGear | undefined {
+  const gear = project.placedGear || [];
+  if (item.latchedSourceInstanceId) return gear.find((g) => g.instanceId === item.latchedSourceInstanceId);
+  const conn = (project.connections || []).find(
+    (c) =>
+      (c.toInstanceId === item.instanceId || c.fromInstanceId === item.instanceId) && c.cableType === 'quarter_inch'
+  );
+  const otherId = conn ? (conn.toInstanceId === item.instanceId ? conn.fromInstanceId : conn.toInstanceId) : null;
+  return otherId ? gear.find((g) => g.instanceId === otherId) : undefined;
+}
+
+function boxDims(project: StudioProjectState, item: PlacedGear) {
+  const src = item.latchedSourceInstanceId
+    ? (project.placedGear || []).find((g) => g.instanceId === item.latchedSourceInstanceId)
+    : undefined;
+  const onDrum = !!src && (src.gearId.includes('drum') || src.gearId === 'inst_hi_hat');
+  return getGearBoxDimensions(item.gearId, !!item.latchedSourceInstanceId, item.customScale, item.customWidth, item.customHeight, onDrum);
+}
+
+// ---------- Main ----------
 export async function generateStudioPlotPdf(
   project: StudioProjectState,
   evaluation: RubricEvaluation,
   options: PdfExportOptions = {}
 ): Promise<{ doc: jsPDF; blob: Blob; filename: string }> {
-  const {
-    filename,
-    includeGradingRubric = true,
-    includePatchList = true,
-    includeEquipmentManifest = true,
-    onProgress,
-  } = options;
+  const { filename, includeGradingRubric = true, includePatchList = true, includeEquipmentManifest = true, onProgress } = options;
+  onProgress?.('Drawing stage plot...');
 
-  onProgress?.('Capturing visual stage plot...');
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+  const isStudio = project.environment !== 'live_stage';
+  const student = project.studentName?.trim() || 'Student';
+  const title = project.title?.trim() || (isStudio ? 'Studio Recording Session Plot' : 'Live Stage Plot');
+  const challenge = project.activeChallengeId
+    ? ALL_CHALLENGES.find((c) => c.id === project.activeChallengeId)?.title ?? 'Challenge'
+    : null;
+  const dateStr = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
-  // 1. Capture Stage Canvas Snapshot
-  let canvasImageBase64: string | null = null;
-  const canvasElement = document.getElementById('studio-canvas-container');
-
-  if (canvasElement) {
-    try {
-      const canvas = await html2canvas(canvasElement, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#0c0c11',
-        ignoreElements: (element) => {
-          if (
-            element.id === 'signal-flow-hud' ||
-            element.id === 'cable-hooks-dock' ||
-            element.classList.contains('no-pdf-capture')
-          ) {
-            return true;
-          }
-          return false;
-        },
-      });
-      canvasImageBase64 = canvas.toDataURL('image/png', 0.95);
-    } catch (err) {
-      console.warn('Canvas DOM capture error, using programmatic plot renderer fallback:', err);
-    }
-  }
-
-  // Programmatic fallback if html2canvas is unavailable or blocked
-  if (!canvasImageBase64) {
-    try {
-      const plotCanvas = document.createElement('canvas');
-      plotCanvas.width = 1200;
-      plotCanvas.height = 800;
-      const ctx = plotCanvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = '#0c0c11';
-        ctx.fillRect(0, 0, plotCanvas.width, plotCanvas.height);
-
-        const isStudio = project.environment === 'recording_studio';
-        ctx.fillStyle = isStudio ? '#171310' : '#0d0c0b';
-        ctx.fillRect(25, 25, plotCanvas.width - 50, plotCanvas.height - 50);
-
-        ctx.strokeStyle = isStudio ? '#D97706' : '#6366F1';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(25, 25, plotCanvas.width - 50, plotCanvas.height - 50);
-
-        if (isStudio) {
-          ctx.fillStyle = '#0284C7';
-          ctx.globalAlpha = 0.3;
-          ctx.fillRect(plotCanvas.width / 2 - 220, plotCanvas.height - 45, 440, 24);
-          ctx.globalAlpha = 1.0;
-          ctx.strokeStyle = '#38BDF8';
-          ctx.strokeRect(plotCanvas.width / 2 - 220, plotCanvas.height - 45, 440, 24);
-          ctx.fillStyle = '#38BDF8';
-          ctx.font = 'bold 13px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('CONTROL ROOM WINDOW', plotCanvas.width / 2, plotCanvas.height - 29);
-        } else {
-          ctx.fillStyle = '#71717A';
-          ctx.font = 'bold 12px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('UPSTAGE BACKDROP', plotCanvas.width / 2, 45);
-          ctx.fillStyle = '#A5B4FC';
-          ctx.fillText('AUDIENCE / FRONT-OF-HOUSE', plotCanvas.width / 2, plotCanvas.height - 30);
-        }
-
-        // Draw cables
-        const conns = project.connections || [];
-        conns.forEach((conn) => {
-          const fromGear = project.placedGear.find(g => g.instanceId === conn.fromInstanceId);
-          const toGear = project.placedGear.find(g => g.instanceId === conn.toInstanceId);
-          if (fromGear && toGear) {
-            ctx.beginPath();
-            ctx.moveTo(fromGear.x + 50, fromGear.y + 35);
-            ctx.lineTo(toGear.x + 50, toGear.y + 35);
-            ctx.strokeStyle = conn.cableType === 'xlr' ? '#38bdf8' : conn.cableType === 'quarter_inch' ? '#f97316' : '#a855f7';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-          }
-        });
-
-        // Draw placed gear
-        project.placedGear.forEach((item) => {
-          const def = getGearById(item.gearId);
-          const gx = item.x || 100;
-          const gy = item.y || 100;
-          const gw = item.customWidth || def?.size?.width || 110;
-          const gh = item.customHeight || def?.size?.height || 75;
-
-          ctx.fillStyle = '#1e293b';
-          ctx.strokeStyle = '#475569';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.roundRect(gx, gy, gw, gh, 8);
-          ctx.fill();
-          ctx.stroke();
-
-          ctx.fillStyle = '#3b82f6';
-          ctx.fillRect(gx, gy, gw, 22);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 11px sans-serif';
-          ctx.textAlign = 'left';
-          ctx.fillText(def?.name ? (def.name.length > 15 ? def.name.substring(0, 13) + '...' : def.name) : item.gearId, gx + 8, gy + 15);
-
-          ctx.fillStyle = '#cbd5e1';
-          ctx.font = '10px sans-serif';
-          ctx.fillText(def?.model || 'Device', gx + 8, gy + 40);
-
-          if (item.standHeight) {
-            ctx.fillStyle = '#fbbf24';
-            ctx.font = '9px sans-serif';
-            ctx.fillText(`Stand: ${item.standHeight}`, gx + 8, gy + 56);
-          }
-
-          const assignedCh = item.assignedChannel || project.mixerChannels.find(c => c.assignedGearInstanceId === item.instanceId)?.channelNumber;
-          if (assignedCh) {
-            ctx.fillStyle = '#34d399';
-            ctx.font = 'bold 10px sans-serif';
-            ctx.fillText(`CH ${assignedCh}`, gx + gw - 45, gy + gh - 8);
-          }
-        });
-
-        canvasImageBase64 = plotCanvas.toDataURL('image/png', 0.95);
-      }
-    } catch (fallbackErr) {
-      console.warn('Programmatic plot renderer fallback error:', fallbackErr);
-    }
-  }
-
-  onProgress?.('Generating PDF document...');
-
-  // Initialize jsPDF (Portrait Letter: 8.5 x 11 inches -> 215.9 x 279.4 mm)
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'letter',
-  });
-
-  const pageWidth = doc.internal.pageSize.getWidth(); // ~215.9 mm
-  const pageHeight = doc.internal.pageSize.getHeight(); // ~279.4 mm
-  const marginX = 14;
-  const contentWidth = pageWidth - marginX * 2; // ~187.9 mm
-  let currentY = 14;
-
-  // Color Palette Constants
-  const colors = {
-    darkNavy: [15, 23, 42] as [number, number, number], // #0f172a
-    charcoal: [30, 41, 59] as [number, number, number], // #1e293b
-    orangeAccent: [234, 88, 12] as [number, number, number], // #ea580c
-    orangeLight: [255, 237, 213] as [number, number, number], // #ffedd5
-    emerald: [5, 150, 105] as [number, number, number], // #059669
-    emeraldBg: [236, 253, 245] as [number, number, number], // #ecfdf5
-    amber: [217, 119, 6] as [number, number, number], // #d97706
-    amberBg: [254, 243, 199] as [number, number, number], // #fef3c7
-    rose: [225, 29, 72] as [number, number, number], // #e11d48
-    roseBg: [255, 228, 230] as [number, number, number], // #ffe4e6
-    lightGray: [248, 250, 252] as [number, number, number], // #f8fafc
-    borderGray: [226, 232, 240] as [number, number, number], // #e2e8f0
-    textMuted: [100, 116, 139] as [number, number, number], // #64748b
-    textDark: [15, 23, 42] as [number, number, number],
+  const setText = (size: number, color: RGB = C.text, style: 'normal' | 'bold' | 'italic' = 'normal') => {
+    doc.setFont('helvetica', style);
+    doc.setFontSize(size);
+    doc.setTextColor(...color);
   };
 
-  // Helper: Draw Header Bar
-  const drawPageHeader = (pageNum: number, totalPages: number) => {
-    doc.setFillColor(...colors.darkNavy);
-    doc.rect(0, 0, pageWidth, 5, 'F');
-  };
+  // ======================= PAGE 1: STAGE PLOT (landscape) =======================
+  let W = doc.internal.pageSize.getWidth();
+  let H = doc.internal.pageSize.getHeight();
+  const M = 12;
 
-  // Helper: Draw Footer Bar & Page Numbers
-  const drawPageFooter = (pageNum: number, totalPages: number) => {
-    const footerY = pageHeight - 9;
-    doc.setDrawColor(...colors.borderGray);
-    doc.setLineWidth(0.3);
-    doc.line(marginX, footerY - 2, pageWidth - marginX, footerY - 2);
+  // Header
+  setText(16, C.ink, 'bold');
+  doc.text(title, M, M + 4);
+  setText(9, C.muted);
+  const sub = [
+    student,
+    project.period ? `Period ${project.period}` : '',
+    isStudio ? 'Recording Studio' : 'Live Stage',
+    challenge || '',
+    dateStr,
+  ]
+    .filter(Boolean)
+    .join('   •   ');
+  doc.text(sub, M, M + 10);
+  const scoreColor = evaluation.percentage >= 90 ? C.good : evaluation.percentage >= 70 ? C.warn : C.bad;
+  doc.setFillColor(...scoreColor);
+  doc.roundedRect(W - M - 34, M - 2, 34, 13, 2, 2, 'F');
+  setText(12, C.white, 'bold');
+  doc.text(`${evaluation.percentage}%  ${evaluation.gradeLetter}`, W - M - 17, M + 6.3, { align: 'center' });
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(...colors.textMuted);
-    doc.text(
-      `AudioPlot • Educational Audio Engineering Platform • Generated: ${new Date().toLocaleString()}`,
-      marginX,
-      footerY + 2
-    );
+  // Frame
+  const fx = M, fy = M + 15, fw = W - 2 * M, fh = H - fy - 26;
+  doc.setDrawColor(...C.line);
+  doc.setLineWidth(0.4);
+  doc.setFillColor(252, 252, 253);
+  doc.roundedRect(fx, fy, fw, fh, 2, 2, 'FD');
 
-    const pageStr = `Page ${pageNum} of ${totalPages}`;
-    doc.text(pageStr, pageWidth - marginX - doc.getTextWidth(pageStr), footerY + 2);
-  };
-
-  // -------------------------------------------------------------
-  // PAGE 1: Title, Metadata, Score Card, Visual Plot, Packing Totals
-  // -------------------------------------------------------------
-  drawPageHeader(1, 2);
-
-  // Top Header Banner
-  doc.setFillColor(...colors.darkNavy);
-  doc.roundedRect(marginX, currentY, contentWidth, 24, 2, 2, 'F');
-
-  // App Brand & Project Title
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  const displayTitle = project.title?.trim() || 'Studio Recording Session Plot';
-  doc.text(displayTitle, marginX + 6, currentY + 8);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(203, 213, 225);
-  const envLabel =
-    project.environment === 'recording_studio'
-      ? 'Recording Studio Tracking Session'
-      : 'Live Concert Stage Plot & PA System';
-  doc.text(`AudioPlot Engineering Specification & Diagnostics • ${envLabel}`, marginX + 6, currentY + 14);
-
-  // Score Badge in Header (Right Side)
-  const isScoreA = evaluation.percentage >= 90;
-  const isScoreB = evaluation.percentage >= 80 && evaluation.percentage < 90;
-  const badgeColor = isScoreA ? colors.emerald : isScoreB ? colors.amber : colors.rose;
-
-  doc.setFillColor(...badgeColor);
-  doc.roundedRect(pageWidth - marginX - 38, currentY + 3.5, 33, 17, 2, 2, 'F');
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text(`${evaluation.percentage}% (${evaluation.gradeLetter})`, pageWidth - marginX - 21.5, currentY + 10, {
-    align: 'center',
-  });
-  doc.setFontSize(6.5);
-  doc.setFont('helvetica', 'normal');
-  doc.text('SCORE VERIFIED', pageWidth - marginX - 21.5, currentY + 15.5, { align: 'center' });
-
-  currentY += 27;
-
-  // Metadata Grid (4 Columns)
-  doc.setFillColor(...colors.lightGray);
-  doc.setDrawColor(...colors.borderGray);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(marginX, currentY, contentWidth, 14, 1.5, 1.5, 'FD');
-
-  const metaColWidth = contentWidth / 4;
-  const studentDisplay = project.studentName?.trim() || 'Student Engineer';
-  const sessionDisplay = project.title?.trim() || 'Recording Session Plot';
-  const dateDisplay = new Date().toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-
-  const metadataItems = [
-    { label: 'STUDENT ENGINEER', val: studentDisplay },
-    { label: 'SESSION TITLE', val: sessionDisplay },
-    { label: 'DATE GENERATED', val: dateDisplay },
-    {
-      label: 'PLOT SUMMARY',
-      val: `${project.placedGear.length} Gear • ${project.connections.length} Patches`,
-    },
+  // Snake (top center) with input sockets 1..8 and, on stage, outputs
+  const inputs = Math.max(8, (project.mixerChannels || []).length);
+  const outputs = isStudio ? [] : [
+    { id: 'snake_out_mon1', label: 'MON 1' },
+    { id: 'snake_out_mon2', label: 'MON 2' },
+    { id: 'snake_out_main_l', label: 'MAIN L' },
+    { id: 'snake_out_main_r', label: 'MAIN R' },
   ];
-
-  metadataItems.forEach((item, index) => {
-    const colX = marginX + index * metaColWidth + 3;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6);
-    doc.setTextColor(...colors.textMuted);
-    doc.text(item.label, colX, currentY + 4.5);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(...colors.textDark);
-    doc.text(doc.splitTextToSize(item.val, metaColWidth - 5)[0] || item.val, colX, currentY + 10);
+  const sockW = 8.5, outW = 12;
+  const snakeW = 8 + inputs * sockW + (outputs.length ? 4 + outputs.length * outW : 0);
+  const snakeX = fx + (fw - snakeW) / 2, snakeY = fy + 4, snakeH = 15;
+  doc.setFillColor(...C.panel);
+  doc.setDrawColor(...C.faint);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(snakeX, snakeY, snakeW, snakeH, 1.5, 1.5, 'FD');
+  setText(6, C.muted, 'bold');
+  doc.text(isStudio ? 'STUDIO SNAKE (INPUTS)' : 'STAGE SNAKE', snakeX + snakeW / 2, snakeY + 3.4, { align: 'center' });
+  const socketPos = new Map<string, { x: number; y: number }>();
+  for (let n = 1; n <= inputs; n++) {
+    const cx = snakeX + 4 + sockW * (n - 0.5), cy = snakeY + 9.5;
+    socketPos.set(`snake_in_${n}`, { x: cx, y: cy + 3 });
+    doc.setFillColor(...C.white);
+    doc.setDrawColor(...C.faint);
+    doc.circle(cx, cy, 3, 'FD');
+    setText(7, C.ink, 'bold');
+    doc.text(String(n), cx, cy + 1.2, { align: 'center' });
+  }
+  outputs.forEach((o, i) => {
+    const ox = snakeX + 8 + inputs * sockW + i * outW, oy = snakeY + 6.5;
+    socketPos.set(o.id, { x: ox + (outW - 2) / 2, y: oy + 6 });
+    doc.setFillColor(...C.white);
+    doc.roundedRect(ox, oy, outW - 2, 6, 1, 1, 'FD');
+    setText(5, C.ink, 'bold');
+    doc.text(o.label, ox + (outW - 2) / 2, oy + 3.9, { align: 'center' });
   });
 
-  currentY += 17;
-
-  // VISUAL STAGE PLOT SNAPSHOT SECTION
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9.5);
-  doc.setTextColor(...colors.textDark);
-  doc.text('1. Stage & Floor Plan Layout Blueprint', marginX, currentY);
-
-  currentY += 3;
-
-  if (canvasImageBase64) {
-    const plotBoxHeight = 85;
-    doc.setDrawColor(...colors.darkNavy);
-    doc.setLineWidth(0.6);
-    doc.setFillColor(12, 12, 17);
-    doc.roundedRect(marginX, currentY, contentWidth, plotBoxHeight, 2, 2, 'FD');
-
-    // Add Image to PDF
-    doc.addImage(
-      canvasImageBase64,
-      'PNG',
-      marginX + 1,
-      currentY + 1,
-      contentWidth - 2,
-      plotBoxHeight - 2,
-      undefined,
-      'FAST'
-    );
-
-    // Caption underneath
-    currentY += plotBoxHeight + 3;
+  // Room orientation labels
+  setText(7, C.muted, 'bold');
+  if (isStudio) {
+    doc.setFillColor(224, 242, 254);
+    doc.rect(fx + fw / 2 - 45, fy + fh - 6, 90, 4.5, 'F');
+    setText(6.5, [3, 105, 161], 'bold');
+    doc.text('CONTROL ROOM WINDOW', fx + fw / 2, fy + fh - 2.7, { align: 'center' });
   } else {
-    // Fallback if image capture is unavailable
-    const emptyBoxHeight = 50;
-    doc.setFillColor(...colors.lightGray);
-    doc.setDrawColor(...colors.borderGray);
-    doc.roundedRect(marginX, currentY, contentWidth, emptyBoxHeight, 2, 2, 'FD');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(...colors.textMuted);
-    doc.text('Visual floor plan render generated with placed equipment nodes.', marginX + 10, currentY + 25);
-    currentY += emptyBoxHeight + 3;
+    doc.text('UPSTAGE (BACK OF STAGE)', fx + 4, fy + 5);
+    doc.setFillColor(238, 242, 255);
+    doc.rect(fx + fw / 2 - 50, fy + fh - 6, 100, 4.5, 'F');
+    setText(6.5, [67, 56, 202], 'bold');
+    doc.text('AUDIENCE / FRONT OF HOUSE', fx + fw / 2, fy + fh - 2.7, { align: 'center' });
   }
 
-  // Itemized Equipment Placement & Setup Manifest Table for Section 1
-  if (project.placedGear.length > 0) {
-    currentY += 1;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(...colors.textDark);
-    doc.text('Placed Equipment & Setup Configuration Manifest:', marginX, currentY);
-    currentY += 3;
+  // Fit the student's layout into the drawing area, keeping its proportions
+  const gear = project.placedGear || [];
+  const area = { x: fx + 6, y: snakeY + snakeH + 6, w: fw - 12, h: fy + fh - 9 - (snakeY + snakeH + 6) };
+  const boxes = gear.map((g) => ({ g, def: getGearById(g.gearId), ...boxDims(project, g) }));
+  const pos = new Map<string, { cx: number; cy: number; w: number; h: number }>();
+  if (boxes.length) {
+    const minX = Math.min(...boxes.map((b) => b.g.x)), minY = Math.min(...boxes.map((b) => b.g.y));
+    const maxX = Math.max(...boxes.map((b) => b.g.x + b.width)), maxY = Math.max(...boxes.map((b) => b.g.y + b.height));
+    const scale = Math.min(area.w / Math.max(1, maxX - minX), area.h / Math.max(1, maxY - minY), 0.4);
+    const offX = area.x + (area.w - (maxX - minX) * scale) / 2, offY = area.y + (area.h - (maxY - minY) * scale) / 2;
+    for (const b of boxes) {
+      pos.set(b.g.instanceId, {
+        cx: offX + (b.g.x - minX + b.width / 2) * scale,
+        cy: offY + (b.g.y - minY + b.height / 2) * scale,
+        w: b.width * scale,
+        h: b.height * scale,
+      });
+    }
+  } else {
+    setText(11, C.faint, 'italic');
+    doc.text('No equipment has been placed yet.', fx + fw / 2, area.y + area.h / 2, { align: 'center' });
+  }
 
-    const gearCols = [52, 45, 32, 34, 24.9]; // sum = 187.9 mm
-    const gearHeaders = ['EQUIPMENT ITEM', 'MODEL / TYPE', 'CATEGORY', 'STAND & MOUNTING', 'ASSIGNED CH'];
-
-    doc.setFillColor(...colors.charcoal);
-    doc.rect(marginX, currentY, contentWidth, 5.5, 'F');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6);
-    doc.setTextColor(255, 255, 255);
-
-    let curGX = marginX;
-    gearHeaders.forEach((h, i) => {
-      doc.text(h, curGX + 2, currentY + 3.8);
-      curGX += gearCols[i];
-    });
-
-    currentY += 5.5;
-
-    project.placedGear.forEach((g, idx) => {
-      const def = getGearById(g.gearId);
-      const isEven = idx % 2 === 0;
-      const rowH = 6;
-
-      if (currentY > 255) return;
-
-      doc.setFillColor(isEven ? colors.lightGray[0] : 255, isEven ? colors.lightGray[1] : 255, isEven ? colors.lightGray[2] : 255);
-      doc.rect(marginX, currentY, contentWidth, rowH, 'F');
-      doc.setDrawColor(...colors.borderGray);
-      doc.setLineWidth(0.2);
-      doc.line(marginX, currentY + rowH, marginX + contentWidth, currentY + rowH);
-
-      let colX = marginX;
-      // Col 0: Name
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.setTextColor(...colors.darkNavy);
-      doc.text(doc.splitTextToSize(def?.name || g.gearId, gearCols[0] - 4)[0] || (def?.name || g.gearId), colX + 2, currentY + 4);
-      colX += gearCols[0];
-
-      // Col 1: Model
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(...colors.textDark);
-      doc.text(doc.splitTextToSize(def?.model || 'Standard', gearCols[1] - 4)[0] || 'Standard', colX + 2, currentY + 4);
-      colX += gearCols[1];
-
-      // Col 2: Category
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(...colors.textMuted);
-      doc.text(def?.category || 'gear', colX + 2, currentY + 4);
-      colX += gearCols[2];
-
-      // Col 3: Stand & Mounting
-      let standStr = '—';
-      if (g.standHeight) {
-        standStr = g.standHeight.replace('_', ' ');
+  // Mic/DI markers: nudge apart any that overlap so every number stays readable
+  const R = 3.3;
+  const markers = boxes
+    .filter((b) => isMarker(b.def))
+    .map((b) => ({ id: b.g.instanceId, sourceId: sourceOf(project, b.g)?.instanceId, p: { ...pos.get(b.g.instanceId)! } }));
+  const solid = boxes.filter((b) => !isMarker(b.def)).map((b) => ({ id: b.g.instanceId, ...pos.get(b.g.instanceId)! }));
+  for (let iter = 0; iter < 40; iter++) {
+    let moved = false;
+    // Keep markers off other equipment's labels (sitting on their own source is fine)
+    for (const m of markers) {
+      for (const b of solid) {
+        if (b.id === m.sourceId) continue;
+        const left = b.cx - b.w / 2 - R - 0.5, right = b.cx + b.w / 2 + R + 0.5;
+        const top = b.cy - b.h / 2 - R - 0.5, bot = b.cy + b.h / 2 + R + 0.5;
+        if (m.p.cx > left && m.p.cx < right && m.p.cy > top && m.p.cy < bot) {
+          const exits = [
+            { d: m.p.cx - left, x: left, y: m.p.cy },
+            { d: right - m.p.cx, x: right, y: m.p.cy },
+            { d: m.p.cy - top, x: m.p.cx, y: top },
+            { d: bot - m.p.cy, x: m.p.cx, y: bot },
+          ].sort((a, b2) => a.d - b2.d)[0];
+          m.p.cx = exits.x;
+          m.p.cy = exits.y;
+          moved = true;
+        }
       }
-      if (g.hasPopFilter) standStr += ' + Pop Filter';
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(...colors.textDark);
-      doc.text(doc.splitTextToSize(standStr, gearCols[3] - 4)[0] || standStr, colX + 2, currentY + 4);
-      colX += gearCols[3];
+    }
+    for (let i = 0; i < markers.length; i++)
+      for (let j = i + 1; j < markers.length; j++) {
+        const a = markers[i].p, b = markers[j].p;
+        let dx = b.cx - a.cx, dy = b.cy - a.cy;
+        const d = Math.hypot(dx, dy), min = R * 2 + 0.8;
+        if (d < min) {
+          if (d < 0.01) { dx = 1; dy = 0; }
+          const push = (min - Math.max(d, 0.01)) / 2, ux = dx / (Math.hypot(dx, dy) || 1), uy = dy / (Math.hypot(dx, dy) || 1);
+          a.cx -= ux * push; a.cy -= uy * push; b.cx += ux * push; b.cy += uy * push;
+          moved = true;
+        }
+      }
+    if (!moved) break;
+  }
+  for (const m of markers) {
+    m.p.cx = Math.min(area.x + area.w - R, Math.max(area.x + R, m.p.cx));
+    m.p.cy = Math.min(area.y + area.h - R, Math.max(area.y + R, m.p.cy));
+    pos.set(m.id, m.p);
+  }
+  const pointOf = (id: string) => {
+    const p = pos.get(id);
+    if (p) return { x: p.cx, y: p.cy };
+    return socketPos.get(id) ?? null;
+  };
 
-      // Col 4: Channel
-      const assignedCh = g.assignedChannel || project.mixerChannels.find(c => c.assignedGearInstanceId === g.instanceId)?.channelNumber;
-      const chStr = assignedCh ? `CH ${assignedCh}` : 'Unpatched';
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.5);
-      doc.setTextColor(assignedCh ? colors.emerald[0] : colors.textMuted[0],
-                       assignedCh ? colors.emerald[1] : colors.textMuted[1],
-                       assignedCh ? colors.emerald[2] : colors.textMuted[2]);
-      doc.text(chStr, colX + 2, currentY + 4);
-
-      currentY += rowH;
-    });
-
-    currentY += 4;
+  // Cables first, so equipment sits on top of them
+  for (const c of project.connections || []) {
+    const a = pointOf(c.fromInstanceId), b = pointOf(c.toInstanceId);
+    if (!a || !b) continue;
+    const style = CABLE[c.cableType] ?? CABLE.xlr;
+    doc.setDrawColor(...mix(style.color, 0.25));
+    doc.setLineWidth(0.45);
+    doc.line(a.x, a.y, b.x, b.y);
   }
 
-  // KEY PACKING & HARDWARE COUNTS CARDS
-  if (includeEquipmentManifest) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(...colors.textDark);
-    doc.text('2. Equipment Manifest & Packing Totals', marginX, currentY);
-    currentY += 3.5;
-
-    // Calculate Counts
-    const micsCount = project.placedGear.filter((g) => {
-      const def = getGearById(g.gearId);
-      return def?.category === 'microphone';
-    }).length;
-
-    const diCount = project.placedGear.filter((g) => {
-      const def = getGearById(g.gearId);
-      return def?.category === 'di_box';
-    }).length;
-
-    const standsCount = project.placedGear.filter((g) => {
-      const def = getGearById(g.gearId);
-      return def?.category === 'microphone' || def?.category === 'stand';
-    }).length;
-
-    const xlrCount = calculateXlrCablesCount(project.connections, project.mixerChannels || [], project.placedGear);
-    const tsCount = project.connections.filter((c) => c.cableType === 'quarter_inch').length;
-    const speakersCount = project.placedGear.filter((g) => {
-      const def = getGearById(g.gearId);
-      return def?.category === 'monitor_speaker' || g.gearId.includes('speaker') || g.gearId.includes('pa');
-    }).length;
-
-    const statBoxes = [
-      { label: 'MICROPHONES', count: micsCount },
-      { label: 'DIRECT BOXES', count: diCount },
-      { label: 'MIC BOOM STANDS', count: standsCount },
-      { label: 'XLR CABLES', count: Math.max(xlrCount, micsCount) },
-      { label: '1/4" TS CABLES', count: Math.max(tsCount, diCount) },
-      { label: 'MONITORS / PA', count: speakersCount },
-    ];
-
-    const boxGap = 2;
-    const statBoxWidth = (contentWidth - boxGap * 5) / 6;
-    const statBoxHeight = 18;
-
-    statBoxes.forEach((stat, idx) => {
-      const boxX = marginX + idx * (statBoxWidth + boxGap);
-      doc.setFillColor(...colors.lightGray);
-      doc.setDrawColor(...colors.borderGray);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(boxX, currentY, statBoxWidth, statBoxHeight, 1.5, 1.5, 'FD');
-
+  // Instruments, amps, monitors, speakers: labeled boxes
+  for (const b of boxes) {
+    if (isMarker(b.def)) continue;
+    const p = pos.get(b.g.instanceId)!;
+    const base = hexToRgb(b.def?.color);
+    const x = p.cx - p.w / 2, y = p.cy - p.h / 2;
+    doc.setFillColor(...mix(base, 0.85));
+    doc.setDrawColor(...darken(base, 0.15));
+    doc.setLineWidth(0.5);
+    doc.roundedRect(x, y, p.w, p.h, 1.5, 1.5, 'FD');
+    const name = gearName(b.g);
+    const generic = b.def?.name && name !== b.def.name ? b.def.name : '';
+    // Largest font that fits in two lines
+    let size = 8.5;
+    let lines: string[] = [];
+    for (; size >= 5; size -= 0.5) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.setTextColor(...colors.darkNavy);
-      doc.text(stat.count.toString(), boxX + statBoxWidth / 2, currentY + 7.5, { align: 'center' });
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(5.5);
-      doc.setTextColor(...colors.textMuted);
-      const splitLabel = doc.splitTextToSize(stat.label, statBoxWidth - 2);
-      doc.text(splitLabel, boxX + statBoxWidth / 2, currentY + 12.5, { align: 'center' });
-    });
-
-    currentY += statBoxHeight + 5;
+      doc.setFontSize(size);
+      lines = doc.splitTextToSize(name, p.w - 2);
+      const wordsFit = name.split(/\s+/).every((w) => doc.getTextWidth(w) <= p.w - 2);
+      if (wordsFit && lines.length <= 2 && lines.length * size * 0.42 + (generic ? 3 : 0) < p.h - 1) break;
+    }
+    lines = lines.slice(0, 2);
+    const blockH = lines.length * size * 0.38 + (generic ? 3 : 0);
+    let ty = p.cy - blockH / 2 + size * 0.3;
+    setText(size, C.ink, 'bold');
+    for (const l of lines) {
+      doc.text(l, p.cx, ty, { align: 'center' });
+      ty += size * 0.38;
+    }
+    if (generic) {
+      setText(5, C.muted);
+      doc.text(doc.splitTextToSize(generic, p.w - 2)[0], p.cx, ty + 0.8, { align: 'center' });
+    }
   }
 
-  // Bottom Summary Assessment Phrase Callout (Page 1)
-  doc.setFillColor(isScoreA ? colors.emeraldBg[0] : isScoreB ? colors.amberBg[0] : colors.roseBg[0],
-                   isScoreA ? colors.emeraldBg[1] : isScoreB ? colors.amberBg[1] : colors.roseBg[1],
-                   isScoreA ? colors.emeraldBg[2] : isScoreB ? colors.amberBg[2] : colors.roseBg[2]);
-  doc.setDrawColor(isScoreA ? colors.emerald[0] : isScoreB ? colors.amber[0] : colors.rose[0],
-                   isScoreA ? colors.emerald[1] : isScoreB ? colors.amber[1] : colors.rose[1],
-                   isScoreA ? colors.emerald[2] : isScoreB ? colors.amber[2] : colors.rose[2]);
-  doc.setLineWidth(0.4);
-  doc.roundedRect(marginX, currentY, contentWidth, 14, 1.5, 1.5, 'FD');
+  // Mic & DI markers on top, numbered with their input channel
+  for (const b of boxes) {
+    if (!isMarker(b.def)) continue;
+    const p = pos.get(b.g.instanceId)!;
+    const ch = channelOf(project, b.g);
+    const fill = ch == null ? C.unpatched : b.def?.category === 'di_box' ? C.di : C.mic;
+    doc.setFillColor(...fill);
+    doc.setDrawColor(...C.white);
+    doc.setLineWidth(0.5);
+    if (b.def?.category === 'di_box') doc.roundedRect(p.cx - R, p.cy - R, R * 2, R * 2, 0.8, 0.8, 'FD');
+    else doc.circle(p.cx, p.cy, R, 'FD');
+    setText(ch != null && ch >= 10 ? 6.5 : 8, C.white, 'bold');
+    doc.text(ch == null ? '-' : String(ch), p.cx, p.cy + 1.1, { align: 'center' });
+  }
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(isScoreA ? colors.emerald[0] : isScoreB ? colors.amber[0] : colors.rose[0],
-                   isScoreA ? colors.emerald[1] : isScoreB ? colors.amber[1] : colors.rose[1],
-                   isScoreA ? colors.emerald[2] : isScoreB ? colors.amber[2] : colors.rose[2]);
-  doc.text(`Evaluation Summary: "${evaluation.gradePhrase}"`, marginX + 4, currentY + 5.5);
+  // Legend
+  let lx = M, ly = fy + fh + 6;
+  setText(7, C.muted, 'bold');
+  doc.text('KEY', lx, ly + 1);
+  lx += 9;
+  const legendItem = (draw: () => void, label: string, width: number) => {
+    draw();
+    setText(7, C.text);
+    doc.text(label, lx + 6, ly + 1);
+    lx += width;
+  };
+  legendItem(() => { doc.setFillColor(...C.mic); doc.circle(lx + 2, ly, 2, 'F'); setText(5.5, C.white, 'bold'); doc.text('3', lx + 2, ly + 0.7, { align: 'center' }); }, 'Microphone (number = input channel)', 52);
+  legendItem(() => { doc.setFillColor(...C.di); doc.roundedRect(lx, ly - 2, 4, 4, 0.5, 0.5, 'F'); }, 'DI box', 20);
+  legendItem(() => { doc.setFillColor(...C.unpatched); doc.circle(lx + 2, ly, 2, 'F'); }, 'Not patched', 25);
+  legendItem(() => { doc.setFillColor(235, 235, 240); doc.setDrawColor(...C.faint); doc.roundedRect(lx, ly - 2, 5, 4, 0.6, 0.6, 'FD'); }, 'Instrument / amp / monitor', 42);
+  for (const [, s] of Object.entries(CABLE)) {
+    legendItem(() => { doc.setDrawColor(...mix(s.color, 0.25)); doc.setLineWidth(0.8); doc.line(lx, ly, lx + 5, ly); }, s.label, s.label.length * 1.35 + 10);
+  }
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...colors.textDark);
-  const criticalCount = evaluation.criticalIssues.length;
-  const positiveCount = evaluation.positives.length;
-  const subText =
-    criticalCount === 0
-      ? `All critical engineering parameters satisfied with ${positiveCount} verified validations. Patch list & diagnostics on Page 2.`
-      : `${criticalCount} item(s) need engineering attention. Review the detailed rubric and channel routing on Page 2.`;
-  doc.text(subText, marginX + 4, currentY + 10.5);
+  // ======================= PAGE 2+: INPUT LIST, EQUIPMENT, GRADE (portrait) =======================
+  onProgress?.('Writing input & equipment lists...');
+  doc.addPage('letter', 'portrait');
+  W = doc.internal.pageSize.getWidth();
+  H = doc.internal.pageSize.getHeight();
+  let y = M + 4;
+  const bottom = H - 16;
+  const ensure = (needed: number) => {
+    if (y + needed > bottom) {
+      doc.addPage('letter', 'portrait');
+      y = M + 4;
+    }
+  };
+  const heading = (label: string) => {
+    ensure(14);
+    setText(12, C.ink, 'bold');
+    doc.text(label, M, y);
+    doc.setDrawColor(...C.accent);
+    doc.setLineWidth(0.6);
+    doc.line(M, y + 1.8, M + doc.getTextWidth(label), y + 1.8);
+    y += 7;
+  };
 
-  drawPageFooter(1, 2);
+  setText(9, C.muted);
+  doc.text(`${title}   •   ${student}`, M, y);
+  y += 8;
 
-  // -------------------------------------------------------------
-  // PAGE 2: Input / Mixer Patch List, Rubric Breakdown, Signatures
-  // -------------------------------------------------------------
-  doc.addPage();
-  currentY = 14;
-  drawPageHeader(2, 2);
-
-  // Page 2 Header Banner
-  doc.setFillColor(...colors.darkNavy);
-  doc.roundedRect(marginX, currentY, contentWidth, 13, 1.5, 1.5, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text('AudioPlot Technical Specifications & Diagnostic Report', marginX + 5, currentY + 6);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(203, 213, 225);
-  doc.text(`Student: ${studentDisplay} • Project: ${displayTitle} • Date: ${dateDisplay}`, marginX + 5, currentY + 10.5);
-
-  currentY += 17;
-
-  // 3. INTERFACE & MIXER INPUT PATCH LIST TABLE
+  // ---- Input list ----
   if (includePatchList) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(...colors.textDark);
-    doc.text('3. Interface / Mixer Channel Patch List (8 Channels)', marginX, currentY);
-    currentY += 3.5;
-
-    // Table Header
-    const colWidths = [16, 46, 32, 26, 38, 29.9]; // sum = 187.9 mm
-    const headers = ['CH #', 'SOURCE / LABEL', 'EQUIPMENT / MODEL', '+48V POWER', 'STAND & MOUNTING', 'PAN & FADER'];
-
-    doc.setFillColor(...colors.charcoal);
-    doc.rect(marginX, currentY, contentWidth, 6, 'F');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.5);
-    doc.setTextColor(255, 255, 255);
-
-    let curColX = marginX;
-    headers.forEach((h, i) => {
-      doc.text(h, curColX + 2, currentY + 4.2);
-      curColX += colWidths[i];
-    });
-
-    currentY += 6;
-
-    // Render 8 Channels Rows
-    project.mixerChannels.forEach((ch, idx) => {
-      const rowHeight = 7;
-      const isEven = idx % 2 === 0;
-      doc.setFillColor(isEven ? colors.lightGray[0] : 255, isEven ? colors.lightGray[1] : 255, isEven ? colors.lightGray[2] : 255);
-      doc.rect(marginX, currentY, contentWidth, rowHeight, 'F');
-
-      // Grid line
-      doc.setDrawColor(...colors.borderGray);
+    heading('Input List');
+    const cols = [
+      { label: 'CH', w: 10 },
+      { label: 'SOURCE', w: 42 },
+      { label: 'MIC / DI', w: 48 },
+      { label: 'STAND', w: 30 },
+      { label: '+48V', w: 22 },
+      { label: 'NOTES', w: W - 2 * M - 152 },
+    ];
+    const drawRow = (cells: string[], opts: { header?: boolean; muted?: boolean; colors?: (RGB | null)[] } = {}) => {
+      doc.setFont('helvetica', opts.header ? 'bold' : 'normal');
+      doc.setFontSize(opts.header ? 7 : 8);
+      const wrapped = cells.map((c, i) => doc.splitTextToSize(c || '', cols[i].w - 2) as string[]);
+      const rowH = Math.max(6, Math.max(...wrapped.map((w) => w.length)) * 3.4 + 2.6);
+      ensure(rowH);
+      if (opts.header) {
+        doc.setFillColor(...C.panel);
+        doc.rect(M, y - 4, W - 2 * M, rowH, 'F');
+      }
+      let x = M + 1;
+      wrapped.forEach((lines, i) => {
+        const color = opts.colors?.[i] ?? (opts.header ? C.muted : opts.muted ? C.faint : C.text);
+        doc.setTextColor(...color);
+        doc.setFont('helvetica', opts.header || i === 0 ? 'bold' : 'normal');
+        doc.text(lines, x, y);
+        x += cols[i].w;
+      });
+      doc.setDrawColor(...C.line);
       doc.setLineWidth(0.2);
-      doc.line(marginX, currentY + rowHeight, marginX + contentWidth, currentY + rowHeight);
+      doc.line(M, y - 4 + rowH, W - M, y - 4 + rowH);
+      y += rowH;
+    };
+    drawRow(cols.map((c) => c.label), { header: true });
 
-      // Find assigned gear item
-      const assignedGear = ch.assignedGearInstanceId
-        ? project.placedGear.find((g) => g.instanceId === ch.assignedGearInstanceId)
-        : project.placedGear.find((g) => g.assignedChannel === ch.channelNumber);
-      const gearDef = assignedGear ? getGearById(assignedGear.gearId) : null;
-
-      // Stand details
-      let standText = '—';
-      if (assignedGear) {
-        if (assignedGear.standHeight) {
-          const heightMap: Record<string, string> = {
-            amp_low: 'Low Boom (Amp)',
-            seated_instrument: 'Seated Boom',
-            standing_vocal: 'Standing Boom',
-            drum_overhead: 'Overhead Boom',
-            clipped: 'Rim Clip',
-            mounted: 'Mounted',
-          };
-          standText = heightMap[assignedGear.standHeight] || 'Standard Stand';
-        }
-        if (assignedGear.hasPopFilter) {
-          standText += ' + Pop Filter';
-        }
+    const micAndDi = gear.filter((g) => isMarker(getGearById(g.gearId)));
+    const patched = new Set<string>();
+    for (let n = 1; n <= inputs; n++) {
+      const item = micAndDi.find((g) => channelOf(project, g) === n);
+      const ch = (project.mixerChannels || []).find((c) => c.channelNumber === n);
+      if (!item) {
+        drawRow([String(n), '—', '', '', ch?.phantomPower ? 'ON' : '', ''], { muted: true });
+        continue;
       }
-
-      // Pan & Fader level
-      const panStr = ch.pan === 0 ? 'C' : ch.pan < 0 ? `L${Math.abs(ch.pan)}%` : `R${ch.pan}%`;
-      const faderDb = ch.fader >= 75 ? `+${Math.round(((ch.fader - 75) / 25) * 6)}dB` : `${Math.round(((ch.fader - 75) / 75) * 60)}dB`;
-      const panFaderStr = `${panStr} • ${faderDb}`;
-
-      let colX = marginX;
-
-      // Col 0: Ch #
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(...colors.darkNavy);
-      doc.text(`CH ${ch.channelNumber}`, colX + 2, currentY + 4.8);
-      colX += colWidths[0];
-
-      // Col 1: Label / Source
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      const labelText = ch.label || 'Unassigned';
-      doc.setTextColor(ch.label ? colors.darkNavy[0] : colors.textMuted[0],
-                       ch.label ? colors.darkNavy[1] : colors.textMuted[1],
-                       ch.label ? colors.darkNavy[2] : colors.textMuted[2]);
-      doc.text(doc.splitTextToSize(labelText, colWidths[1] - 4)[0] || labelText, colX + 2, currentY + 4.8);
-      colX += colWidths[1];
-
-      // Col 2: Equipment Model
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(...colors.textDark);
-      const gearText = gearDef ? `${gearDef.name}${gearDef.model ? ` (${gearDef.model})` : ''}` : 'No Line Patched';
-      doc.text(doc.splitTextToSize(gearText, colWidths[2] - 4)[0] || gearText, colX + 2, currentY + 4.8);
-      colX += colWidths[2];
-
-      // Col 3: +48V Power
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.5);
-      if (ch.phantomPower) {
-        doc.setTextColor(...colors.rose);
-        doc.text('ENGAGED (+48V)', colX + 2, currentY + 4.8);
-      } else {
-        doc.setTextColor(...colors.textMuted);
-        doc.text('Off (0V)', colX + 2, currentY + 4.8);
-      }
-      colX += colWidths[3];
-
-      // Col 4: Stand & Mounting
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(...colors.textDark);
-      doc.text(doc.splitTextToSize(standText, colWidths[4] - 4)[0] || standText, colX + 2, currentY + 4.8);
-      colX += colWidths[4];
-
-      // Col 5: Pan & Fader
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(...colors.textMuted);
-      doc.text(panFaderStr, colX + 2, currentY + 4.8);
-
-      currentY += rowHeight;
-    });
-
-    currentY += 6;
+      patched.add(item.instanceId);
+      const def = getGearById(item.gearId);
+      const src = sourceOf(project, item);
+      const needs48 = !!def?.requiresPhantomPower;
+      const on48 = !!ch?.phantomPower;
+      const p48 = on48 ? 'ON' : needs48 ? 'OFF (needs +48V)' : 'off';
+      const stand = def?.category === 'di_box' ? '' : STAND_LABELS[item.standHeight || ''] || 'Not set';
+      const notes = [
+        item.micPlacement ? humanize(item.micPlacement) : '',
+        item.hasPopFilter ? 'Pop filter' : '',
+        item.hasShockmount ? 'Shockmount' : '',
+        ch && ch.label && ch.label !== `CH ${n}` ? `Console label: ${ch.label}` : '',
+      ].filter(Boolean).join('; ');
+      drawRow(
+        [String(n), src ? gearName(src) : 'No source chosen', `${def?.name || item.gearId}${def?.model ? ` — ${def.model}` : ''}`, stand, p48, notes],
+        { colors: [null, src ? null : C.bad, null, stand === 'Not set' ? C.warn : null, !on48 && needs48 ? C.bad : on48 ? C.good : C.faint, null] }
+      );
+    }
+    const unpatched = micAndDi.filter((g) => !patched.has(g.instanceId));
+    for (const item of unpatched) {
+      const def = getGearById(item.gearId);
+      const src = sourceOf(project, item);
+      drawRow(['—', src ? gearName(src) : 'No source chosen', def?.name || item.gearId, STAND_LABELS[item.standHeight || ''] || '', '', 'Not patched to an input'], {
+        colors: [C.bad, null, null, null, null, C.bad],
+      });
+    }
+    y += 6;
   }
 
-  // 4. DIAGNOSTIC RUBRIC & GRADING EVALUATION BREAKDOWN
+  // ---- Equipment list ----
+  if (includeEquipmentManifest) {
+    heading('Equipment List');
+    const counts = (items: PlacedGear[], key: (g: PlacedGear) => string) => {
+      const m = new Map<string, number>();
+      for (const g of items) m.set(key(g), (m.get(key(g)) || 0) + 1);
+      return [...m.entries()].map(([name, qty]) => ({ name, qty }));
+    };
+    const byCat = (...cats: string[]) => gear.filter((g) => cats.includes(getGearById(g.gearId)?.category || ''));
+    const nameKey = (g: PlacedGear) => {
+      const d = getGearById(g.gearId);
+      return d ? `${d.name}${d.model ? ` (${d.model})` : ''}` : g.gearId;
+    };
+    const mics = byCat('microphone');
+    const standItems = mics.filter((g) => !NO_STAND.has(g.standHeight || ''));
+    const placedStands = byCat('stand').length;
+    const conns = project.connections || [];
+    const sections: { title: string; rows: { name: string; qty: number }[] }[] = [
+      { title: 'Instruments & Sources', rows: counts(byCat('instrument'), nameKey) },
+      { title: 'Amplifiers', rows: counts(byCat('amplifier'), nameKey) },
+      { title: 'Microphones', rows: counts(mics, nameKey) },
+      { title: 'DI Boxes', rows: counts(byCat('di_box'), nameKey) },
+      { title: 'Monitoring & PA', rows: counts(byCat('monitor_speaker'), nameKey) },
+      {
+        title: 'Stands',
+        rows: [
+          ...counts(standItems, (g) => (g.standHeight ? STAND_LABELS[g.standHeight] || humanize(g.standHeight) : 'Mic stand (height not set)')),
+          ...(placedStands ? [{ name: 'Extra mic stands', qty: placedStands }] : []),
+        ],
+      },
+      {
+        title: 'Accessories',
+        rows: [
+          { name: 'Pop filters', qty: gear.filter((g) => g.hasPopFilter).length + byCat('accessory').length },
+          { name: 'Shockmounts', qty: gear.filter((g) => g.hasShockmount).length },
+        ].filter((r) => r.qty > 0),
+      },
+      {
+        title: 'Cables',
+        rows: [
+          { name: 'XLR (mic) cables', qty: calculateXlrCablesCount(conns, project.mixerChannels || [], gear) },
+          { name: '1/4" instrument cables', qty: conns.filter((c) => c.cableType === 'quarter_inch').length },
+          { name: 'Speaker cables', qty: conns.filter((c) => c.cableType === 'speaker').length },
+        ].filter((r) => r.qty > 0),
+      },
+    ].filter((s) => s.rows.length);
+
+    if (!sections.length) {
+      setText(9, C.faint, 'italic');
+      doc.text('No equipment placed.', M, y);
+      y += 8;
+    }
+    // Two columns of sections
+    const colW = (W - 2 * M - 8) / 2;
+    const sectionH = (s: { rows: unknown[] }) => 6 + s.rows.length * 4.6 + 3;
+    const half = Math.ceil(sections.length / 2);
+    const columns = [sections.slice(0, half), sections.slice(half)];
+    const colHeights = columns.map((col) => col.reduce((h, s) => h + sectionH(s), 0));
+    ensure(Math.min(Math.max(...colHeights), bottom - M));
+    const startY = y;
+    let maxY = y;
+    columns.forEach((col, ci) => {
+      let cy = startY;
+      const cx = M + ci * (colW + 8);
+      for (const s of col) {
+        setText(8, C.accent, 'bold');
+        doc.text(s.title.toUpperCase(), cx, cy);
+        cy += 4.6;
+        for (const r of s.rows) {
+          setText(8.5, C.ink, 'bold');
+          doc.text(`${r.qty}`, cx + 6, cy, { align: 'right' });
+          doc.text('×', cx + 7.2, cy);
+          setText(8.5, C.text);
+          doc.text(doc.splitTextToSize(r.name, colW - 14)[0], cx + 11, cy);
+          cy += 4.6;
+        }
+        cy += 3;
+      }
+      maxY = Math.max(maxY, cy);
+    });
+    y = maxY + 4;
+  }
+
+  // ---- Grade summary ----
   if (includeGradingRubric) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(...colors.textDark);
-    doc.text('4. Diagnostic Rubric & Setup Grading Breakdown', marginX, currentY);
-    currentY += 3.5;
-
-    // Rubric Table Header
-    const rubWidths = [42, 24, 20, 101.9]; // sum = 187.9 mm
-    const rubHeaders = ['CRITERION', 'STATUS', 'SCORE', 'DIAGNOSTIC ASSESSMENT & FEEDBACK'];
-
-    doc.setFillColor(...colors.charcoal);
-    doc.rect(marginX, currentY, contentWidth, 6, 'F');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.5);
-    doc.setTextColor(255, 255, 255);
-
-    let curRubX = marginX;
-    rubHeaders.forEach((h, i) => {
-      doc.text(h, curRubX + 2, currentY + 4.2);
-      curRubX += rubWidths[i];
-    });
-
-    currentY += 6;
-
-    // Rubric Category Rows
-    const categoriesList = Object.entries(evaluation.categories).filter(([_, c]) => !!c) as [
-      string,
-      { name: string; score: number; maxScore: number; status: 'perfect' | 'warning' | 'error' | 'not_applicable'; feedback: string }
-    ][];
-
-    categoriesList.forEach(([key, cat], idx) => {
-      const isEven = idx % 2 === 0;
-      const feedbackLines = doc.splitTextToSize(cat.feedback || 'Criteria assessed.', rubWidths[3] - 4);
-      const rowHeight = Math.max(8, feedbackLines.length * 3.5 + 4);
-
-      doc.setFillColor(isEven ? colors.lightGray[0] : 255, isEven ? colors.lightGray[1] : 255, isEven ? colors.lightGray[2] : 255);
-      doc.rect(marginX, currentY, contentWidth, rowHeight, 'F');
-
-      // Grid line
-      doc.setDrawColor(...colors.borderGray);
+    heading('Grade Summary');
+    ensure(10);
+    setText(11, scoreColor, 'bold');
+    doc.text(`${evaluation.totalScore} / ${evaluation.maxTotalScore} points   •   ${evaluation.percentage}%   •   ${evaluation.gradeLetter}`, M, y);
+    y += 7;
+    for (const cat of Object.values(evaluation.categories)) {
+      if (!cat) continue;
+      ensure(5.5);
+      const na = cat.status === 'not_applicable';
+      const full = !na && cat.score >= cat.maxScore;
+      setText(8.5, na ? C.faint : C.text);
+      doc.text(cat.name, M + 2, y);
+      setText(8.5, na ? C.faint : full ? C.good : C.warn, 'bold');
+      doc.text(na ? 'N/A' : `${cat.score} / ${cat.maxScore}`, W - M - 2, y, { align: 'right' });
+      doc.setDrawColor(...C.panel);
       doc.setLineWidth(0.2);
-      doc.line(marginX, currentY + rowHeight, marginX + contentWidth, currentY + rowHeight);
-
-      let colX = marginX;
-
-      // Criterion Name
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(...colors.darkNavy);
-      doc.text(doc.splitTextToSize(cat.name, rubWidths[0] - 4)[0] || cat.name, colX + 2, currentY + 5);
-      colX += rubWidths[0];
-
-      // Status Badge
-      const statusBadgeMap = {
-        perfect: { label: 'PASS / PERFECT', color: colors.emerald, bg: colors.emeraldBg },
-        warning: { label: 'WARNING', color: colors.amber, bg: colors.amberBg },
-        error: { label: 'ATTENTION', color: colors.rose, bg: colors.roseBg },
-        not_applicable: { label: 'N / A', color: colors.textMuted, bg: colors.lightGray },
-      };
-      const badge = statusBadgeMap[cat.status] || statusBadgeMap.perfect;
-
-      doc.setFillColor(...badge.bg);
-      doc.roundedRect(colX + 1.5, currentY + 1.8, rubWidths[1] - 3, 4.5, 1, 1, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(5.5);
-      doc.setTextColor(...badge.color);
-      doc.text(badge.label, colX + rubWidths[1] / 2, currentY + 4.8, { align: 'center' });
-      colX += rubWidths[1];
-
-      // Score
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.setTextColor(...colors.textDark);
-      doc.text(`${cat.score} / ${cat.maxScore}`, colX + 2, currentY + 5);
-      colX += rubWidths[2];
-
-      // Feedback
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(...colors.charcoal);
-      doc.text(feedbackLines, colX + 2, currentY + 4.5);
-
-      currentY += rowHeight;
-    });
-
-    currentY += 5;
+      doc.line(M, y + 1.8, W - M, y + 1.8);
+      y += 5.5;
+    }
+    const bullets = (label: string, items: string[], color: RGB) => {
+      if (!items.length) return;
+      y += 3;
+      ensure(9);
+      setText(9, color, 'bold');
+      doc.text(label, M, y);
+      y += 5;
+      for (const item of items.slice(0, 10)) {
+        setText(8.5, C.text);
+        const lines = doc.splitTextToSize(item, W - 2 * M - 6) as string[];
+        ensure(lines.length * 3.8 + 1);
+        doc.text('•', M + 1, y);
+        doc.text(lines, M + 5, y);
+        y += lines.length * 3.8 + 1;
+      }
+    };
+    bullets('Issues to fix', evaluation.criticalIssues || [], C.bad);
+    bullets('Suggestions', evaluation.suggestions || [], C.warn);
+    bullets('What went well', evaluation.positives || [], C.good);
   }
 
-  // 5. INSTRUCTOR & STUDENT VERIFICATION SIGNATURE BLOCK
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(...colors.textDark);
-  doc.text('5. Verification & Engineering Certification', marginX, currentY);
-  currentY += 3.5;
+  // Footers on every page
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+    setText(7, C.faint);
+    doc.text(`AudioPlot   •   ${student}   •   ${dateStr}`, M, ph - 7);
+    doc.text(`Page ${i} of ${total}`, pw - M, ph - 7, { align: 'right' });
+  }
 
-  const sigBoxWidth = (contentWidth - 6) / 2;
-  const sigBoxHeight = 22;
-
-  // Instructor Box
-  doc.setFillColor(...colors.lightGray);
-  doc.setDrawColor(...colors.borderGray);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(marginX, currentY, sigBoxWidth, sigBoxHeight, 1.5, 1.5, 'FD');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.5);
-  doc.setTextColor(...colors.textMuted);
-  doc.text('INSTRUCTOR VERIFICATION & GRADE STAMP', marginX + 3, currentY + 4.5);
-
-  doc.setDrawColor(...colors.textDark);
-  doc.setLineWidth(0.4);
-  doc.line(marginX + 4, currentY + 15, marginX + sigBoxWidth - 4, currentY + 15);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
-  doc.text('Instructor Signature / Date', marginX + 4, currentY + 19);
-
-  // Student Box
-  const studentBoxX = marginX + sigBoxWidth + 6;
-  doc.setFillColor(...colors.lightGray);
-  doc.setDrawColor(...colors.borderGray);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(studentBoxX, currentY, sigBoxWidth, sigBoxHeight, 1.5, 1.5, 'FD');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.5);
-  doc.setTextColor(...colors.textMuted);
-  doc.text('STUDENT AUDIO ENGINEER ATTESTATION', studentBoxX + 3, currentY + 4.5);
-
-  doc.setDrawColor(...colors.textDark);
-  doc.setLineWidth(0.4);
-  doc.line(studentBoxX + 4, currentY + 15, studentBoxX + sigBoxWidth - 4, currentY + 15);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
-  doc.text(`${studentDisplay} • Student Audio Engineer`, studentBoxX + 4, currentY + 19);
-
-  drawPageFooter(2, 2);
-
-  // Generate output filename
   const finalFilename =
     filename ||
-    `AudioPlot-${project.studentName?.toLowerCase().replace(/\s+/g, '-') || 'assignment'}-${project.environment === 'recording_studio' ? 'studio' : 'stage'}-${new Date().toISOString().slice(0, 10)}.pdf`;
-
+    `AudioPlot-${student.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'assignment'}-${isStudio ? 'studio' : 'stage'}-${new Date().toISOString().slice(0, 10)}.pdf`;
   if (options.download) {
     onProgress?.('Downloading PDF file...');
     doc.save(finalFilename);
   }
-
   const blob = doc.output('blob');
   return { doc, blob, filename: finalFilename };
 }
@@ -839,8 +623,5 @@ export async function exportStudioPlotToPdf(
   evaluation: RubricEvaluation,
   options: PdfExportOptions = {}
 ): Promise<void> {
-  await generateStudioPlotPdf(project, evaluation, {
-    ...options,
-    download: true,
-  });
+  await generateStudioPlotPdf(project, evaluation, { ...options, download: true });
 }
