@@ -18,9 +18,67 @@ export interface BatchParseResult {
   duplicatesRemoved: number;
 }
 
-// A submission code is <compressed text>.<checksum>. Anything shorter is a name, a header, etc.
-const LOOKS_LIKE_CODE = /^[A-Za-z0-9+\-$]{20,}\.[a-z0-9]{1,8}$/;
-const LONG_TOKEN = 30;
+// Every code starts with the same few characters, because every packed project
+// starts with the same JSON characters. Used to find codes glued to other text.
+const CODE_START = 'N4Ig';
+// Codes are made only of these characters. Everything else separates words.
+const NOT_CODE_CHAR = /[^A-Za-z0-9+\-$.]+/;
+// Long text without a code start (class links, IDs) is ignored unless it is this long.
+const SUSPICIOUS_LENGTH = 60;
+// Words that appear in Google Classroom lists but are never a student's name.
+const CLASSROOM_WORDS = /^(turned in|handed in|done late|missing|assigned|graded|returned|draft|submitted|not turned in|private comments?|class comments?|add (class |private )?comment|student work|instructions|all students|view (submission|work)|see more|unsubmit|mark as done|late|done|points?|\d+\/\d+)$/i;
+
+/** Turn pasted HTML-ish text (tags, <br>, &nbsp;, invisible characters) into plain lines. */
+export function cleanPastedText(text: string): string {
+  const decode = (t: string) =>
+    t
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+      .replace(/&amp;/gi, '&');
+  let t = decode(decode(text)); // twice: handles "&amp;lt;br&amp;gt;" style double-escaping
+  t = t
+    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+    .replace(/<\/\s*(p|div|li|tr|h\d)\s*>/gi, '\n')
+    .replace(/<[^>]{0,200}>/g, ' ')
+    .replace(/\\n/g, '\n') // a literal backslash-n
+    .replace(/[\u200B-\u200D\u2060\uFEFF\u00AD]/g, '') // invisible characters
+    .replace(/[\u00A0\u2007\u202F]/g, ' '); // non-breaking spaces
+  return t;
+}
+
+/** Try to read a code out of a piece of text that may have other text glued to either end. */
+function readCode(piece: string): { code: string; project: StudioProjectState } | null {
+  const starts = new Set<number>([0]);
+  for (let i = piece.indexOf(CODE_START); i >= 0; i = piece.indexOf(CODE_START, i + 1)) starts.add(i);
+  for (const start of starts) {
+    const candidate = piece.slice(start).replace(/^\.+/, '');
+    const dot = candidate.lastIndexOf('.');
+    if (dot <= 0) continue;
+    const body = candidate.slice(0, dot);
+    // The checksum is up to 7 lowercase letters/digits; anything after it is glued-on text.
+    const tail = (candidate.slice(dot + 1).match(/^[a-z0-9]{1,7}/) || [''])[0];
+    for (let len = tail.length; len >= 1; len--) {
+      const code = `${body}.${tail.slice(0, len)}`;
+      const project = decodeSubmission(code);
+      if (project) return { code, project };
+    }
+  }
+  return null;
+}
+
+const isNameLike = (line: string) => {
+  const words = line.trim().split(/\s+/);
+  return (
+    words.length >= 2 &&
+    words.length <= 4 &&
+    !CLASSROOM_WORDS.test(line.trim()) &&
+    words.every((w) => /^[A-Z][A-Za-z'\u00C0-\u017F-]*\.?$/.test(w))
+  );
+};
 
 const ALL_CHALLENGES = [...STUDIO_CHALLENGES, ...LIVE_STAGE_CHALLENGES];
 
@@ -40,40 +98,74 @@ export function gradeProject(project: StudioProjectState): RubricEvaluation {
 }
 
 /**
- * Pull every submission code out of pasted text (a column from Classroom or a
- * spreadsheet, one per line, comma-separated, mixed with names...), then
- * decode and grade each one.
+ * Pull every submission code out of pasted text and grade it. Copes with what
+ * Google Classroom and spreadsheets paste in: names, status text ("Turned in"),
+ * HTML tags and <br>s, &nbsp;, links, invisible characters, text glued to the
+ * start or end of a code, and codes broken across lines.
  */
 export function parseBatch(text: string): BatchParseResult {
+  const lines = cleanPastedText(text).split(/\r?\n/);
+
+  // Flatten into pieces, remembering which line each came from.
+  const pieces: { text: string; line: number }[] = [];
+  lines.forEach((line, i) => {
+    for (const t of line.split(NOT_CODE_CHAR)) if (t.replace(/\./g, '').length) pieces.push({ text: t, line: i });
+  });
+
+  // A student's name: on the code's own line, or the nearest name-like line above it.
+  const nameFor = (lineIdx: number) => {
+    const own = lines[lineIdx]
+      .split(NOT_CODE_CHAR)
+      .filter((w) => w.length < 30 && !w.includes(CODE_START) && /^[A-Za-z]/.test(w))
+      .join(' ')
+      .trim();
+    if (isNameLike(own)) return own;
+    for (let i = lineIdx - 1; i >= 0 && i >= lineIdx - 6; i--) if (isNameLike(lines[i])) return lines[i].trim();
+    return '';
+  };
+
   const seen = new Set<string>();
   const unreadable: string[] = [];
   const entries: BatchEntry[] = [];
   let duplicatesRemoved = 0;
 
-  for (const line of text.split(/\r?\n/)) {
-    const tokens = line.split(/[\s,;"'|]+/).filter(Boolean);
-    const candidates = tokens.filter((t) => LOOKS_LIKE_CODE.test(t) || t.length >= LONG_TOKEN);
-    // The rest of the line (usually the student's name) labels a code that can't be read.
-    const label = tokens.filter((t) => !candidates.includes(t)).join(' ').slice(0, 40);
-    for (const token of candidates) {
-      if (seen.has(token)) {
-        duplicatesRemoved++;
-        continue;
+  for (let i = 0; i < pieces.length; i++) {
+    const piece = pieces[i].text;
+    const looksLikeAttempt = piece.includes(CODE_START) || piece.length >= SUSPICIOUS_LENGTH;
+    if (!looksLikeAttempt) continue; // names, status words, links, class IDs...
+
+    let found = readCode(piece);
+    // A code broken across lines or spaces: try joining the next few pieces.
+    let used = 0;
+    if (!found) {
+      let joined = piece;
+      for (let j = 1; j <= 6 && i + j < pieces.length; j++) {
+        if (pieces[i + j].text.includes(CODE_START)) break; // the next student's code
+        joined += pieces[i + j].text;
+        found = readCode(joined);
+        if (found) {
+          used = j;
+          break;
+        }
       }
-      seen.add(token);
-      const project = LOOKS_LIKE_CODE.test(token) ? decodeSubmission(token) : null;
-      if (!project) {
-        unreadable.push(label || `code starting ${token.slice(0, 10)}… ending …${token.slice(-6)}`);
-        continue;
-      }
-      entries.push({
-        id: entries.length,
-        project,
-        evaluation: gradeProject(project),
-        challengeTitle: challengeTitle(project.activeChallengeId),
-        hasMultipleSubmissions: false,
-      });
     }
+    if (!found) {
+      unreadable.push(nameFor(pieces[i].line) || `code starting ${piece.slice(0, 10)}…`);
+      continue;
+    }
+    i += used;
+    if (seen.has(found.code)) {
+      duplicatesRemoved++;
+      continue;
+    }
+    seen.add(found.code);
+    entries.push({
+      id: entries.length,
+      project: found.project,
+      evaluation: gradeProject(found.project),
+      challengeTitle: challengeTitle(found.project.activeChallengeId),
+      hasMultipleSubmissions: false,
+    });
   }
 
   const nameCounts = new Map<string, number>();
