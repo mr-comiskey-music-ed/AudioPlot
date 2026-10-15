@@ -352,6 +352,64 @@ export async function generateStudioPlotPdf(
     doc.text(ch == null ? '-' : String(ch), p.cx, p.cy + 1.1, { align: 'center' });
   }
 
+  // Name & type tags beside each mic/DI, placed where they cover nothing else
+  type Rect = { x: number; y: number; w: number; h: number };
+  const overlap = (a: Rect, b: Rect) =>
+    Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  const obstacles: Rect[] = [
+    ...solid.map((b) => ({ x: b.cx - b.w / 2, y: b.cy - b.h / 2, w: b.w, h: b.h })),
+    ...markers.map((m) => ({ x: m.p.cx - R, y: m.p.cy - R, w: R * 2, h: R * 2 })),
+    { x: snakeX, y: snakeY, w: snakeW, h: snakeH },
+  ];
+  const placedTags: Rect[] = [];
+  for (const b of boxes) {
+    if (!isMarker(b.def)) continue;
+    const p = pos.get(b.g.instanceId)!;
+    const chNum = channelOf(project, b.g);
+    const name = `${chNum != null ? `${chNum} · ` : ''}${b.def?.name || b.g.gearId}`;
+    const kind =
+      b.def?.category === 'di_box' ? 'Direct input'
+      : b.def?.transducerType === 'condenser_large' ? 'Large-diaphragm condenser'
+      : b.def?.transducerType === 'condenser_small' ? 'Small-diaphragm condenser'
+      : b.def?.transducerType === 'dynamic' ? 'Dynamic'
+      : '';
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6);
+    const w1 = doc.getTextWidth(name);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5);
+    const w2 = kind ? doc.getTextWidth(kind) : 0;
+    const tw = Math.max(w1, w2) + 2, th = kind ? 5.6 : 3.4;
+    const gap = R + 0.6;
+    const candidates: Rect[] = [
+      { x: p.cx + gap, y: p.cy - th / 2, w: tw, h: th }, // right
+      { x: p.cx - gap - tw, y: p.cy - th / 2, w: tw, h: th }, // left
+      { x: p.cx - tw / 2, y: p.cy + gap, w: tw, h: th }, // below
+      { x: p.cx - tw / 2, y: p.cy - gap - th, w: tw, h: th }, // above
+      { x: p.cx + gap * 0.7, y: p.cy + gap * 0.7, w: tw, h: th }, // below right
+      { x: p.cx - gap * 0.7 - tw, y: p.cy + gap * 0.7, w: tw, h: th }, // below left
+      { x: p.cx + gap * 0.7, y: p.cy - gap * 0.7 - th, w: tw, h: th }, // above right
+      { x: p.cx - gap * 0.7 - tw, y: p.cy - gap * 0.7 - th, w: tw, h: th }, // above left
+    ];
+    const inArea = (r: Rect) => r.x >= fx + 1 && r.x + r.w <= fx + fw - 1 && r.y >= fy + 1 && r.y + r.h <= fy + fh - 7;
+    const cost = (r: Rect) =>
+      (inArea(r) ? 0 : 1e6) +
+      obstacles.reduce((s, o) => s + overlap(r, o), 0) * 3 + // equipment and markers
+      placedTags.reduce((s, o) => s + overlap(r, o), 0) * 10; // other tags matter most
+    const tag = candidates.reduce((best, c) => (cost(c) < cost(best) ? c : best), candidates[0]);
+    placedTags.push(tag);
+    doc.setFillColor(...C.white);
+    doc.setDrawColor(...C.line);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(tag.x, tag.y, tag.w, tag.h, 0.8, 0.8, 'FD');
+    setText(6, C.ink, 'bold');
+    doc.text(name, tag.x + 1, tag.y + 2.5);
+    if (kind) {
+      setText(5, C.muted);
+      doc.text(kind, tag.x + 1, tag.y + 4.8);
+    }
+  }
+
   // Legend
   let lx = M, ly = fy + fh + 6;
   setText(7, C.muted, 'bold');
