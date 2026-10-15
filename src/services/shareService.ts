@@ -1,4 +1,4 @@
-import LZString from 'lz-string';
+import { encodeSubmission, decodeSubmission, encodeForLink, decodeFromLink } from './submissionCodec';
 import { StudioProjectState, RubricEvaluation } from '../types';
 import { getGearById } from '../data/gearCatalog';
 import { exportStudioPlotToPdf, PdfExportOptions } from './pdfExportService';
@@ -9,8 +9,7 @@ export type { PdfExportOptions };
 
 export function serializeStudioProject(project: StudioProjectState): string {
   try {
-    const json = JSON.stringify(project);
-    return LZString.compressToEncodedURIComponent(json);
+    return encodeForLink(project);
   } catch (err) {
     console.error('Error serializing studio project:', err);
     return '';
@@ -18,14 +17,7 @@ export function serializeStudioProject(project: StudioProjectState): string {
 }
 
 export function deserializeStudioProject(encoded: string): StudioProjectState | null {
-  try {
-    const decompressed = LZString.decompressFromEncodedURIComponent(encoded);
-    if (!decompressed) return null;
-    return JSON.parse(decompressed);
-  } catch (err) {
-    console.error('Error deserializing studio project:', err);
-    return null;
-  }
+  return decodeFromLink(encoded);
 }
 
 export function generateShareUrl(project: StudioProjectState): string {
@@ -51,51 +43,24 @@ export function exportProjectJson(project: StudioProjectState) {
   downloadAnchor.remove();
 }
 
+/**
+ * Student code check.
+ * - Given a project (student side): returns the short submission code.
+ * - Given a code (teacher side): returns the project, or null if the code is
+ *   incomplete, mistyped or edited. The grade itself is recalculated in App.tsx.
+ */
 export function cC(input: StudioProjectState | string): string | { project: StudioProjectState; evaluation: RubricEvaluation } | null {
   if (typeof input === 'object' && input !== null) {
     try {
-      const json = JSON.stringify(input);
-      const compressed = LZString.compressToEncodedURIComponent(json);
-      let checksum = 0;
-      for (let i = 0; i < json.length; i++) {
-        checksum = (checksum << 5) - checksum + json.charCodeAt(i);
-        checksum |= 0;
-      }
-      const payload = JSON.stringify({ d: compressed, c: checksum, v: 1 });
-      return btoa(encodeURIComponent(payload));
+      return encodeSubmission(input);
     } catch (err) {
       console.error('Error in cC encode:', err);
       return '';
     }
-  } else if (typeof input === 'string') {
-    if (!input.trim()) return null;
-    try {
-      const raw = input.trim();
-      const decodedJson = decodeURIComponent(atob(raw));
-      const parsed = JSON.parse(decodedJson);
-      if (!parsed || !parsed.d || parsed.c === undefined) return null;
-
-      const decompressed = LZString.decompressFromEncodedURIComponent(parsed.d);
-      if (!decompressed) return null;
-
-      let checksum = 0;
-      for (let i = 0; i < decompressed.length; i++) {
-        checksum = (checksum << 5) - checksum + decompressed.charCodeAt(i);
-        checksum |= 0;
-      }
-
-      if (checksum !== parsed.c) {
-        throw new Error('Tamper verification failed: Checksum mismatch');
-      }
-
-      const project = JSON.parse(decompressed) as StudioProjectState;
-      // Dynamically import or evaluate grading
-      // We can compute rubric evaluation
-      return { project, evaluation: {} as RubricEvaluation };
-    } catch (err) {
-      console.error('Error in cC decode/verify:', err);
-      return null;
-    }
+  }
+  if (typeof input === 'string' && input.trim()) {
+    const project = decodeSubmission(input);
+    return project ? { project, evaluation: {} as RubricEvaluation } : null;
   }
   return null;
 }

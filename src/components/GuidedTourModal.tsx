@@ -83,14 +83,14 @@ const TOUR_STEPS: TourStep[] = [
     id: 'metadata_and_submit',
     stepNumber: 5,
     title: '5. Share & Submit Options',
-    tagline: 'Generate Share Link & Export PDF Report',
+    tagline: 'Copy Your Code & Export PDF Report',
     description:
-      'Click "Share & Submit" at the top right to open the export modal. Enter your student name to unlock sharing, copy the direct link to your layout, or download the comprehensive PDF report complete with a live screenshot of your stage plot, equipment manifest, and grading breakdown.',
+      'Click "Share & Submit" at the top right to open the export modal. Enter your student name, then copy your submission code to paste into Google Classroom, or download the comprehensive PDF report complete with a live screenshot of your stage plot, equipment manifest, and grading breakdown.',
     targetSelectors: ['#btn-share-submit'],
     directionHint: '↗️ Look at the Share & Submit button in the top right',
     icon: <Share2 className="w-5 h-5 text-amber-400" />,
     accentColor: 'amber',
-    keyTip: 'Entering your student name is required to copy your share link or export your PDF report.',
+    keyTip: 'Entering your student name is required to copy your code or export your PDF report.',
   },
 ];
 

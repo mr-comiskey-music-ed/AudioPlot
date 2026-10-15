@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Share2,
   Copy,
@@ -13,18 +13,16 @@ import {
   User,
   ShieldCheck,
   AlertTriangle,
-  Link2,
-  ExternalLink,
+  ListChecks,
 } from 'lucide-react';
 import { StudioProjectState, RubricEvaluation } from '../types';
 import {
   exportProjectJson,
   printGradingReport,
   exportStudioPlotToPdf,
-  generateShareUrl,
-  generateGoogleClassroomShareUrl,
   cC,
 } from '../services/shareService';
+import { copyText } from '../utils/copyText';
 
 interface ShareSubmitModalProps {
   isOpen: boolean;
@@ -34,6 +32,7 @@ interface ShareSubmitModalProps {
   studentName: string;
   onUpdateStudentName: (name: string) => void;
   onVerifyProject?: (project: StudioProjectState) => void;
+  onOpenBatchGrade?: () => void;
 }
 
 export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
@@ -44,9 +43,11 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
   studentName,
   onUpdateStudentName,
   onVerifyProject,
+  onOpenBatchGrade,
 }) => {
   const [codeCopied, setCodeCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const codeAreaRef = useRef<HTMLTextAreaElement>(null);
   const [localName, setLocalName] = useState(studentName || '');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [pdfStatus, setPdfStatus] = useState<string | null>(null);
@@ -61,11 +62,9 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
 
   const isNameValid = localName.trim().length > 0;
 
-  // Update project studentName temporarily for student code, links, and PDF export
+  // Update project studentName temporarily for the student code and PDF export
   const updatedProject = { ...project, studentName: localName };
   const studentCode = isNameValid ? String(cC(updatedProject)) : '';
-  const shareUrl = isNameValid ? generateShareUrl(updatedProject) : '';
-  const classroomUrl = isNameValid ? generateGoogleClassroomShareUrl(updatedProject) : '';
 
   const handleNameChange = (val: string) => {
     setLocalName(val);
@@ -74,23 +73,16 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
 
   const handleCopyCode = async () => {
     if (!isNameValid || !studentCode) return;
-    try {
-      await navigator.clipboard.writeText(studentCode);
+    const ok = await copyText(studentCode);
+    if (ok) {
+      setCopyFailed(false);
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2500);
-    } catch (err) {
-      console.error('Clipboard error:', err);
-    }
-  };
-
-  const handleCopyLink = async () => {
-    if (!isNameValid || !shareUrl) return;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2500);
-    } catch (err) {
-      console.error('Clipboard error:', err);
+    } else {
+      // Copy was blocked: select the code so the student can press Ctrl+C.
+      codeAreaRef.current?.focus();
+      codeAreaRef.current?.select();
+      setCopyFailed(true);
     }
   };
 
@@ -153,7 +145,7 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
                 Share & Export Studio Setup
               </h3>
               <p className="text-xs text-stone-400">
-                Generate Share Link & Export PDF Stage Plot
+                Copy Your Code & Export PDF Stage Plot
               </p>
             </div>
           </div>
@@ -197,7 +189,7 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-teal-300 flex items-center gap-1.5">
                 <FileCheck className="w-4 h-4 text-teal-400" />
-                Student Assignment Code (Apps Script / Classroom)
+                Student Assignment Code
               </span>
             </div>
             <p className="text-[11px] text-stone-300">
@@ -206,6 +198,7 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
 
             <div className="space-y-2">
               <textarea
+                ref={codeAreaRef}
                 id="textarea-student-code"
                 readOnly
                 rows={3}
@@ -215,7 +208,11 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
               />
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-stone-400">
-                  {isNameValid ? 'Self-contained compressed string with tamper-proof signature' : 'Name required'}
+                  {!isNameValid
+                    ? 'Name required'
+                    : copyFailed
+                    ? 'Copy was blocked here. The code is selected: press Ctrl+C to copy it.'
+                    : 'Copy the whole code, start to finish.'}
                 </span>
                 <button
                   id="btn-copy-student-code"
@@ -232,62 +229,6 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
                   {codeCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   <span>{codeCopied ? 'Code Copied!' : 'Copy Code'}</span>
                 </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Interactive Web Share Link & Google Classroom */}
-          <div className="p-4 bg-sky-500/10 border border-sky-500/30 rounded-2xl space-y-3 backdrop-blur-md">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-sky-300 flex items-center gap-1.5">
-                <Link2 className="w-4 h-4 text-sky-400" />
-                Interactive Web Share Link
-              </span>
-              <span className="text-[10px] font-bold text-sky-400 bg-sky-500/20 border border-sky-500/30 px-2 py-0.5 rounded-full">
-                Direct URL
-              </span>
-            </div>
-            <p className="text-[11px] text-stone-300">
-              Share this web link to let others open and interact with your complete stage plot in their browser.
-            </p>
-
-            <div className="space-y-2">
-              <input
-                id="input-share-url"
-                type="text"
-                readOnly
-                value={isNameValid ? shareUrl : 'Please enter student name above to generate share link...'}
-                className="w-full bg-stone-900/90 border border-white/20 rounded-xl px-3 py-2 text-[11px] text-sky-300 font-mono select-all outline-none backdrop-blur-xs"
-              />
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <button
-                  id="btn-copy-share-url"
-                  onClick={handleCopyLink}
-                  disabled={!isNameValid}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-md cursor-pointer ${
-                    !isNameValid
-                      ? 'bg-stone-800 text-stone-500 cursor-not-allowed opacity-50'
-                      : linkCopied
-                      ? 'bg-emerald-500 text-stone-950 font-black'
-                      : 'bg-sky-500 hover:bg-sky-400 text-stone-950 font-black'
-                  }`}
-                >
-                  {linkCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{linkCopied ? 'Link Copied!' : 'Copy Share Link'}</span>
-                </button>
-
-                {classroomUrl && isNameValid && (
-                  <a
-                    id="link-google-classroom-share"
-                    href={classroomUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 transition-all flex items-center gap-1.5"
-                  >
-                    <span>Google Classroom</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                )}
               </div>
             </div>
           </div>
@@ -376,6 +317,19 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
                 <ShieldCheck className="w-4 h-4" />
                 <span>Verify Grade</span>
               </button>
+              {onOpenBatchGrade && (
+                <button
+                  id="btn-open-batch-grade"
+                  onClick={() => {
+                    onOpenBatchGrade();
+                    onClose();
+                  }}
+                  className="w-full py-2 px-4 rounded-full bg-white/5 hover:bg-white/10 border border-orange-500/40 text-orange-300 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <ListChecks className="w-4 h-4" />
+                  <span>Batch Grade a Whole Class</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
