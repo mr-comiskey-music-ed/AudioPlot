@@ -759,7 +759,7 @@ export default function App() {
         onClose={() => setIsVerifiedModalOpen(false)}
         studentName={verifiedProject?.studentName || ''}
         project={verifiedProject || currentProjectState}
-        evaluation={verifiedProject ? evaluateStudioSetup(verifiedProject.environment || 'recording_studio', verifiedProject.placedGear || [], verifiedProject.connections || [], verifiedProject.mixerChannels || []) : evaluation}
+        evaluation={verifiedProject ? evaluateStudioSetup(verifiedProject.environment || 'recording_studio', verifiedProject.placedGear || [], verifiedProject.connections || [], verifiedProject.mixerChannels || [], verifiedProject.activeChallengeId) : evaluation}
         onLoadProject={handleLoadProject}
       />
 
