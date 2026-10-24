@@ -43,6 +43,10 @@ class StudioAudioEngine {
   private timer: number | null = null;
   private startTime = 0;
   private masterGainNode: GainNode | null = null;
+  // Safety limiter on the master bus so the mix never clips at unity settings
+  private masterLimiterNode: DynamicsCompressorNode | null = null;
+  // Per-stem level match: every recording peaks at the same headroom at 0 dB
+  private normFactors = new Map<string, number>();
   private masterBalanceNode: StereoPannerNode | null = null;
   private masterAnalyserNode: AnalyserNode | null = null;
   private masterSplitterNode: ChannelSplitterNode | null = null;
@@ -121,7 +125,10 @@ class StudioAudioEngine {
       // Dim: -20 dB attenuation (0.1x voltage)
       const dimFactor = master.dim ? 0.1 : 1.0;
 
-      const targetGain = Math.min(3.0, faderGain * trimRatio * dimFactor * 0.9);
+      // Chrome's limiter adds about +3.4 dB of automatic make-up gain at this
+      // threshold; 0.68 takes it back out, so at unity the mix peaks near -5 dBFS.
+      const LIMITER_COMP = 0.68;
+      const targetGain = Math.min(3.0, faderGain * trimRatio * dimFactor * 0.9 * LIMITER_COMP);
       this.masterGainNode.gain.setTargetAtTime(targetGain, now, 0.015);
     }
 
@@ -362,11 +369,11 @@ class StudioAudioEngine {
       source.connect(gainNode);
       gainNode.connect(analyserNode);
       analyserNode.connect(pannerNode);
-      pannerNode.connect(this.masterGainNode);
+      pannerNode.connect(this.masterLimiterNode ?? this.masterGainNode);
     } else {
       source.connect(gainNode);
       gainNode.connect(analyserNode);
-      analyserNode.connect(this.masterGainNode);
+      analyserNode.connect(this.masterLimiterNode ?? this.masterGainNode);
     }
 
     if (offset > 0) {
@@ -426,6 +433,16 @@ class StudioAudioEngine {
     this.masterRightAnalyser = this.ctx.createAnalyser();
     this.masterRightAnalyser.fftSize = 256;
     this.masterRightAnalyser.smoothingTimeConstant = 0.6;
+
+    // Limiter on the summed channels (before the master trim/fader): the mix of
+    // all channels never clips at 0 dB, but pushing the MASTER still can.
+    this.masterLimiterNode = this.ctx.createDynamicsCompressor();
+    this.masterLimiterNode.threshold.value = -6;
+    this.masterLimiterNode.knee.value = 0;
+    this.masterLimiterNode.ratio.value = 20;
+    this.masterLimiterNode.attack.value = 0.002;
+    this.masterLimiterNode.release.value = 0.2;
+    this.masterLimiterNode.connect(this.masterGainNode);
 
     if (this.masterBalanceNode) {
       this.masterGainNode.connect(this.masterBalanceNode);
@@ -509,7 +526,7 @@ class StudioAudioEngine {
 
         if (isValidated) {
           const { gain, pan, isAudible } = this.getChannelAudioParams(gearId, current);
-          const targetGain = isAudible ? gain : 0;
+          const targetGain = isAudible ? gain * this.getNormFactor(gearId, track.source.buffer || undefined) : 0;
           track.gainNode.gain.setTargetAtTime(targetGain, now, 0.03);
           if (track.pannerNode) {
             track.pannerNode.pan.setTargetAtTime(pan, now, 0.03);
@@ -562,6 +579,14 @@ class StudioAudioEngine {
         // Ignore disconnect errors
       }
       this.masterGainNode = null;
+    }
+    if (this.masterLimiterNode) {
+      try {
+        this.masterLimiterNode.disconnect();
+      } catch {
+        // ignore
+      }
+      this.masterLimiterNode = null;
     }
     if (this.masterBalanceNode) {
       try {
@@ -635,6 +660,29 @@ class StudioAudioEngine {
       peakAmplitude: maxDev,
       rmsAmplitude: rms,
     };
+  }
+
+  /**
+   * Every stem is scaled so its loudest peak sits at -12 dBFS when the channel
+   * trim and fader are at 0 dB. That leaves room to sum several channels and
+   * means a channel only clips when a student actually pushes it.
+   */
+  private getNormFactor(gearId: string, buffer?: AudioBuffer): number {
+    const cached = this.normFactors.get(gearId);
+    if (cached !== undefined) return cached;
+    if (!buffer) return 1;
+    let peak = 0;
+    for (let c = 0; c < buffer.numberOfChannels; c++) {
+      const data = buffer.getChannelData(c);
+      for (let i = 0; i < data.length; i += 2) {
+        const v = data[i] < 0 ? -data[i] : data[i];
+        if (v > peak) peak = v;
+      }
+    }
+    const TARGET_PEAK = 0.25; // -12 dBFS
+    const factor = peak > 0.0001 ? TARGET_PEAK / peak : 1;
+    this.normFactors.set(gearId, factor);
+    return factor;
   }
 
   /** Sample rate of the audio engine (needed to map FFT bins to Hz). */

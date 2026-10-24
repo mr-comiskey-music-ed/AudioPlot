@@ -581,90 +581,26 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
 
                     {/* XLR Input Port (Interactive Patch Point) */}
                     <div className="relative my-0.5">
-                      <button
-                        id={`btn-xlr-port-${ch.channelNumber}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPatchMenuChannel(patchMenuChannel === ch.channelNumber ? null : ch.channelNumber);
-                        }}
-                        className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all shadow-md cursor-pointer ${
+                      {/* Patch indicator: lit when something is routed to this channel (patching happens on the floor) */}
+                      <div
+                        id={`xlr-port-${ch.channelNumber}`}
+                        className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shadow-md ${
                           assignedGear
                             ? hasChainError
                               ? 'border-amber-500 bg-amber-500/10 text-amber-400 ring-2 ring-amber-500/30'
                               : 'border-orange-500 bg-white/10 text-orange-400 ring-2 ring-orange-500/30'
-                            : 'border-white/20 bg-white/5 text-stone-400 hover:border-white/40 hover:text-white'
+                            : 'border-white/15 bg-white/5 text-stone-600'
                         }`}
                         title={
                           assignedGear
                             ? hasChainError
                               ? `${assignedDef?.name} (${channelSignal.error})`
-                              : `Patched to ${assignedDef?.name}`
-                            : 'Click to Patch a Mic or DI line'
+                              : `Patched: ${assignedDef?.name}`
+                            : 'Nothing patched to this channel'
                         }
                       >
                         <Cable className="w-4 h-4" />
-                      </button>
-
-                      {/* Patch dropdown modal */}
-                      {patchMenuChannel === ch.channelNumber && (
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute bottom-10 left-1/2 -translate-x-1/2 w-48 bg-stone-900/95 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl p-2 z-50 text-xs"
-                        >
-                          <div className="font-bold text-orange-400 border-b border-white/10 pb-1 mb-1.5 flex justify-between items-center">
-                            <span>Patch to Ch {ch.channelNumber}</span>
-                            <button
-                              onClick={() => setPatchMenuChannel(null)}
-                              className="text-stone-400 hover:text-white text-[10px] cursor-pointer"
-                            >
-                              ✕
-                            </button>
-                          </div>
-
-                          {patchableGear.length === 0 ? (
-                            <div className="text-[11px] text-stone-400 py-2 text-center">
-                              Place mics or instruments on the floor first.
-                            </div>
-                          ) : (
-                            <div className="max-h-40 overflow-y-auto space-y-1">
-                              {patchableGear.map((item) => {
-                                const d = getGearById(item.gearId);
-                                const isCurrentlyAssigned = ch.assignedGearInstanceId === item.instanceId;
-
-                                return (
-                                  <button
-                                    key={item.instanceId}
-                                    onClick={() => {
-                                      onPatchGearToChannel(item.instanceId, ch.channelNumber);
-                                      setPatchMenuChannel(null);
-                                    }}
-                                    className={`w-full text-left px-2 py-1.5 rounded-lg text-[11px] flex items-center justify-between transition-colors cursor-pointer ${
-                                      isCurrentlyAssigned
-                                        ? 'bg-orange-500 text-stone-950 font-bold'
-                                        : 'hover:bg-white/10 text-stone-300'
-                                    }`}
-                                  >
-                                    <span className="truncate">{d?.name}</span>
-                                    {isCurrentlyAssigned && <Check className="w-3 h-3" />}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          {assignedGear && (
-                            <button
-                              onClick={() => {
-                                onUnpatchChannel(ch.channelNumber);
-                                setPatchMenuChannel(null);
-                              }}
-                              className="w-full mt-2 pt-1 border-t border-white/10 text-rose-400 hover:text-rose-300 text-[10px] text-center block font-bold cursor-pointer"
-                            >
-                              Unpatch Channel
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      </div>
                     </div>
 
                     {/* Scribble Strip (Channel Name) */}

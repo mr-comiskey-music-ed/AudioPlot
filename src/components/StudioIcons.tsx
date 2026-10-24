@@ -286,24 +286,36 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
     case 'DrumKit':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
-          {/* Center Bass Drum */}
-          <circle cx="32" cy="38" r="14" fill="#1E293B" stroke="#2563EB" strokeWidth="2" />
-          <circle cx="32" cy="38" r="12" fill="#0F172A" />
-          <circle cx="36" cy="40" r="3" fill="#020617" stroke="#64748B" strokeWidth="1" />
-          {/* Snare (Left) */}
-          <ellipse cx="18" cy="34" rx="8" ry="4.5" fill="#E2E8F0" stroke="#475569" strokeWidth="1" />
-          {/* High Tom (Left-Center) */}
-          <ellipse cx="26" cy="20" rx="6" ry="3.5" fill="#2563EB" stroke="#1D4ED8" strokeWidth="1" />
-          {/* Mid Tom (Right-Center) */}
-          <ellipse cx="38" cy="20" rx="6.5" ry="3.5" fill="#2563EB" stroke="#1D4ED8" strokeWidth="1" />
-          {/* Floor Tom (Right) */}
-          <ellipse cx="46" cy="36" rx="8.5" ry="5" fill="#1E40AF" stroke="#1E3A8A" strokeWidth="1" />
-          {/* Hi-Hat Cymbals */}
-          <ellipse cx="12" cy="22" rx="7" ry="2.5" fill="#F59E0B" stroke="#B45309" strokeWidth="1" />
-          <line x1="12" y1="22" x2="12" y2="48" stroke="#94A3B8" strokeWidth="1.5" />
-          {/* Crash / Ride Cymbal */}
-          <ellipse cx="50" cy="14" rx="10" ry="3" fill="#FBBF24" stroke="#D97706" strokeWidth="1" />
-          <line x1="50" y1="14" x2="50" y2="46" stroke="#94A3B8" strokeWidth="1.5" />
+          {/* Cymbal stands (behind everything) */}
+          <line x1="9" y1="15" x2="9" y2="60" stroke="#94A3B8" strokeWidth="1.2" />
+          <path d="M9 60L5 63M9 60L13 63" stroke="#64748B" strokeWidth="1.1" strokeLinecap="round" />
+          <line x1="55" y1="11" x2="55" y2="60" stroke="#94A3B8" strokeWidth="1.2" />
+          <path d="M55 60L51 63M55 60L59 63" stroke="#64748B" strokeWidth="1.1" strokeLinecap="round" />
+          {/* Hi-hat pair (left) */}
+          <ellipse cx="9" cy="14" rx="7.5" ry="1.8" fill="#F59E0B" stroke="#B45309" strokeWidth="0.6" />
+          <ellipse cx="9" cy="16.4" rx="7.5" ry="1.7" fill="#D97706" stroke="#92400E" strokeWidth="0.6" />
+          {/* Crash cymbal (right, tilted) */}
+          <ellipse cx="53" cy="9" rx="9.5" ry="2.4" transform="rotate(-10 53 9)" fill="#FBBF24" stroke="#D97706" strokeWidth="0.7" />
+          {/* Rack toms on the kick (shell first, head on top) */}
+          {[24.5, 39.5].map((cx) => (
+            <g key={cx}>
+              <path d={`M${cx - 6} 22V29C${cx - 6} 31 ${cx - 3} 32 ${cx} 32C${cx + 3} 32 ${cx + 6} 31 ${cx + 6} 29V22Z`} fill="#1D4ED8" stroke="#1E3A8A" strokeWidth="0.8" />
+              <ellipse cx={cx} cy="22" rx="6" ry="2.2" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="0.7" />
+            </g>
+          ))}
+          {/* Kick drum, front view */}
+          <path d="M23 54L19 61M41 54L45 61" stroke="#94A3B8" strokeWidth="1.4" strokeLinecap="round" />
+          <circle cx="32" cy="44" r="13.5" fill="#1D4ED8" stroke="#1E3A8A" strokeWidth="1.2" />
+          <circle cx="32" cy="44" r="11.5" fill="#0F172A" stroke="#CBD5E1" strokeWidth="1" />
+          <circle cx="36.5" cy="47" r="2.6" fill="#020617" stroke="#64748B" strokeWidth="0.6" />
+          {/* Snare (left) on its stand */}
+          <path d="M16 41V50M16 50L12 55M16 50L20 55" stroke="#94A3B8" strokeWidth="1" strokeLinecap="round" />
+          <path d="M8 34V39C8 40.4 11.6 41.5 16 41.5C20.4 41.5 24 40.4 24 39V34Z" fill="#64748B" stroke="#334155" strokeWidth="0.8" />
+          <ellipse cx="16" cy="34" rx="8" ry="2.3" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="0.7" />
+          {/* Floor tom (right) on legs */}
+          <path d="M43 52L42 60M54 52L55 60" stroke="#94A3B8" strokeWidth="1" strokeLinecap="round" />
+          <path d="M42 38V51C42 52.8 45 54 48.5 54C52 54 55 52.8 55 51V38Z" fill="#1E40AF" stroke="#1E3A8A" strokeWidth="0.8" />
+          <ellipse cx="48.5" cy="38" rx="6.5" ry="2.3" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="0.7" />
         </svg>
       );
 
@@ -995,8 +1007,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <circle cx="45.5" cy="17.5" r="2" fill="#0B0F17" stroke="#9CA3AF" strokeWidth="0.8" />
           {/* Mode switch */}
           <rect x="17.5" y="15" width="2.5" height="5" rx="0.6" fill="#374151" />
-          {/* Triangle logo mark (no text) */}
-          <path d="M32 26L37 34H27Z" stroke="#9CA3AF" strokeWidth="0.8" strokeLinejoin="round" />
           {/* Battery door with screws */}
           <rect x="18.5" y="37" width="27" height="13" rx="1" fill="#0B0F17" stroke="#374151" strokeWidth="0.8" />
           <rect x="29.5" y="36" width="5" height="2.4" rx="0.5" fill="#1F2937" stroke="#4B5563" strokeWidth="0.5" />

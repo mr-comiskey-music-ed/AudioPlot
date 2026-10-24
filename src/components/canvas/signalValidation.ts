@@ -721,7 +721,7 @@ export function getGearIssues(
         (c.fromInstanceId === item.instanceId || c.toInstanceId === item.instanceId)
     );
     if (!hasMonOut) {
-      issues.push('Wired IEM must be patched to a Stage Snake Aux output (MON 1 or MON 2) via XLR cable');
+      issues.push('Wired IEM Pack must be patched to a Stage Snake Aux output (MON 1 or MON 2) via XLR cable');
     }
   }
 

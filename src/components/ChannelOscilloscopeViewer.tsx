@@ -114,7 +114,7 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
   const isSignalActive = isPlayingAudio && isAudible && (isMaster || channelSignal.hasSignal);
   const hasChainError = Boolean(!isMaster && assignedGear && !channelSignal.hasSignal);
 
-  // Preamp trim + fader scale how big the waveform looks (so gain staging is visible)
+  // Preamp trim + fader (kept for reference; the analyser data is already post-fader)
   const UNITY_VAL = 72;
   const rawGain = isMaster ? effectiveMaster.gain ?? UNITY_VAL : activeChannel.gain ?? UNITY_VAL;
   let preampRatio = 1;
@@ -167,14 +167,14 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
       if (isMaster && isPlayingAudio) {
         const res = audioEngine.getMasterWaveformData(timeArray);
         hasData = res.hasData;
-        peak = res.peakAmplitude * totalGain;
+        peak = res.peakAmplitude;
         audioEngine.getMasterFrequencyData(freqArray);
       } else if (isSignalActive && channelSignal.instrumentGear) {
         let id = channelSignal.instrumentGear.gearId;
         if (id === 'drummer' || id === 'inst_drum_set') id = 'inst_kick_drum';
         const res = audioEngine.getGearWaveformData(id, timeArray);
         hasData = res.hasData;
-        peak = res.peakAmplitude * totalGain;
+        peak = res.peakAmplitude;
         audioEngine.getGearFrequencyData(id, freqArray);
       }
       const live = hasData && (isMaster ? isPlayingAudio && isAudible : isSignalActive);
@@ -202,7 +202,9 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
           const n = 256;
           ctx.beginPath();
           for (let i = 0; i < n; i++) {
-            let v = ((timeArray[start + i] - 128) / 128) * totalGain;
+            // Data is measured after the channel's trim & fader, so it already shows gain staging
+            // Shown at 2x so a healthy -12 dBFS signal fills about half the screen
+            let v = ((timeArray[start + i] - 128) / 128) * 2;
             v = Math.max(-1, Math.min(1, v));
             const x = (i / (n - 1)) * width;
             const y = height / 2 - v * height * 0.44;
@@ -235,7 +237,6 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
             // noise, reverb tails) so only the instrument's real energy shows.
             level = Math.max(0, (level - 0.35) / 0.65);
             // Fader/trim still matter, without letting quiet bins pop up
-            level = Math.min(1, level * Math.min(1.4, totalGain));
           }
           // Gentle fall-off so bars move smoothly
           const prev = barLevelsRef.current[b];
