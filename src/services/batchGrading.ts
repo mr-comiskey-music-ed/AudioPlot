@@ -1,7 +1,7 @@
 import { StudioProjectState, RubricEvaluation } from '../types';
 import { decodeSubmission } from './submissionCodec';
 import { evaluateStudioSetup } from './gradingEngine';
-import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES } from '../data/challenges';
+import { resolveTaskId, taskTitle } from '../data/challenges';
 
 export interface BatchEntry {
   id: number;
@@ -80,11 +80,9 @@ const isNameLike = (line: string) => {
   );
 };
 
-const ALL_CHALLENGES = [...STUDIO_CHALLENGES, ...LIVE_STAGE_CHALLENGES];
-
-export function challengeTitle(id?: string | null): string {
-  if (!id) return 'Free build';
-  return ALL_CHALLENGES.find((c) => c.id === id)?.title ?? 'Challenge';
+/** Title of the task a submission was made for (old codes = the open 4-instrument task). */
+export function challengeTitle(project: StudioProjectState): string {
+  return taskTitle(resolveTaskId(project.activeChallengeId, project.environment));
 }
 
 export function gradeProject(project: StudioProjectState): RubricEvaluation {
@@ -93,7 +91,7 @@ export function gradeProject(project: StudioProjectState): RubricEvaluation {
     project.placedGear || [],
     project.connections || [],
     project.mixerChannels || [],
-    project.activeChallengeId
+    resolveTaskId(project.activeChallengeId, project.environment)
   );
 }
 
@@ -163,7 +161,7 @@ export function parseBatch(text: string): BatchParseResult {
       id: entries.length,
       project: found.project,
       evaluation: gradeProject(found.project),
-      challengeTitle: challengeTitle(found.project.activeChallengeId),
+      challengeTitle: challengeTitle(found.project),
       hasMultipleSubmissions: false,
     });
   }

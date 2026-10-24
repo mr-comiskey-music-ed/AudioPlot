@@ -74,7 +74,9 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
   }, [entries, sortKey, periodFilter]);
 
   const patterns = useMemo(() => classPatterns(visible), [visible]);
-  const average = visible.length ? Math.round(visible.reduce((s, e) => s + e.evaluation.percentage, 0) / visible.length) : 0;
+  // Sandbox submissions are not graded, so they stay out of the class average.
+  const graded = visible.filter((e) => !e.evaluation.isSandbox);
+  const average = graded.length ? Math.round(graded.reduce((s, e) => s + e.evaluation.percentage, 0) / graded.length) : 0;
   const letterCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const e of visible) m.set(e.evaluation.gradeLetter, (m.get(e.evaluation.gradeLetter) || 0) + 1);
@@ -300,9 +302,15 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                           <span className="text-right text-stone-200">
                             {e.evaluation.totalScore}/{e.evaluation.maxTotalScore}
                           </span>
-                          <span className={`text-center font-black rounded-full border px-1.5 py-0.5 ${gradeColor(e.evaluation.percentage)}`}>
-                            {e.evaluation.percentage}%
-                          </span>
+                          {e.evaluation.isSandbox ? (
+                            <span className="text-center font-black rounded-full border px-1.5 py-0.5 text-stone-400 border-white/15" title="Built in the sandbox, not graded">
+                              N/G
+                            </span>
+                          ) : (
+                            <span className={`text-center font-black rounded-full border px-1.5 py-0.5 ${gradeColor(e.evaluation.percentage)}`}>
+                              {e.evaluation.percentage}%
+                            </span>
+                          )}
                           <button
                             onClick={(ev) => {
                               ev.stopPropagation();

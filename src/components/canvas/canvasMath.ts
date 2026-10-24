@@ -331,6 +331,15 @@ export const getGearBoxDimensions = (
   }
   const isDrum = gearId.includes('drum') || gearId === 'inst_hi_hat';
   const drumScale = isDrum ? 0.75 : 1.0;
+  const customScaleFactor = customScale === 'compact' ? 0.8 : customScale === 'large' ? 1.25 : 1.0;
+
+  // Once a microphone is assigned to a source it shrinks to a compact tag,
+  // the same way an assigned DI box does, so busy plots stay readable.
+  if (isAssigned && getGearById(gearId)?.category === 'microphone') {
+    const s = customScaleFactor;
+    return { width: Math.round(76 * s), height: Math.round(72 * s) };
+  }
+
   const micOnDrumScale = isMicOnDrum ? 0.7 : 1.0;
   const scaleFactor = (customScale === 'compact' ? 0.8 : customScale === 'large' ? 1.25 : 1.0) * drumScale * micOnDrumScale;
 

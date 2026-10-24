@@ -1,4 +1,4 @@
-import { ChallengeDefinition } from '../types';
+import { ChallengeDefinition, EnvironmentMode } from '../types';
 
 export const STUDIO_CHALLENGES: ChallengeDefinition[] = [
   {
@@ -130,3 +130,64 @@ export const LIVE_STAGE_CHALLENGES: ChallengeDefinition[] = [
     hint: 'Ensure all mics are routed into the Snake, Main Left & Right PA speakers are placed downstage, and foldback monitoring is active.',
   },
 ];
+
+/**
+ * Open-ended tasks: students pick their own instruments (at least 4), then
+ * mic, cable, patch and monitor every one of them. This was the app's original
+ * default assignment.
+ */
+export const OPEN_TASKS: ChallengeDefinition[] = [
+  {
+    id: 'open_studio',
+    title: 'Open Task: Your Studio Session',
+    subtitle: 'Choose 4 or more instruments',
+    environment: 'recording_studio',
+    description:
+      'Pick at least four instruments of your choice. Then choose the right mic or DI for each one, cable everything to the snake, set phantom power where needed, and give every musician headphones.',
+    instruments: [],
+    hint: 'Think source first: loud or quiet, acoustic or electric? That tells you dynamic, condenser or DI.',
+    openEnded: true,
+    minInstruments: 4,
+  },
+  {
+    id: 'open_live',
+    title: 'Open Task: Your Live Show',
+    subtitle: 'Choose 4 or more instruments',
+    environment: 'live_stage',
+    description:
+      'Pick at least four instruments of your choice and build a full live setup: mics/DIs into the snake, PA speakers in both PA zones on MAIN L/R, and monitors or IEMs on MON 1/2.',
+    instruments: [],
+    hint: 'Live vocals usually want a dynamic mic, and every performer needs to hear themselves.',
+    openEnded: true,
+    minInstruments: 4,
+  },
+];
+
+/** Every task a teacher can assign: open-ended tasks first, then challenges. */
+export const ALL_TASKS: ChallengeDefinition[] = [...OPEN_TASKS, ...STUDIO_CHALLENGES, ...LIVE_STAGE_CHALLENGES];
+
+export function getTaskById(id?: string | null): ChallengeDefinition | null {
+  if (!id) return null;
+  return ALL_TASKS.find((t) => t.id === id) ?? null;
+}
+
+/** Written into submissions made from the open sandbox. */
+export const SANDBOX_ID = 'sandbox';
+
+/**
+ * Turn the task id saved in a submission/link into the task to grade against.
+ * - 'sandbox'           -> null (open playground, not graded)
+ * - missing (old codes) -> the open task for that environment, which is what
+ *                          every plot was graded against before tasks existed
+ * - anything else       -> that task id
+ */
+export function resolveTaskId(saved: string | null | undefined, environment?: EnvironmentMode): string | null {
+  if (saved === SANDBOX_ID) return null;
+  if (!saved) return environment === 'live_stage' ? 'open_live' : 'open_studio';
+  return saved;
+}
+
+export function taskTitle(id: string | null | undefined): string {
+  if (!id) return 'Sandbox (not graded)';
+  return getTaskById(id)?.title ?? 'Challenge';
+}

@@ -3,7 +3,7 @@ import { StudioProjectState, RubricEvaluation, PlacedGear, GearDefinition } from
 import { getGearById } from '../data/gearCatalog';
 import { getGearBoxDimensions } from '../components/canvas/canvasMath';
 import { calculateXlrCablesCount } from '../utils/cableUtils';
-import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES } from '../data/challenges';
+import { resolveTaskId, taskTitle } from '../data/challenges';
 
 /**
  * PDF export: a printable stage plot drawn straight from the student's project
@@ -52,7 +52,6 @@ const STAND_LABELS: Record<string, string> = {
   mounted: 'Mounted (no stand)',
 };
 const NO_STAND = new Set(['clipped', 'mounted']);
-const ALL_CHALLENGES = [...STUDIO_CHALLENGES, ...LIVE_STAGE_CHALLENGES];
 
 const hexToRgb = (hex?: string): RGB => {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
@@ -122,9 +121,7 @@ export async function generateStudioPlotPdf(
   const isStudio = project.environment !== 'live_stage';
   const student = project.studentName?.trim() || 'Student';
   const title = project.title?.trim() || (isStudio ? 'Studio Recording Session Plot' : 'Live Stage Plot');
-  const challenge = project.activeChallengeId
-    ? ALL_CHALLENGES.find((c) => c.id === project.activeChallengeId)?.title ?? 'Challenge'
-    : null;
+  const challenge = taskTitle(resolveTaskId(project.activeChallengeId, project.environment));
   const dateStr = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
   const setText = (size: number, color: RGB = C.text, style: 'normal' | 'bold' | 'italic' = 'normal') => {
@@ -152,11 +149,16 @@ export async function generateStudioPlotPdf(
     .filter(Boolean)
     .join('   •   ');
   doc.text(sub, M, M + 10);
-  const scoreColor = evaluation.percentage >= 90 ? C.good : evaluation.percentage >= 70 ? C.warn : C.bad;
+  const scoreColor = evaluation.isSandbox ? C.line : evaluation.percentage >= 90 ? C.good : evaluation.percentage >= 70 ? C.warn : C.bad;
   doc.setFillColor(...scoreColor);
   doc.roundedRect(W - M - 34, M - 2, 34, 13, 2, 2, 'F');
-  setText(12, C.white, 'bold');
-  doc.text(`${evaluation.percentage}%  ${evaluation.gradeLetter}`, W - M - 17, M + 6.3, { align: 'center' });
+  setText(evaluation.isSandbox ? 9 : 12, evaluation.isSandbox ? C.text : C.white, 'bold');
+  doc.text(
+    evaluation.isSandbox ? 'NOT GRADED' : `${evaluation.percentage}%  ${evaluation.gradeLetter}`,
+    W - M - 17,
+    M + 6.3,
+    { align: 'center' }
+  );
 
   // Frame
   const fx = M, fy = M + 15, fw = W - 2 * M, fh = H - fy - 26;
@@ -615,10 +617,16 @@ export async function generateStudioPlotPdf(
 
   // ---- Grade summary ----
   if (includeGradingRubric) {
-    heading('Grade Summary');
+    heading(evaluation.isSandbox ? 'Setup Checks (Sandbox, not graded)' : 'Grade Summary');
     ensure(10);
-    setText(11, scoreColor, 'bold');
-    doc.text(`${evaluation.totalScore} / ${evaluation.maxTotalScore} points   •   ${evaluation.percentage}%   •   ${evaluation.gradeLetter}`, M, y);
+    setText(11, evaluation.isSandbox ? C.muted : scoreColor, 'bold');
+    doc.text(
+      evaluation.isSandbox
+        ? 'Built in the open sandbox. Checks below show what is working; no grade is given.'
+        : `${evaluation.totalScore} / ${evaluation.maxTotalScore} points   •   ${evaluation.percentage}%   •   ${evaluation.gradeLetter}`,
+      M,
+      y
+    );
     y += 7;
     for (const cat of Object.values(evaluation.categories)) {
       if (!cat) continue;

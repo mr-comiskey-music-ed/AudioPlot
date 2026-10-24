@@ -99,8 +99,8 @@ export const VerifiedGradeModal: React.FC<VerifiedGradeModalProps> = ({
                     : 'bg-rose-950/90 text-rose-300 border-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]'
                 }`}
               >
-                <span className="text-xl font-black tracking-tighter">{evaluation.percentage}%</span>
-                <span className="text-[9px] uppercase tracking-wider font-bold opacity-85">Grade</span>
+                <span className="text-xl font-black tracking-tighter">{evaluation.isSandbox ? 'N/G' : `${evaluation.percentage}%`}</span>
+                <span className="text-[9px] uppercase tracking-wider font-bold opacity-85">{evaluation.isSandbox ? 'Sandbox' : 'Grade'}</span>
               </div>
             </div>
           </div>

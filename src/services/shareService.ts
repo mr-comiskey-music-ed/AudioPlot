@@ -308,7 +308,7 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
       <div class="subtitle">Audio Engineering Assignment & Stage Technical Spec (${project.environment === 'recording_studio' ? 'Studio Session' : 'Live Stage'})</div>
     </div>
     <div class="grade-badge">
-      <div class="grade-score">${evaluation.percentage}%</div>
+      <div class="grade-score">${evaluation.isSandbox ? 'Not graded' : `${evaluation.percentage}%`}</div>
       <div>&ldquo;${evaluation.gradePhrase}&rdquo;</div>
     </div>
   </div>

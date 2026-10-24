@@ -122,10 +122,10 @@ export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
             </div>
             <div>
               <div className="font-bold text-amber-200 mb-0.5 flex items-center gap-1.5">
-                <span>4. Hands-On Audio Challenges</span>
+                <span>4. Sandbox & Graded Tasks</span>
               </div>
               <p className="text-stone-400 leading-relaxed text-[11px]">
-                Tackle structured missions (e.g. Acoustic Trio, Rock Band, Jazz Ensemble) with instant rubric scoring, real-time feedback, and shareable reports!
+                You start in an ungraded sandbox to explore. For a grade, open a task: pick your own instruments or take on a challenge (Rock Band, Jazz Trio...).
               </p>
             </div>
           </div>
@@ -143,7 +143,7 @@ export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
               className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-lg shadow-orange-950/50 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
             >
               <Headphones className="w-4 h-4 shrink-0" />
-              <span>Start Studio Plot</span>
+              <span>Studio Sandbox</span>
             </button>
 
             <button
@@ -152,7 +152,7 @@ export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
               className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-stone-950 font-black text-xs shadow-lg shadow-blue-950/50 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
             >
               <Radio className="w-4 h-4 shrink-0" />
-              <span>Start Live Plot</span>
+              <span>Live Stage Sandbox</span>
             </button>
           </div>
 
@@ -167,7 +167,7 @@ export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
                 className="inline-flex items-center gap-1.5 text-[11px] text-stone-400 hover:text-amber-300 transition-colors py-1 px-3 rounded-lg hover:bg-white/5 cursor-pointer"
               >
                 <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                <span>Or browse available student challenges</span>
+                <span>Or open a graded task</span>
               </button>
             </div>
           )}

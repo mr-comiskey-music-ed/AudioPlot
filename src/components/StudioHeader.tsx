@@ -9,6 +9,7 @@ import {
   Sparkles,
   Undo2,
   Redo2,
+  GraduationCap,
 } from 'lucide-react';
 import { EnvironmentMode } from '../types';
 import { AppLogo } from './AppLogo';
@@ -28,7 +29,10 @@ interface StudioHeaderProps {
   onOpenGuideModal: () => void;
   onOpenTour?: () => void;
   onOpenChallengeModal?: () => void;
+  onOpenLearn?: () => void;
   activeChallengeId?: string | null;
+  /** Short name of the current task; null in the sandbox. */
+  activeTaskLabel?: string | null;
   onResetPlot: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -51,7 +55,9 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onOpenGuideModal,
   onOpenTour,
   onOpenChallengeModal,
+  onOpenLearn,
   activeChallengeId,
+  activeTaskLabel,
   onResetPlot,
   onUndo,
   onRedo,
@@ -168,32 +174,34 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             <span>Clear Plot</span>
           </button>
 
-          {/* Challenge Mode Pill Button */}
+          {/* Task / Sandbox Pill Button */}
           {onOpenChallengeModal && (
             <button
               id="btn-open-challenges"
               onClick={onOpenChallengeModal}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm max-w-[220px] ${
                 activeChallengeId
                   ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-amber-950/60 ring-2 ring-amber-300'
-                  : 'bg-white/5 hover:bg-white/10 text-amber-300 border-amber-500/30'
+                  : 'bg-white/5 hover:bg-white/10 text-stone-300 border-dashed border-stone-500/60'
               }`}
-              title="Practice pre-set tracking & sound challenges"
+              title={activeChallengeId ? 'Current graded task (click to change)' : 'Sandbox: not graded. Click to choose a task.'}
             >
-              <Trophy className="w-3.5 h-3.5" />
-              <span>{activeChallengeId ? 'Challenge Mode' : 'Challenges'}</span>
+              <Trophy className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">
+                {activeChallengeId ? `Task: ${activeTaskLabel || 'Challenge'}` : 'Sandbox · Tasks'}
+              </span>
             </button>
           )}
 
-          {/* Quick Mic Reference Guide */}
+          {/* Learn: decision walkthrough (links to the field guide) */}
           <button
-            id="btn-mic-guide"
-            onClick={onOpenGuideModal}
+            id="btn-learn"
+            onClick={onOpenLearn || onOpenGuideModal}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-stone-300 border border-white/10 backdrop-blur-md transition-all text-xs font-semibold"
-            title="Open Microphone & Signal Chain Guide"
+            title="Learn: how to choose mics, DIs, gear and routing for any setup"
           >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Guide</span>
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>Learn</span>
           </button>
 
           {/* Quick How-To Tour Walkthrough */}

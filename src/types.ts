@@ -147,6 +147,8 @@ export interface RubricEvaluation {
   criticalIssues: string[];
   suggestions: string[];
   positives: string[];
+  /** True in the open sandbox: checks still run, but nothing is graded. */
+  isSandbox?: boolean;
 }
 
 export interface ChallengeDefinition {
@@ -157,6 +159,9 @@ export interface ChallengeDefinition {
   description: string;
   instruments: Array<{ gearId: string; x: number; y: number; label?: string }>;
   hint: string;
+  /** Open-ended task: students choose their own instruments (at least minInstruments). */
+  openEnded?: boolean;
+  minInstruments?: number;
 }
 
 export interface StudioProjectState {

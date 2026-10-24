@@ -26,7 +26,7 @@ export const BatchReviewBar: React.FC<BatchReviewBarProps> = ({ entry, position,
   }, [position, total, onPrev, onNext]);
 
   const pct = entry.evaluation.percentage;
-  const color = pct >= 90 ? 'text-emerald-300 border-emerald-400/50' : pct >= 70 ? 'text-orange-300 border-orange-400/50' : 'text-rose-300 border-rose-400/50';
+  const color = entry.evaluation.isSandbox ? 'text-stone-400 border-white/20' : pct >= 90 ? 'text-emerald-300 border-emerald-400/50' : pct >= 70 ? 'text-orange-300 border-orange-400/50' : 'text-rose-300 border-rose-400/50';
   const btn = 'p-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer';
 
   return (
@@ -42,7 +42,7 @@ export const BatchReviewBar: React.FC<BatchReviewBarProps> = ({ entry, position,
           {entry.challengeTitle}
         </span>
         <span className={`font-black px-2 py-0.5 rounded-full border ${color} shrink-0`}>
-          {pct}% {entry.evaluation.gradeLetter}
+          {entry.evaluation.isSandbox ? 'Not graded' : `${pct}% ${entry.evaluation.gradeLetter}`}
         </span>
         <button onClick={onPrev} disabled={position === 0} className={btn} title="Previous student (←)">
           <ChevronLeft className="w-4 h-4" />

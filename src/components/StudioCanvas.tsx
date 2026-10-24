@@ -28,6 +28,9 @@ import { GearItemNode } from './canvas/GearItemNode';
 import { CanvasInspector } from './canvas/CanvasInspector';
 import { traceSignalPath, HighlightedSignalPath } from './canvas/signalPath';
 import { SignalFlowHUD } from './canvas/SignalFlowHUD';
+import { WORLD } from './canvas/stageGeometry';
+import { PaZoneOverlay } from './canvas/PaZoneOverlay';
+import { ZoomControls } from './canvas/ZoomControls';
 
 interface StudioCanvasProps {
   environment: EnvironmentMode;
@@ -173,8 +176,70 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedItemIds, selectedItemId, placedGear, onSelectItem]);
 
-  // Canvas container dimensions tracking for accurate cable routing
-  const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({ width: 1000, height: 650 });
+  // The floor/stage is a fixed-size world (see stageGeometry). It is scaled to
+  // fit the window ("Fit") and can be zoomed in further.
+  const canvasSize = WORLD;
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const sizerRef = useRef<HTMLDivElement>(null);
+  const [fitScale, setFitScale] = useState(1);
+  const [zoom, setZoom] = useState(1);
+  const scale = fitScale * zoom;
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const zoomAnchorRef = useRef<{ worldX: number; worldY: number; screenX: number; screenY: number } | null>(null);
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 2.5;
+
+  // Convert screen coordinates into world coordinates.
+  const getWorldRect = () => {
+    const r = containerRef.current!.getBoundingClientRect();
+    return { left: r.left, top: r.top, width: WORLD.width, height: WORLD.height };
+  };
+
+  const applyZoom = (nextZoom: number, anchorClient?: { x: number; y: number }) => {
+    const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(nextZoom * 100) / 100));
+    const scroller = scrollerRef.current;
+    if (scroller && containerRef.current) {
+      const sRect = scroller.getBoundingClientRect();
+      const ax = anchorClient ? anchorClient.x : sRect.left + sRect.width / 2;
+      const ay = anchorClient ? anchorClient.y : sRect.top + sRect.height / 2;
+      const wRect = getWorldRect();
+      zoomAnchorRef.current = {
+        worldX: (ax - wRect.left) / scaleRef.current,
+        worldY: (ay - wRect.top) / scaleRef.current,
+        screenX: ax - sRect.left,
+        screenY: ay - sRect.top,
+      };
+    }
+    setZoom(clamped);
+  };
+
+  // Keep the point under the cursor (or the view center) still while zooming.
+  React.useLayoutEffect(() => {
+    const anchor = zoomAnchorRef.current;
+    const scroller = scrollerRef.current;
+    const sizer = sizerRef.current;
+    if (!anchor || !scroller || !sizer) return;
+    zoomAnchorRef.current = null;
+    scroller.scrollLeft = sizer.offsetLeft + anchor.worldX * scale - anchor.screenX;
+    scroller.scrollTop = sizer.offsetTop + anchor.worldY * scale - anchor.screenY;
+  }, [scale]);
+
+  // Ctrl + scroll wheel (and Chromebook/Mac trackpad pinch) zooms the stage.
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const factor = Math.exp(-e.deltaY * 0.01);
+      applyZoom(zoomRef.current * factor, { x: e.clientX, y: e.clientY });
+    };
+    scroller.addEventListener('wheel', onWheel, { passive: false });
+    return () => scroller.removeEventListener('wheel', onWheel);
+  }, []);
 
   // Dynamic click & drag box resizing state
   const [resizingId, setResizingId] = useState<string | null>(null);
@@ -199,8 +264,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         rafId = null;
         if (!latestEvent) return;
 
-        const deltaX = latestEvent.clientX - resizeStartRef.current.startX;
-        const deltaY = latestEvent.clientY - resizeStartRef.current.startY;
+        const deltaX = (latestEvent.clientX - resizeStartRef.current.startX) / scaleRef.current;
+        const deltaY = (latestEvent.clientY - resizeStartRef.current.startY) / scaleRef.current;
         const initW = resizeStartRef.current.initWidth;
         const initH = resizeStartRef.current.initHeight;
         const aspectRatio = initW / (initH || 1);
@@ -245,9 +310,9 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
     const handleWindowMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const curX = e.clientX - rect.left;
-      const curY = e.clientY - rect.top;
+      const rect = getWorldRect();
+      const curX = (e.clientX - rect.left) / scaleRef.current;
+      const curY = (e.clientY - rect.top) / scaleRef.current;
 
       if (Math.hypot(curX - marqueeBox.startX, curY - marqueeBox.startY) > 3) {
         hasMarqueeMovedRef.current = true;
@@ -333,9 +398,9 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       rafId = requestAnimationFrame(() => {
         rafId = null;
         if (!latestEvent || !containerRef.current) return;
-        const rect = containerRef.current.getBoundingClientRect();
-        const curX = latestEvent.clientX - rect.left;
-        const curY = latestEvent.clientY - rect.top;
+        const rect = getWorldRect();
+        const curX = (latestEvent.clientX - rect.left) / scaleRef.current;
+        const curY = (latestEvent.clientY - rect.top) / scaleRef.current;
         setMousePos({ x: curX, y: curY });
 
         const deltaX = curX - dragOriginRef.current.x;
@@ -380,16 +445,16 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   }, [draggingId, placedGear, onUpdateGear]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!scrollerRef.current) return;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setCanvasSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          setFitScale(Math.min(width / WORLD.width, height / WORLD.height));
+        }
       }
     });
-    observer.observe(containerRef.current);
+    observer.observe(scrollerRef.current);
     return () => observer.disconnect();
   }, []);
 
@@ -477,10 +542,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   };
 
   const getGearCenter = (item: PlacedGear) => {
-    const isAssigned =
-      !!item.latchedSourceInstanceId ||
-      mixerChannels.some((ch) => ch.assignedGearInstanceId === item.instanceId || ch.channelNumber === item.assignedChannel) ||
-      connections.some((c) => c.fromInstanceId === item.instanceId || c.toInstanceId === item.instanceId);
+    // Must match the size GearItemNode draws (compact once latched to a source).
+    const isAssigned = !!item.latchedSourceInstanceId;
     const dims = getGearBoxDimensions(
       item.gearId,
       isAssigned,
@@ -590,9 +653,9 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
     }
 
     if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
+      const rect = getWorldRect();
+      const clickX = (e.clientX - rect.left) / scaleRef.current;
+      const clickY = (e.clientY - rect.top) / scaleRef.current;
 
       setDraggingId(item.instanceId);
       dragOriginRef.current = { x: clickX, y: clickY };
@@ -704,9 +767,9 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const curX = e.clientX - rect.left;
-    const curY = e.clientY - rect.top;
+    const rect = getWorldRect();
+    const curX = (e.clientX - rect.left) / scaleRef.current;
+    const curY = (e.clientY - rect.top) / scaleRef.current;
     setMousePos({ x: curX, y: curY });
   };
 
@@ -717,9 +780,9 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
     if (isMouseDraggingCable && connectingFromId) {
       if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const curX = e.clientX - rect.left;
-        const curY = e.clientY - rect.top;
+        const rect = getWorldRect();
+        const curX = (e.clientX - rect.left) / scaleRef.current;
+        const curY = (e.clientY - rect.top) / scaleRef.current;
 
         // Check snake channel inputs (CH 1-8)
         let handled = false;
@@ -808,9 +871,9 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
     }
 
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+    const rect = getWorldRect();
+    const clickX = (e.clientX - rect.left) / scaleRef.current;
+    const clickY = (e.clientY - rect.top) / scaleRef.current;
 
     const isAdditive = e.shiftKey || e.metaKey || e.ctrlKey;
     const initialIds = isAdditive ? [...selectedItemIds] : [];
@@ -869,9 +932,9 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
       if (data.type !== 'gear_catalog_item' || !data.gearId) return;
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const dropX = e.clientX - rect.left;
-      const dropY = e.clientY - rect.top;
+      const rect = getWorldRect();
+      const dropX = (e.clientX - rect.left) / scaleRef.current;
+      const dropY = (e.clientY - rect.top) / scaleRef.current;
 
       const newDef = getGearById(data.gearId);
       if (!newDef) return;
@@ -1280,7 +1343,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
             currentItem.customHeight
           )
         : { width: 76, height: 72 };
-      const rect = containerRef.current.getBoundingClientRect();
+      const rect = getWorldRect();
 
       const otherLatched = placedGear.filter(
         (g) => g.latchedSourceInstanceId === (isDrummerTarget ? 'drummer' : targetSource.instanceId) && g.instanceId !== instanceId
@@ -1401,140 +1464,321 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
   return (
     <div
-      ref={containerRef}
       id="studio-canvas-container"
-      onMouseDown={handleContainerMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
-      }}
-      onDrop={handleDropOnCanvas}
-      onClick={handleContainerClick}
       className="relative flex-1 h-full w-full bg-stone-950 overflow-hidden select-none cursor-default"
     >
-      {/* Background Floor Plan Blueprint SVG */}
-      <svg viewBox="0 0 1000 700" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
-        <defs>
-          <pattern id="studio-hardwood-pattern" width="160" height="48" patternUnits="userSpaceOnUse">
-            <rect width="160" height="48" fill="#171310" />
-            <rect x="0" y="0" width="80" height="24" fill="#1b1713" fillOpacity="0.75" />
-            <rect x="80" y="0" width="80" height="24" fill="#14110e" fillOpacity="0.6" />
-            <rect x="0" y="24" width="80" height="24" fill="#13100d" fillOpacity="0.6" />
-            <rect x="80" y="24" width="80" height="24" fill="#1b1713" fillOpacity="0.75" />
-            <line x1="0" y1="0" x2="160" y2="0" stroke="#0e0b09" strokeWidth="1.2" />
-            <line x1="0" y1="1" x2="160" y2="1" stroke="#2c221a" strokeWidth="0.5" strokeOpacity="0.4" />
-            <line x1="0" y1="24" x2="160" y2="24" stroke="#0e0b09" strokeWidth="1.2" />
-            <line x1="0" y1="25" x2="160" y2="25" stroke="#2c221a" strokeWidth="0.5" strokeOpacity="0.4" />
-            <line x1="0" y1="48" x2="160" y2="48" stroke="#0e0b09" strokeWidth="1.2" />
-            <line x1="80" y1="0" x2="80" y2="24" stroke="#0e0b09" strokeWidth="1.2" />
-            <line x1="0" y1="24" x2="0" y2="48" stroke="#0e0b09" strokeWidth="1.2" />
-            <line x1="160" y1="24" x2="160" y2="48" stroke="#0e0b09" strokeWidth="1.2" />
-          </pattern>
+      {/* Scrollable viewport: the stage world is scaled to fit, then zoomed */}
+      <div
+        ref={scrollerRef}
+        id="studio-canvas-scroller"
+        onMouseDown={handleContainerMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+        }}
+        onDrop={handleDropOnCanvas}
+        onClick={handleContainerClick}
+        className="absolute inset-0 overflow-auto flex"
+      >
+        <div
+          ref={sizerRef}
+          className="relative shrink-0"
+          style={{
+            width: `${Math.floor(WORLD.width * scale)}px`,
+            height: `${Math.floor(WORLD.height * scale)}px`,
+            margin: 'auto',
+          }}
+        >
+          <div
+            ref={containerRef}
+            id="studio-canvas-world"
+            className="absolute top-0 left-0 overflow-hidden"
+            style={{
+              width: `${WORLD.width}px`,
+              height: `${WORLD.height}px`,
+              transform: `scale(${scale})`,
+              transformOrigin: '0 0',
+            }}
+          >
+            {/* Background Floor Plan Blueprint SVG */}
+            <svg viewBox={`0 0 ${WORLD.width} ${WORLD.height}`} className="absolute inset-0 w-full h-full pointer-events-none">
+              <defs>
+                <pattern id="studio-hardwood-pattern" width="160" height="48" patternUnits="userSpaceOnUse">
+                  <rect width="160" height="48" fill="#171310" />
+                  <rect x="0" y="0" width="80" height="24" fill="#1b1713" fillOpacity="0.75" />
+                  <rect x="80" y="0" width="80" height="24" fill="#14110e" fillOpacity="0.6" />
+                  <rect x="0" y="24" width="80" height="24" fill="#13100d" fillOpacity="0.6" />
+                  <rect x="80" y="24" width="80" height="24" fill="#1b1713" fillOpacity="0.75" />
+                  <line x1="0" y1="0" x2="160" y2="0" stroke="#0e0b09" strokeWidth="1.2" />
+                  <line x1="0" y1="1" x2="160" y2="1" stroke="#2c221a" strokeWidth="0.5" strokeOpacity="0.4" />
+                  <line x1="0" y1="24" x2="160" y2="24" stroke="#0e0b09" strokeWidth="1.2" />
+                  <line x1="0" y1="25" x2="160" y2="25" stroke="#2c221a" strokeWidth="0.5" strokeOpacity="0.4" />
+                  <line x1="0" y1="48" x2="160" y2="48" stroke="#0e0b09" strokeWidth="1.2" />
+                  <line x1="80" y1="0" x2="80" y2="24" stroke="#0e0b09" strokeWidth="1.2" />
+                  <line x1="0" y1="24" x2="0" y2="48" stroke="#0e0b09" strokeWidth="1.2" />
+                  <line x1="160" y1="24" x2="160" y2="48" stroke="#0e0b09" strokeWidth="1.2" />
+                </pattern>
 
-          <radialGradient id="studio-ambient-lighting" cx="50%" cy="45%" r="65%">
-            <stop offset="0%" stopColor="#f97316" stopOpacity="0.04" />
-            <stop offset="60%" stopColor="#78350f" stopOpacity="0.02" />
-            <stop offset="100%" stopColor="#000000" stopOpacity="0.12" />
-          </radialGradient>
+                <radialGradient id="studio-ambient-lighting" cx="50%" cy="45%" r="65%">
+                  <stop offset="0%" stopColor="#f97316" stopOpacity="0.04" />
+                  <stop offset="60%" stopColor="#78350f" stopOpacity="0.02" />
+                  <stop offset="100%" stopColor="#000000" stopOpacity="0.12" />
+                </radialGradient>
 
-          <pattern id="stage-planks-pattern" width="160" height="40" patternUnits="userSpaceOnUse">
-            <rect width="160" height="40" fill="#0d0c0b" />
-            <rect x="0" y="0" width="80" height="20" fill="#12100e" fillOpacity="0.5" />
-            <rect x="80" y="20" width="80" height="20" fill="#12100e" fillOpacity="0.5" />
-            <line x1="0" y1="0" x2="160" y2="0" stroke="#1f1c19" strokeWidth="1" />
-            <line x1="0" y1="20" x2="160" y2="20" stroke="#1f1c19" strokeWidth="1" />
-            <line x1="80" y1="0" x2="80" y2="20" stroke="#1f1c19" strokeWidth="1" />
-            <line x1="0" y1="20" x2="0" y2="40" stroke="#1f1c19" strokeWidth="1" />
-            <line x1="160" y1="20" x2="160" y2="40" stroke="#1f1c19" strokeWidth="1" />
-          </pattern>
+                <pattern id="stage-planks-pattern" width="160" height="40" patternUnits="userSpaceOnUse">
+                  <rect width="160" height="40" fill="#0d0c0b" />
+                  <rect x="0" y="0" width="80" height="20" fill="#12100e" fillOpacity="0.5" />
+                  <rect x="80" y="20" width="80" height="20" fill="#12100e" fillOpacity="0.5" />
+                  <line x1="0" y1="0" x2="160" y2="0" stroke="#1f1c19" strokeWidth="1" />
+                  <line x1="0" y1="20" x2="160" y2="20" stroke="#1f1c19" strokeWidth="1" />
+                  <line x1="80" y1="0" x2="80" y2="20" stroke="#1f1c19" strokeWidth="1" />
+                  <line x1="0" y1="20" x2="0" y2="40" stroke="#1f1c19" strokeWidth="1" />
+                  <line x1="160" y1="20" x2="160" y2="40" stroke="#1f1c19" strokeWidth="1" />
+                </pattern>
 
-          <radialGradient id="stage-spotlight" cx="50%" cy="40%" r="55%">
-            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.08" />
-            <stop offset="60%" stopColor="#4F46E5" stopOpacity="0.03" />
-            <stop offset="100%" stopColor="#000000" stopOpacity="0.0" />
-          </radialGradient>
-        </defs>
+                <radialGradient id="stage-spotlight" cx="50%" cy="40%" r="55%">
+                  <stop offset="0%" stopColor="#818CF8" stopOpacity="0.08" />
+                  <stop offset="60%" stopColor="#4F46E5" stopOpacity="0.03" />
+                  <stop offset="100%" stopColor="#000000" stopOpacity="0.0" />
+                </radialGradient>
+              </defs>
 
-        <rect
-          width="100%"
-          height="100%"
-          fill={environment === 'recording_studio' ? 'url(#studio-hardwood-pattern)' : 'url(#stage-planks-pattern)'}
-        />
+              <rect
+                width="100%"
+                height="100%"
+                fill={environment === 'recording_studio' ? 'url(#studio-hardwood-pattern)' : 'url(#stage-planks-pattern)'}
+              />
 
-        {environment === 'recording_studio' ? (
-          <>
-            <rect width="100%" height="100%" fill="url(#studio-ambient-lighting)" />
-            <rect
-              x="16"
-              y="16"
-              width="968"
-              height="668"
-              rx="16"
-              fill="none"
-              stroke="#D97706"
-              strokeWidth="1.5"
-              strokeDasharray="8 6"
-              strokeOpacity="0.4"
+              {environment === 'recording_studio' ? (
+                <>
+                  <rect width="100%" height="100%" fill="url(#studio-ambient-lighting)" />
+                  <rect
+                    x="16"
+                    y="16"
+                    width="1088"
+                    height="668"
+                    rx="16"
+                    fill="none"
+                    stroke="#D97706"
+                    strokeWidth="1.5"
+                    strokeDasharray="8 6"
+                    strokeOpacity="0.4"
+                  />
+                  <text
+                    x="560"
+                    y="670"
+                    textAnchor="middle"
+                    fill="#38BDF8"
+                    fontSize="10"
+                    fontWeight="bold"
+                    letterSpacing="1.5"
+                  >
+                    CONTROL ROOM WINDOW
+                  </text>
+                  <rect
+                    x="410"
+                    y="680"
+                    width="300"
+                    height="12"
+                    rx="3"
+                    fill="#0284C7"
+                    fillOpacity="0.3"
+                    stroke="#38BDF8"
+                    strokeWidth="1.5"
+                  />
+                </>
+              ) : (
+                <>
+                  <rect width="100%" height="100%" fill="url(#stage-spotlight)" />
+                  <rect
+                    x="16"
+                    y="16"
+                    width="1088"
+                    height="668"
+                    rx="12"
+                    fill="none"
+                    stroke="#6366F1"
+                    strokeWidth="1.5"
+                    strokeDasharray="8 6"
+                    strokeOpacity="0.35"
+                  />
+                  <text x="560" y="28" textAnchor="middle" fill="#71717A" fontSize="9" fontWeight="bold" letterSpacing="1.5">
+                    UPSTAGE BACKDROP
+                  </text>
+                  <line
+                    x1="20"
+                    y1="682"
+                    x2="1100"
+                    y2="682"
+                    stroke="#818CF8"
+                    strokeWidth="2"
+                    strokeDasharray="6 4"
+                    strokeOpacity="0.6"
+                  />
+                  <text x="560" y="676" textAnchor="middle" fill="#A5B4FC" fontSize="9" fontWeight="bold" letterSpacing="1">
+                    AUDIENCE / FRONT-OF-HOUSE
+                  </text>
+                </>
+              )}
+            </svg>
+
+            {/* Live Stage: where the main PA speakers belong */}
+            {environment === 'live_stage' && (
+              <PaZoneOverlay placedGear={placedGear} selectedItemId={selectedItemId} draggingId={draggingId} />
+            )}
+
+            {/* Snake Box (Stage or Studio Snake) */}
+            <SnakeBox
+              environment={environment}
+              mixerChannels={mixerChannels}
+              placedGear={placedGear}
+              connections={connections}
+              onStartCableDragFromSnakeChannel={handleStartCableDragFromSnakeChannel}
+              onConnectToSnakeChannel={handleConnectToSnakeChannel}
+              onStartCableDragFromSnakeOutput={handleStartCableDragFromSnakeOutput}
+              onConnectToSnakeOutput={handleConnectToSnakeOutput}
+              errorNotification={errorNotification}
+              onDismissError={() => setErrorNotification(null)}
+              highlightedSnakeChannels={
+                isHighlightSignalPathEnabled && highlightedSignalPath
+                  ? highlightedSignalPath.snakeChannelNumbers
+                  : undefined
+              }
+              highlightedSnakeOutputs={
+                isHighlightSignalPathEnabled && highlightedSignalPath
+                  ? highlightedSignalPath.snakeOutputPortIds
+                  : undefined
+              }
+              isHighlightPathActive={isHighlightSignalPathEnabled && !!highlightedSignalPath}
             />
-            <text
-              x="500"
-              y="670"
-              textAnchor="middle"
-              fill="#38BDF8"
-              fontSize="10"
-              fontWeight="bold"
-              letterSpacing="1.5"
-            >
-              CONTROL ROOM WINDOW
-            </text>
-            <rect
-              x="350"
-              y="680"
-              width="300"
-              height="12"
-              rx="3"
-              fill="#0284C7"
-              fillOpacity="0.3"
-              stroke="#38BDF8"
-              strokeWidth="1.5"
+
+            {/* Cable Connection Layer */}
+            <CableLayer
+              environment={environment}
+              placedGear={placedGear}
+              connections={connections}
+              mixerChannels={mixerChannels}
+              canvasSize={canvasSize}
+              connectingFromId={connectingFromId}
+              activeCableTool={activeCableTool}
+              cableTypeToConnect={cableTypeToConnect}
+              mousePos={mousePos}
+              onDeleteConnection={deleteConnection}
+              onPatchToMixer={onPatchToMixer}
+              getGearCenter={getGearCenter}
+              getPortOrGearCenter={getPortOrGearCenter}
+              highlightedPath={highlightedSignalPath}
+              isHighlightPathActive={isHighlightSignalPathEnabled}
             />
-          </>
-        ) : (
-          <>
-            <rect width="100%" height="100%" fill="url(#stage-spotlight)" />
-            <rect
-              x="16"
-              y="16"
-              width="968"
-              height="668"
-              rx="12"
-              fill="none"
-              stroke="#6366F1"
-              strokeWidth="1.5"
-              strokeDasharray="8 6"
-              strokeOpacity="0.35"
-            />
-            <text x="500" y="28" textAnchor="middle" fill="#71717A" fontSize="9" fontWeight="bold" letterSpacing="1.5">
-              UPSTAGE BACKDROP
-            </text>
-            <line
-              x1="20"
-              y1="682"
-              x2="980"
-              y2="682"
-              stroke="#818CF8"
-              strokeWidth="2"
-              strokeDasharray="6 4"
-              strokeOpacity="0.6"
-            />
-            <text x="500" y="676" textAnchor="middle" fill="#A5B4FC" fontSize="9" fontWeight="bold" letterSpacing="1">
-              AUDIENCE / FRONT-OF-HOUSE
-            </text>
-          </>
-        )}
-      </svg>
+
+            {/* Placed Gear Nodes */}
+            {placedGear.map((item) => {
+              const isHighlightedInPath =
+                isHighlightSignalPathEnabled &&
+                !!highlightedSignalPath &&
+                highlightedSignalPath.gearIds.has(item.instanceId);
+
+              return (
+                <GearItemNode
+                  key={item.instanceId}
+                  item={item}
+                  environment={environment}
+                  placedGear={placedGear}
+                  connections={connections}
+                  mixerChannels={mixerChannels}
+                  isSelected={selectedItemId === item.instanceId || selectedItemIds.includes(item.instanceId)}
+                  selectedItemIds={selectedItemIds}
+                  isSourceForCable={connectingFromId === item.instanceId}
+                  resizingId={resizingId}
+                  onMouseDown={handleMouseDown}
+                  onSelect={(id) => onSelectItem(id)}
+                  onDelete={(id) => deleteItem(id)}
+                  onMultiDelete={(ids) => openDeleteConfirm(ids)}
+                  onStartResize={handleStartResize}
+                  connectingFromId={connectingFromId}
+                  activeCableTool={activeCableTool}
+                  isHighlightedInSignalPath={isHighlightedInPath}
+                  hasAnySignalPathActive={isHighlightSignalPathEnabled && !!highlightedSignalPath}
+                  signalPathRole={
+                    isHighlightedInPath
+                      ? highlightedSignalPath?.selectedGearId === item.instanceId
+                        ? 'Selected'
+                        : highlightedSignalPath?.nodes.find((n) => n.id === item.instanceId)?.label
+                      : undefined
+                  }
+                />
+              );
+            })}
+
+            {/* Multi-item Selection Marquee Box */}
+            {marqueeBox && (
+              <div
+                className="absolute pointer-events-none border border-sky-400/90 bg-sky-500/15 rounded-sm z-40 shadow-[0_0_15px_rgba(56,189,248,0.25)] ring-1 ring-sky-400/30"
+                style={{
+                  left: `${Math.min(marqueeBox.startX, marqueeBox.currentX)}px`,
+                  top: `${Math.min(marqueeBox.startY, marqueeBox.currentY)}px`,
+                  width: `${Math.abs(marqueeBox.currentX - marqueeBox.startX)}px`,
+                  height: `${Math.abs(marqueeBox.currentY - marqueeBox.startY)}px`,
+                }}
+              >
+                {/* Subtle corner indicator anchors */}
+                <div className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-sky-400" />
+                <div className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-sky-400" />
+                <div className="absolute -bottom-1 -left-1 w-2 h-2 border-b-2 border-l-2 border-sky-400" />
+                <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 border-sky-400" />
+              </div>
+            )}
+
+            {/* Floating Inspector Toolbar */}
+            {!connectingFromId && !activeCableTool && selectedItem && (() => {
+              const dims = getGearBoxDimensions(
+                selectedItem.gearId,
+                !!selectedItem.latchedSourceInstanceId,
+                selectedItem.customScale,
+                selectedItem.customWidth,
+                selectedItem.customHeight
+              );
+              // The inspector stays the same on-screen size at any zoom level.
+              const inv = 1 / scale;
+              const popupWidth = 340 * inv;
+              const popupHeight = 160 * inv;
+              const inspectorLeft = Math.max(16, Math.min(canvasSize.width - popupWidth - 16, selectedItem.x + dims.width / 2 - popupWidth / 2));
+              const inspectorTop = selectedItem.y > canvasSize.height / 2
+                ? Math.max(16, selectedItem.y - popupHeight - 16)
+                : Math.min(canvasSize.height - popupHeight - 16, selectedItem.y + dims.height + 12);
+
+              return (
+                <div
+                  className="absolute z-50 transition-all duration-150 pointer-events-auto"
+                  style={{
+                    left: `${inspectorLeft}px`,
+                    top: `${inspectorTop}px`,
+                    transform: `scale(${inv})`,
+                    transformOrigin: '0 0',
+                  }}
+                >
+                  <CanvasInspector
+                    selectedItem={selectedItem}
+                    environment={environment}
+                    placedGear={placedGear}
+                    mixerChannels={mixerChannels}
+                    onSelectItem={onSelectItem}
+                    onUpdateChannel={onUpdateChannel}
+                    onSetLatchedSource={setLatchedSource}
+                    onSetMicPlacement={setMicPlacement}
+                    onSetStandHeight={setStandHeight}
+                    onTogglePopFilter={togglePopFilter}
+                    onShowErrorToast={showErrorToast}
+                  />
+                </div>
+              );
+            })()}
+
+          </div>
+        </div>
+      </div>
 
       {/* Empty Canvas State Indicator */}
       {placedGear.length === 0 && (
@@ -1577,108 +1821,6 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         placedGear={placedGear}
       />
 
-      {/* Snake Box (Stage or Studio Snake) */}
-      <SnakeBox
-        environment={environment}
-        mixerChannels={mixerChannels}
-        placedGear={placedGear}
-        connections={connections}
-        onStartCableDragFromSnakeChannel={handleStartCableDragFromSnakeChannel}
-        onConnectToSnakeChannel={handleConnectToSnakeChannel}
-        onStartCableDragFromSnakeOutput={handleStartCableDragFromSnakeOutput}
-        onConnectToSnakeOutput={handleConnectToSnakeOutput}
-        errorNotification={errorNotification}
-        onDismissError={() => setErrorNotification(null)}
-        highlightedSnakeChannels={
-          isHighlightSignalPathEnabled && highlightedSignalPath
-            ? highlightedSignalPath.snakeChannelNumbers
-            : undefined
-        }
-        highlightedSnakeOutputs={
-          isHighlightSignalPathEnabled && highlightedSignalPath
-            ? highlightedSignalPath.snakeOutputPortIds
-            : undefined
-        }
-        isHighlightPathActive={isHighlightSignalPathEnabled && !!highlightedSignalPath}
-      />
-
-      {/* Cable Connection Layer */}
-      <CableLayer
-        environment={environment}
-        placedGear={placedGear}
-        connections={connections}
-        mixerChannels={mixerChannels}
-        canvasSize={canvasSize}
-        connectingFromId={connectingFromId}
-        activeCableTool={activeCableTool}
-        cableTypeToConnect={cableTypeToConnect}
-        mousePos={mousePos}
-        onDeleteConnection={deleteConnection}
-        onPatchToMixer={onPatchToMixer}
-        getGearCenter={getGearCenter}
-        getPortOrGearCenter={getPortOrGearCenter}
-        highlightedPath={highlightedSignalPath}
-        isHighlightPathActive={isHighlightSignalPathEnabled}
-      />
-
-      {/* Placed Gear Nodes */}
-      {placedGear.map((item) => {
-        const isHighlightedInPath =
-          isHighlightSignalPathEnabled &&
-          !!highlightedSignalPath &&
-          highlightedSignalPath.gearIds.has(item.instanceId);
-
-        return (
-          <GearItemNode
-            key={item.instanceId}
-            item={item}
-            environment={environment}
-            placedGear={placedGear}
-            connections={connections}
-            mixerChannels={mixerChannels}
-            isSelected={selectedItemId === item.instanceId || selectedItemIds.includes(item.instanceId)}
-            selectedItemIds={selectedItemIds}
-            isSourceForCable={connectingFromId === item.instanceId}
-            resizingId={resizingId}
-            onMouseDown={handleMouseDown}
-            onSelect={(id) => onSelectItem(id)}
-            onDelete={(id) => deleteItem(id)}
-            onMultiDelete={(ids) => openDeleteConfirm(ids)}
-            onStartResize={handleStartResize}
-            connectingFromId={connectingFromId}
-            activeCableTool={activeCableTool}
-            isHighlightedInSignalPath={isHighlightedInPath}
-            hasAnySignalPathActive={isHighlightSignalPathEnabled && !!highlightedSignalPath}
-            signalPathRole={
-              isHighlightedInPath
-                ? highlightedSignalPath?.selectedGearId === item.instanceId
-                  ? 'Selected'
-                  : highlightedSignalPath?.nodes.find((n) => n.id === item.instanceId)?.label
-                : undefined
-            }
-          />
-        );
-      })}
-
-      {/* Multi-item Selection Marquee Box */}
-      {marqueeBox && (
-        <div
-          className="absolute pointer-events-none border border-sky-400/90 bg-sky-500/15 rounded-sm z-40 shadow-[0_0_15px_rgba(56,189,248,0.25)] ring-1 ring-sky-400/30"
-          style={{
-            left: `${Math.min(marqueeBox.startX, marqueeBox.currentX)}px`,
-            top: `${Math.min(marqueeBox.startY, marqueeBox.currentY)}px`,
-            width: `${Math.abs(marqueeBox.currentX - marqueeBox.startX)}px`,
-            height: `${Math.abs(marqueeBox.currentY - marqueeBox.startY)}px`,
-          }}
-        >
-          {/* Subtle corner indicator anchors */}
-          <div className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 border-sky-400" />
-          <div className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 border-sky-400" />
-          <div className="absolute -bottom-1 -left-1 w-2 h-2 border-b-2 border-l-2 border-sky-400" />
-          <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 border-sky-400" />
-        </div>
-      )}
-
       {/* Multi-Selection Status Pill */}
       {selectedItemIds.length > 1 && !marqueeBox && !draggingId && (
         <div className="absolute top-4 right-4 z-40 bg-stone-900/95 border border-orange-500/40 text-stone-200 px-3.5 py-2 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-3 text-xs animate-in fade-in">
@@ -1688,46 +1830,15 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         </div>
       )}
 
-      {/* Floating Inspector Toolbar */}
-      {!connectingFromId && !activeCableTool && selectedItem && (() => {
-        const dims = getGearBoxDimensions(
-          selectedItem.gearId,
-          !!selectedItem.latchedSourceInstanceId,
-          selectedItem.customScale,
-          selectedItem.customWidth,
-          selectedItem.customHeight
-        );
-        const popupWidth = 340;
-        const popupHeight = 160;
-        const inspectorLeft = Math.max(80, Math.min(canvasSize.width - popupWidth - 16, selectedItem.x + dims.width / 2 - popupWidth / 2));
-        const inspectorTop = selectedItem.y > canvasSize.height / 2
-          ? Math.max(60, selectedItem.y - popupHeight - 16)
-          : Math.min(canvasSize.height - popupHeight - 70, selectedItem.y + dims.height + 12);
-
-        return (
-          <div
-            className="absolute z-50 transition-all duration-150 pointer-events-auto"
-            style={{
-              left: `${inspectorLeft}px`,
-              top: `${inspectorTop}px`,
-            }}
-          >
-            <CanvasInspector
-              selectedItem={selectedItem}
-              environment={environment}
-              placedGear={placedGear}
-              mixerChannels={mixerChannels}
-              onSelectItem={onSelectItem}
-              onUpdateChannel={onUpdateChannel}
-              onSetLatchedSource={setLatchedSource}
-              onSetMicPlacement={setMicPlacement}
-              onSetStandHeight={setStandHeight}
-              onTogglePopFilter={togglePopFilter}
-              onShowErrorToast={showErrorToast}
-            />
-          </div>
-        );
-      })()}
+      {/* Zoom Controls */}
+      <ZoomControls
+        zoom={zoom}
+        min={MIN_ZOOM}
+        max={MAX_ZOOM}
+        onZoomIn={() => applyZoom(zoom + 0.25)}
+        onZoomOut={() => applyZoom(zoom - 0.25)}
+        onFit={() => applyZoom(1)}
+      />
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirmDialog && (

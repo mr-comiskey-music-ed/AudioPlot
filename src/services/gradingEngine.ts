@@ -7,6 +7,8 @@ import {
   RubricCategoryScore,
 } from '../types';
 import { getGearById } from '../data/gearCatalog';
+import { getTaskById } from '../data/challenges';
+import { WORLD, getPaZone, getItemCenter } from '../components/canvas/stageGeometry';
 
 export interface SignalChainCheckResult {
   valid: boolean;
@@ -581,9 +583,18 @@ export function evaluateStudioSetup(
     );
   };
 
-  // ==================== 1. MINIMUM INPUTS CHECK (20 pts) ====================
+  // ==================== 1. INSTRUMENT / TASK CHECK (20 pts) ====================
+  // No task = open sandbox: no instrument requirement and nothing is graded.
+  const task = getTaskById(activeChallengeId);
+  const isSandbox = !activeChallengeId;
+  const minRequired = task?.openEnded ? task.minInstruments ?? 4 : 4;
+
   const minInputsScore: RubricCategoryScore = {
-    name: activeChallengeId ? 'Challenge Pre-Assigned Instruments' : 'Selected Input Sources (Min 4 Required)',
+    name: isSandbox
+      ? 'Instruments (Sandbox: any number)'
+      : task && !task.openEnded
+      ? 'Challenge Pre-Assigned Instruments'
+      : `Selected Input Sources (Min ${minRequired} Required)`,
     score: 0,
     maxScore: 20,
     passed: false,
@@ -593,23 +604,27 @@ export function evaluateStudioSetup(
   };
 
   const instrumentCount = placedInstruments.length;
-  if (activeChallengeId) {
+  if (isSandbox) {
+    minInputsScore.status = 'not_applicable';
+    minInputsScore.passed = true;
+    minInputsScore.feedback = `Sandbox: use as many or as few instruments as you like (${instrumentCount} placed). Pick a task to be graded.`;
+  } else if (task && !task.openEnded) {
     minInputsScore.score = 20;
     minInputsScore.passed = true;
     minInputsScore.status = 'perfect';
     minInputsScore.feedback = `Challenge mode active: Instruments are pre-assigned (${instrumentCount} input sources).`;
-  } else if (instrumentCount >= 4) {
+  } else if (instrumentCount >= minRequired) {
     minInputsScore.score = 20;
     minInputsScore.passed = true;
     minInputsScore.status = 'perfect';
-    minInputsScore.feedback = `Excellent! You placed ${instrumentCount} musical input sources (met the minimum 4 requirement).`;
+    minInputsScore.feedback = `Excellent! You placed ${instrumentCount} musical input sources (met the minimum ${minRequired} requirement).`;
     positives.push(`Selected ${instrumentCount} varied musical input sources.`);
   } else {
-    minInputsScore.score = Math.round((instrumentCount / 4) * 20);
+    minInputsScore.score = Math.round((instrumentCount / minRequired) * 20);
     minInputsScore.passed = false;
     minInputsScore.status = instrumentCount >= 2 ? 'warning' : 'error';
-    minInputsScore.feedback = `You currently have ${instrumentCount}/4 required audio inputs. Add at least ${4 - instrumentCount} more instrument(s).`;
-    criticalIssues.push(`Requirement: At least 4 distinct instrument/input sources must be selected.`);
+    minInputsScore.feedback = `You currently have ${instrumentCount}/${minRequired} required audio inputs. Add at least ${minRequired - instrumentCount} more instrument(s).`;
+    criticalIssues.push(`Requirement: At least ${minRequired} distinct instrument/input sources must be selected.`);
   }
 
   // ==================== 2. SIGNAL CHAIN & CABLE COMPLETENESS (25 pts) ====================
@@ -1183,7 +1198,9 @@ export function evaluateStudioSetup(
     mixerScore.feedback = 'Not Applicable: Place microphones or direct boxes to route into the snake/mixer.';
   } else {
     const assignedCount = mixerChannels.filter((ch) => ch.assignedGearInstanceId !== null).length;
-    if (assignedCount >= 4) {
+    // Small setups (e.g. a 2-source challenge) only need their own inputs patched.
+    const channelsNeeded = Math.max(1, Math.min(4, placedMics.length + placedDIs.length));
+    if (assignedCount >= channelsNeeded) {
       mixerScore.score = 5;
       mixerScore.passed = true;
       mixerScore.status = 'perfect';
@@ -1223,17 +1240,25 @@ export function evaluateStudioSetup(
       paPoints = 5;
       paIssues.push('Stereo PA Required: Place both Downstage Left and Downstage Right PA speakers.');
     } else {
-      // Check corner placement in bottom 15% (canvas height ~450px, bottom 15% is y >= 340)
-      const leftPA = paSpeakers.find((pa) => pa.x < 360);
-      const rightPA = paSpeakers.find((pa) => pa.x >= 360);
+      // Placement: each PA belongs in one of the two marked downstage corner zones.
+      const leftPA =
+        paSpeakers.find((pa) => getPaZone(pa) === 'left') ||
+        paSpeakers.find((pa) => getPaZone(pa) === null && getItemCenter(pa).x < WORLD.width / 2);
+      const rightPA =
+        paSpeakers.find((pa) => getPaZone(pa) === 'right') ||
+        paSpeakers.find((pa) => getPaZone(pa) === null && getItemCenter(pa).x >= WORLD.width / 2);
 
-      paSpeakers.forEach((pa) => {
-        // Bottom 15% test: y must be >= 340
-        if (pa.y < 340) {
-          paPoints -= 3;
-          paIssues.push('PA Speaker Placement Error: PA speakers must be positioned in the bottom 15% corner areas of the stage plot.');
-        }
-      });
+      const misplaced = paSpeakers.filter((pa) => getPaZone(pa) === null).length;
+      const zonesFilled = new Set(paSpeakers.map(getPaZone).filter(Boolean)).size;
+      if (misplaced > 0) {
+        paPoints -= 3;
+        paIssues.push(
+          `PA Speaker Placement: ${misplaced} PA speaker${misplaced > 1 ? 's are' : ' is'} outside the marked PA zones. Drag each PA into a dashed "PA" box at the front (audience-side) corners of the stage.`
+        );
+      } else if (zonesFilled < 2) {
+        paPoints -= 3;
+        paIssues.push('PA Speaker Placement: put one PA in the LEFT zone and one in the RIGHT zone so the audience hears both sides of the mix.');
+      }
 
       const leftConn = leftPA
         ? connections.find(
@@ -1262,15 +1287,15 @@ export function evaluateStudioSetup(
         paIssues.push('Right PA Speaker must be connected via XLR to Snake MAIN R output.');
       }
 
-      if (leftConn && rightConn && paSpeakers.every((p) => p.y >= 340)) {
-        positives.push('FOH Main Stereo PA Speakers positioned in bottom corners and connected via XLR.');
+      if (leftConn && rightConn && misplaced === 0 && zonesFilled === 2) {
+        positives.push('FOH Main Stereo PA Speakers positioned in the downstage PA zones and connected via XLR.');
       }
     }
 
     paScore.score = Math.max(0, paPoints);
     paScore.passed = paScore.score >= 8;
     paScore.status = paScore.score >= 9 ? 'perfect' : paScore.score >= 5 ? 'warning' : 'error';
-    paScore.feedback = paIssues.length === 0 ? 'PA Speakers configured & wired correctly in downstage corners.' : paIssues.join(' ');
+    paScore.feedback = paIssues.length === 0 ? 'PA Speakers configured & wired correctly in the downstage PA zones.' : paIssues.join(' ');
     if (paIssues.length > 0) criticalIssues.push(...paIssues);
   }
 
@@ -1415,7 +1440,13 @@ export function evaluateStudioSetup(
     gradePhrase = 'Not good enough';
   }
 
+  if (isSandbox) {
+    gradeLetter = '—';
+    gradePhrase = 'Sandbox: not graded';
+  }
+
   return {
+    isSandbox,
     totalScore,
     maxTotalScore,
     percentage,

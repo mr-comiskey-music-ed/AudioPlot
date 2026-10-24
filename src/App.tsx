@@ -30,6 +30,7 @@ import { MicPlacementGuideModal } from './components/MicPlacementGuideModal';
 import { IntroWelcomeModal } from './components/IntroWelcomeModal';
 import { ModeSwitchModal } from './components/ModeSwitchModal';
 import { ChallengeModal } from './components/ChallengeModal';
+import { LearnModal } from './components/LearnModal';
 import { PerfectionModal } from './components/PerfectionModal';
 import { GuidedTourModal } from './components/GuidedTourModal';
 import { MobileDeviceNotice } from './components/MobileDeviceNotice';
@@ -37,7 +38,7 @@ import { VerifiedGradeModal } from './components/VerifiedGradeModal';
 import { BatchGradeModal } from './components/BatchGradeModal';
 import { BatchReviewBar } from './components/BatchReviewBar';
 import { parseBatch, BatchParseResult } from './services/batchGrading';
-import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES } from './data/challenges';
+import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES, getTaskById, resolveTaskId, SANDBOX_ID } from './data/challenges';
 import { useUndoRedo, DEFAULT_MASTER_BUS } from './hooks/useUndoRedo';
 
 const INITIAL_CHANNELS: MixerChannelState[] = [
@@ -58,7 +59,11 @@ export default function App() {
   const [className, setClassName] = useState('Music Tech Period 1');
   const [environment, setEnvironment] = useState<EnvironmentMode>('recording_studio');
   const [pendingEnvSwitch, setPendingEnvSwitch] = useState<EnvironmentMode | null>(null);
+  // null = open sandbox (the default, not graded). Otherwise the id of an open task or challenge.
   const [activeChallengeId, setActiveChallengeId] = useState<string | null>(null);
+  // Task the teacher assigned via an assignment link (?task=...), if any.
+  const [assignedTaskId, setAssignedTaskId] = useState<string | null>(null);
+  const [isLearnOpen, setIsLearnOpen] = useState(false);
 
   // Undo/Redo state management for placedGear, connections, mixerChannels, and masterBus
   const {
@@ -118,7 +123,7 @@ export default function App() {
     setPeriod(loaded.period || '1');
     setClassName(loaded.className || 'Audio Production');
     setEnvironment(loaded.environment || 'recording_studio');
-    setActiveChallengeId(loaded.activeChallengeId ?? null);
+    setActiveChallengeId(resolveTaskId(loaded.activeChallengeId, loaded.environment));
     resetHistory({
       placedGear: loaded.placedGear || [],
       connections: loaded.connections || [],
@@ -143,7 +148,8 @@ export default function App() {
   // Check if first visit for intro modal
   useEffect(() => {
     const hasSeenIntro = localStorage.getItem('audioplot_intro_seen');
-    if (!hasSeenIntro) {
+    const openedFromAssignment = new URLSearchParams(window.location.search).has('task');
+    if (!hasSeenIntro && !openedFromAssignment) {
       setIsIntroModalOpen(true);
       localStorage.setItem('audioplot_intro_seen', 'true');
     } else {
@@ -178,6 +184,7 @@ export default function App() {
           setPeriod(loaded.period || '1');
           setClassName(loaded.className || 'Audio Production');
           setEnvironment(loaded.environment || 'recording_studio');
+          setActiveChallengeId(resolveTaskId(loaded.activeChallengeId, loaded.environment));
           resetHistory({
             placedGear: loaded.placedGear || [],
             connections: loaded.connections || [],
@@ -191,7 +198,15 @@ export default function App() {
         }
       }
 
-      // Default blank workspace
+      // Assignment link from the teacher: open straight into that task.
+      const assigned = getTaskById(params.get('task'));
+      if (assigned) {
+        setAssignedTaskId(assigned.id);
+        startTask(assigned, { forceReset: true });
+        return;
+      }
+
+      // Default: blank, ungraded sandbox
       resetHistory({
         placedGear: [],
         connections: [],
@@ -315,7 +330,7 @@ export default function App() {
   // Current & Next Challenge definition
   const allChallenges = environment === 'recording_studio' ? STUDIO_CHALLENGES : LIVE_STAGE_CHALLENGES;
   const currentChallengeIndex = allChallenges.findIndex((c) => c.id === activeChallengeId);
-  const currentChallenge = currentChallengeIndex >= 0 ? allChallenges[currentChallengeIndex] : null;
+  const currentChallenge = getTaskById(activeChallengeId);
   const nextChallenge =
     currentChallengeIndex >= 0 && currentChallengeIndex < allChallenges.length - 1
       ? allChallenges[currentChallengeIndex + 1]
@@ -324,6 +339,7 @@ export default function App() {
   // Celebrate with confetti on hitting 90%+ (Perfection!)
   useEffect(() => {
     if (review) return; // no celebrations while the teacher reviews student plots
+    if (!activeChallengeId) return; // the sandbox is not graded
     if (evaluation.percentage >= 90 && !hasCelebratedA) {
       confetti({
         particleCount: 80,
@@ -353,7 +369,8 @@ export default function App() {
       connections,
       mixerChannels,
       masterBus,
-      activeChallengeId,
+      // Sandbox work is marked so batch grading knows it was not a graded task.
+      activeChallengeId: activeChallengeId ?? SANDBOX_ID,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -526,6 +543,12 @@ export default function App() {
   }, []);
 
   const handleResetPlot = () => {
+    // Inside a task, clearing starts that task over (given instruments come back).
+    const task = getTaskById(activeChallengeId);
+    if (task) {
+      startTask(task, { forceReset: true });
+      return;
+    }
     resetHistory({
       placedGear: [],
       connections: [],
@@ -543,6 +566,16 @@ export default function App() {
   const handleSelectChallenge = (challenge: ChallengeDefinition | null) => {
     if (!challenge) {
       setActiveChallengeId(null);
+      return;
+    }
+    startTask(challenge);
+  };
+
+  function startTask(challenge: ChallengeDefinition, options: { forceReset?: boolean } = {}) {
+    // An open task in the same room keeps what the student already built in the sandbox.
+    if (challenge.openEnded && challenge.environment === environment && !options.forceReset) {
+      setActiveChallengeId(challenge.id);
+      setProjectTitle(challenge.title);
       return;
     }
     setActiveChallengeId(challenge.id);
@@ -568,7 +601,7 @@ export default function App() {
       mixerChannels: INITIAL_CHANNELS,
       masterBus: DEFAULT_MASTER_BUS,
     });
-  };
+  }
 
   const handleRequestEnvironmentChange = (newEnv: EnvironmentMode) => {
     if (newEnv === environment) return;
@@ -651,7 +684,9 @@ export default function App() {
         onOpenGuideModal={() => setIsGuideModalOpen(true)}
         onOpenTour={() => setIsTourOpen(true)}
         onOpenChallengeModal={() => setIsChallengeModalOpen(true)}
+        onOpenLearn={() => setIsLearnOpen(true)}
         activeChallengeId={activeChallengeId}
+        activeTaskLabel={currentChallenge ? currentChallenge.title.split(':').pop()!.trim() : null}
         onResetPlot={handleResetPlot}
         onUndo={undo}
         onRedo={redo}
@@ -721,6 +756,7 @@ export default function App() {
           onOpenGuideModal={() => setIsGuideModalOpen(true)}
           isExpanded={isGradingExpanded}
           onToggleExpanded={() => setIsGradingExpanded((prev) => !prev)}
+          onOpenTasks={() => setIsChallengeModalOpen(true)}
         />
       </main>
 
@@ -819,7 +855,7 @@ export default function App() {
         onClose={() => setIsVerifiedModalOpen(false)}
         studentName={verifiedProject?.studentName || ''}
         project={verifiedProject || currentProjectState}
-        evaluation={verifiedProject ? evaluateStudioSetup(verifiedProject.environment || 'recording_studio', verifiedProject.placedGear || [], verifiedProject.connections || [], verifiedProject.mixerChannels || [], verifiedProject.activeChallengeId) : evaluation}
+        evaluation={verifiedProject ? evaluateStudioSetup(verifiedProject.environment || 'recording_studio', verifiedProject.placedGear || [], verifiedProject.connections || [], verifiedProject.mixerChannels || [], resolveTaskId(verifiedProject.activeChallengeId, verifiedProject.environment)) : evaluation}
         onLoadProject={handleLoadProject}
       />
 
@@ -844,7 +880,23 @@ export default function App() {
         onClose={() => setIsChallengeModalOpen(false)}
         environment={environment}
         activeChallengeId={activeChallengeId}
+        assignedTaskId={assignedTaskId}
         onSelectChallenge={handleSelectChallenge}
+      />
+
+      {/* Learn: the questions behind every setup */}
+      <LearnModal
+        isOpen={isLearnOpen}
+        onClose={() => setIsLearnOpen(false)}
+        environment={environment}
+        onOpenFieldGuide={() => {
+          setIsLearnOpen(false);
+          setIsGuideModalOpen(true);
+        }}
+        onOpenTasks={() => {
+          setIsLearnOpen(false);
+          setIsChallengeModalOpen(true);
+        }}
       />
 
       {/* Perfection Challenge Passed Modal */}

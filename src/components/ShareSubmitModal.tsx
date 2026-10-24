@@ -159,6 +159,13 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
 
         <div className="space-y-4 overflow-y-auto pr-1">
           {/* Student Name Entry Section */}
+          {evaluation.isSandbox && (
+            <div className="p-3 rounded-2xl border border-dashed border-amber-400/50 bg-amber-500/10 text-[11px] text-amber-100/90 leading-relaxed">
+              <strong className="text-amber-300">Heads up: you are in the Sandbox.</strong> This code will show as
+              &ldquo;not graded&rdquo;. If your teacher gave you a task, open it from the Tasks button first.
+            </div>
+          )}
+
           <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-2xl space-y-2.5 backdrop-blur-md">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-orange-300 flex items-center gap-1.5">

@@ -38,6 +38,8 @@ interface GradingPanelProps {
   onOpenGuideModal?: () => void;
   isExpanded?: boolean;
   onToggleExpanded?: () => void;
+  /** Opens the task picker (shown in the sandbox, where nothing is graded). */
+  onOpenTasks?: () => void;
 }
 
 export const GradingPanel: React.FC<GradingPanelProps> = ({
@@ -54,7 +56,9 @@ export const GradingPanel: React.FC<GradingPanelProps> = ({
   onExportPdf,
   isExpanded: propIsExpanded,
   onToggleExpanded,
+  onOpenTasks,
 }) => {
+  const isSandbox = !!evaluation.isSandbox;
   const [internalExpanded, setInternalExpanded] = useState(false);
   const isExpanded = propIsExpanded !== undefined ? propIsExpanded : internalExpanded;
   const setIsExpanded = (val: boolean | ((prev: boolean) => boolean)) => {
@@ -113,18 +117,24 @@ export const GradingPanel: React.FC<GradingPanelProps> = ({
           <div className="relative flex flex-col items-center">
             <div
               className={`w-10 h-10 rounded-2xl flex flex-col items-center justify-center font-black border-2 transition-all group-hover:scale-110 ${
-                isHigh
+                isSandbox
+                  ? 'bg-stone-900/90 text-stone-300 border-stone-500 border-dashed'
+                  : isHigh
                   ? 'bg-emerald-950/90 text-emerald-300 border-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.5)] ring-2 ring-emerald-400/30'
                   : isMedium
                   ? 'bg-orange-950/90 text-orange-300 border-orange-400 shadow-[0_0_16px_rgba(251,146,60,0.5)] ring-2 ring-orange-400/30'
                   : 'bg-rose-950/90 text-rose-300 border-rose-400 shadow-[0_0_16px_rgba(244,63,94,0.5)] ring-2 ring-rose-400/30'
               }`}
             >
-              <span className="text-[12px] font-black tracking-tight leading-none">{evaluation.percentage}%</span>
+              {isSandbox ? (
+                <span className="text-[8px] font-black uppercase leading-tight text-center">Not<br />graded</span>
+              ) : (
+                <span className="text-[12px] font-black tracking-tight leading-none">{evaluation.percentage}%</span>
+              )}
             </div>
 
             {/* Mini vertical progress meter */}
-            <div className="w-1.5 h-12 bg-white/10 rounded-full overflow-hidden mt-2.5 border border-white/10 flex flex-col justify-end">
+            <div style={isSandbox ? { display: 'none' } : undefined} className="w-1.5 h-12 bg-white/10 rounded-full overflow-hidden mt-2.5 border border-white/10 flex flex-col justify-end">
               <div
                 className={`w-full rounded-full transition-all duration-300 ${
                   isHigh
@@ -142,7 +152,7 @@ export const GradingPanel: React.FC<GradingPanelProps> = ({
         {/* Vertically Re-Centered Progress Bar Text across the entire vertical height */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <span className="rotate-90 whitespace-nowrap text-xs font-black uppercase tracking-widest text-stone-400 group-hover:text-stone-100 transition-colors">
-            Progress & Signal Map
+            {isSandbox ? 'Sandbox · Not Graded · Signal Map' : 'Progress & Signal Map'}
           </span>
         </div>
       </div>
@@ -197,10 +207,12 @@ export const GradingPanel: React.FC<GradingPanelProps> = ({
           }`}
         >
           <ListChecks className="w-3.5 h-3.5 text-orange-400" />
-          <span>Rubric Checklist</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-stone-300">
-            {evaluation.percentage}%
-          </span>
+          <span>{isSandbox ? 'Setup Checks' : 'Rubric Checklist'}</span>
+          {!isSandbox && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-stone-300">
+              {evaluation.percentage}%
+            </span>
+          )}
         </button>
       </div>
 
@@ -220,42 +232,61 @@ export const GradingPanel: React.FC<GradingPanelProps> = ({
         ) : (
           /* Rubric Checklist View */
           <>
-            {/* Top Score Hero Card */}
-            <div
-              className={`p-3.5 rounded-2xl border backdrop-blur-md shadow-inner transition-all ${
-                evaluation.percentage >= 90
-                  ? 'bg-emerald-500/10 border-emerald-500/30'
-                  : evaluation.percentage >= 70
-                  ? 'bg-orange-500/10 border-orange-500/30'
-                  : 'bg-rose-500/10 border-rose-500/30'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Current Progress</div>
-                  <div className="text-2xl sm:text-3xl font-black text-stone-100 tracking-tight flex items-baseline gap-2 mt-0.5 flex-wrap">
-                    <span>{evaluation.percentage}%</span>
-                    <span className="text-xs sm:text-sm font-bold text-orange-400">
-                      &ldquo;{evaluation.gradePhrase}&rdquo;
-                    </span>
+            {/* Top Score Hero Card (or Sandbox notice) */}
+            {isSandbox ? (
+              <div className="p-3.5 rounded-2xl border border-dashed border-stone-500/60 bg-white/[0.03] backdrop-blur-md">
+                <div className="text-[10px] font-black uppercase tracking-wider text-stone-400">Sandbox Mode</div>
+                <div className="text-lg font-black text-stone-100 mt-0.5">Not graded. Just explore.</div>
+                <p className="text-[11px] text-stone-400 mt-1 leading-relaxed">
+                  Build anything you like. The checks below still show what is working and what needs fixing.
+                  When you are ready to be graded, open the task your teacher assigned.
+                </p>
+                {onOpenTasks && (
+                  <button
+                    onClick={onOpenTasks}
+                    className="mt-2.5 px-3 py-1.5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-400 text-stone-950 transition-colors cursor-pointer"
+                  >
+                    Choose a task
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div
+                className={`p-3.5 rounded-2xl border backdrop-blur-md shadow-inner transition-all ${
+                  evaluation.percentage >= 90
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : evaluation.percentage >= 70
+                    ? 'bg-orange-500/10 border-orange-500/30'
+                    : 'bg-rose-500/10 border-rose-500/30'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Current Progress</div>
+                    <div className="text-2xl sm:text-3xl font-black text-stone-100 tracking-tight flex items-baseline gap-2 mt-0.5 flex-wrap">
+                      <span>{evaluation.percentage}%</span>
+                      <span className="text-xs sm:text-sm font-bold text-orange-400">
+                        &ldquo;{evaluation.gradePhrase}&rdquo;
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Progress Bar */}
-              <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden mt-3 border border-white/5">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    evaluation.percentage >= 90
-                      ? 'bg-emerald-400'
-                      : evaluation.percentage >= 70
-                      ? 'bg-orange-400'
-                      : 'bg-rose-400'
-                  }`}
-                  style={{ width: `${evaluation.percentage}%` }}
-                />
+                {/* Progress Bar */}
+                <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden mt-3 border border-white/5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      evaluation.percentage >= 90
+                        ? 'bg-emerald-400'
+                        : evaluation.percentage >= 70
+                        ? 'bg-orange-400'
+                        : 'bg-rose-400'
+                    }`}
+                    style={{ width: `${evaluation.percentage}%` }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Critical Fixes Warning Box */}
             {evaluation.criticalIssues.length > 0 && (
@@ -275,7 +306,7 @@ export const GradingPanel: React.FC<GradingPanelProps> = ({
             {/* Categories List (Icons only, NO numerical points) */}
             <div className="space-y-2">
               <div className="text-[10px] font-black uppercase tracking-wider text-stone-400 px-1">
-                Setup Criteria Checklist
+                {isSandbox ? 'Setup Checks' : 'Setup Criteria Checklist'}
               </div>
 
               {(

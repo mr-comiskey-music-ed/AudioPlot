@@ -104,6 +104,14 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
   );
   const latchedDef = latchedSource ? getGearById(latchedSource.gearId) : null;
 
+  // Assigned mics shrink to a compact tag (like an assigned DI box), so they
+  // show only what matters at a glance: model, target and phantom power.
+  const isCompactMic =
+    def.category === 'microphone' && isAssigned && !(item.customWidth && item.customHeight);
+  const displayName = isCompactMic
+    ? def.name.replace(/^(Shure|AKG|Audio-Technica|Sennheiser|Audix)\s+/, '')
+    : def.name;
+
   // Assigned mixer channel
   const assignedChannel = mixerChannels.find(
     (ch) => ch.assignedGearInstanceId === item.instanceId || ch.channelNumber === item.assignedChannel
@@ -294,23 +302,41 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
         </svg>
       </button>
 
+      {/* Compact mic: +48V shown as a small tab on the top edge */}
+      {isCompactMic && def.requiresPhantomPower && !isHighlightedInSignalPath && (
+        <span
+          className={`absolute -top-2 left-1/2 -translate-x-1/2 z-30 px-1.5 rounded-full text-[8px] leading-[14px] font-black border whitespace-nowrap pointer-events-none ${
+            assignedChannel?.phantomPower
+              ? 'bg-rose-500 text-white border-rose-300 shadow-[0_0_6px_#f43f5e]'
+              : 'bg-stone-800 text-stone-300 border-white/20'
+          }`}
+          title={assignedChannel?.phantomPower ? '+48V Phantom Power Active' : '+48V Needed'}
+        >
+          +48V
+        </span>
+      )}
+
       {/* Visual Icon Illustration */}
       <div
         className="flex items-center justify-center shrink-0 my-auto pointer-events-none w-full"
         style={{
-          height: `${Math.max(26, dims.height - 44)}px`,
+          height: `${isCompactMic ? Math.max(18, dims.height - 46) : Math.max(26, dims.height - 44)}px`,
         }}
       >
         <StudioIcon
           iconType={def.iconType}
-          size={Math.max(22, Math.min(dims.height - 44, dims.width - 22, 140))}
+          size={
+            isCompactMic
+              ? Math.max(18, Math.min(dims.height - 46, dims.width - 30))
+              : Math.max(22, Math.min(dims.height - 44, dims.width - 22, 140))
+          }
           color={isHighlightedInSignalPath ? '#38BDF8' : def.color}
         />
       </div>
 
       {/* Stand Height, Phantom, Pop Filter, Placement & Latch Badges */}
       <div className="flex items-center justify-center flex-wrap gap-1 my-0.5 max-w-full">
-        {item.hasPopFilter && (
+        {item.hasPopFilter && !isCompactMic && (
           <span
             className="px-1.5 py-0.2 rounded-full text-[8px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs"
             title="Pop Filter Attached"
@@ -318,7 +344,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
             Pop Filter
           </span>
         )}
-        {def.requiresPhantomPower && (
+        {def.requiresPhantomPower && !isCompactMic && (
           <span
             className={`px-1.5 py-0.2 rounded-full text-[8px] font-bold border transition-colors ${
               assignedChannel?.phantomPower
@@ -330,7 +356,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
             +48V
           </span>
         )}
-        {item.standHeight && (
+        {item.standHeight && !isCompactMic && (
           <span className="text-[8px] bg-white/10 px-1.5 py-0.2 rounded-full text-stone-300 font-mono border border-white/10 font-bold">
             {item.standHeight === 'amp_low'
               ? 'Low'
@@ -377,10 +403,11 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
         <div
           className="font-black text-stone-100 text-center leading-snug line-clamp-1 px-1 break-words"
           style={{
-            fontSize: `${Math.max(8, Math.min(13, dims.width / 11))}px`,
+            fontSize: `${isCompactMic ? 9 : Math.max(8, Math.min(13, dims.width / 11))}px`,
           }}
+          title={def.name}
         >
-          {def.name}
+          {displayName}
         </div>
       </div>
 
