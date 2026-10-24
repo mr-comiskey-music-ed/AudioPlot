@@ -595,8 +595,10 @@ export default function App() {
     const loadedInstruments: PlacedGear[] = challenge.instruments.map((inst, index) => ({
       instanceId: `gear_${Date.now()}_${index}`,
       gearId: inst.gearId,
-      x: inst.x,
-      y: inst.y,
+      // Challenge layouts were drawn for a smaller floor: spread them out and
+      // start them below the snake so nothing hides underneath it.
+      x: Math.round(60 + inst.x * 1.25),
+      y: Math.round(175 + Math.max(0, inst.y - 120) * 1.1),
       rotation: 0,
       hasPopFilter: false,
     }));

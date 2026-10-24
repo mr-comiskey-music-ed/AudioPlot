@@ -18,6 +18,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
     case 'GuitarElectric':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
+          <g transform="translate(32 61) scale(1.22) translate(-32 -61)">
           {/* Offset double-cutaway solid body */}
           <path
             d="M27 37C25 32 20 28 17.5 30.5C15.5 32.5 18.5 38 18.5 42C18.5 45 15.5 48 16.5 53C17.5 58 23.5 61 32 61C40.5 61 46.5 58 47.5 53C48.5 48 45.5 45 45.5 42C45.5 39 48 35.5 46.5 33.5C45 31.5 41 33 37.5 37Z"
@@ -28,6 +29,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           />
           {/* Pickguard */}
           <path d="M28 38.5C24.5 40 22 43.5 22.5 47.5C23 51.5 26 54 29.5 54.5L36.5 38.5Z" fill="#F8FAFC" stroke="#CBD5E1" strokeWidth="0.6" />
+          </g>
           {/* Neck with frets */}
           <rect x="29.6" y="9" width="4.8" height="30" rx="0.6" fill="#E0B070" stroke="#92400E" strokeWidth="0.6" />
           {[13, 17, 21, 25, 29, 33].map((y) => (
@@ -38,6 +40,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           {[2.6, 4.2, 5.8, 7.4].map((y) => (
             <circle key={y} cx="27.4" cy={y} r="0.85" fill="#E2E8F0" stroke="#64748B" strokeWidth="0.3" />
           ))}
+          <g transform="translate(32 61) scale(1.22) translate(-32 -61)">
           {/* Three single-coil pickups */}
           {[42, 46.5, 51].map((y) => (
             <rect key={y} x="27.5" y={y} width="9" height="2.3" rx="1.1" fill="#F1F5F9" stroke="#475569" strokeWidth="0.5" />
@@ -47,6 +50,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           {/* Volume & tone knobs */}
           <circle cx="40" cy="50" r="1.4" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="0.4" />
           <circle cx="41.2" cy="53.6" r="1.4" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="0.4" />
+          </g>
           {/* Strings */}
           {[30.8, 32, 33.2].map((x) => (
             <line key={x} x1={x} y1="4" x2={x} y2="56" stroke="#E5E7EB" strokeWidth="0.35" />
@@ -82,6 +86,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
     case 'GuitarBass':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
+          <g transform="translate(32 62) scale(1.22) translate(-32 -62)">
           {/* Offset double-cutaway bass body (longer upper horn) */}
           <path
             d="M27.5 40C26 35 21 29 18 31C15.5 33 18.5 39 18.5 44C18.5 47 15.5 50 16.5 55C17.5 60 24 63 32 63C40 63 46.5 60 47.5 55C48.5 50 45.5 47.5 45.5 44.5C45.5 41.5 48 38 46.5 36C45 34 40.5 36 36.5 40Z"
@@ -92,6 +97,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           />
           {/* Tortoise-style pickguard */}
           <path d="M28.5 41.5C25 43 22.5 46.5 23 50C23.5 53.5 26.5 55.5 29.5 55.5L35.5 41.5Z" fill="#78350F" stroke="#451A03" strokeWidth="0.5" />
+          </g>
           {/* Long neck with frets */}
           <rect x="30" y="7" width="4" height="35" rx="0.6" fill="#E0B070" stroke="#92400E" strokeWidth="0.6" />
           {[11, 15.5, 20, 24.5, 29, 33.5, 38].map((y) => (
@@ -102,6 +108,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           {[1.8, 3.4, 5, 6.6].map((y) => (
             <rect key={y} x="26.4" y={y - 0.7} width="2.6" height="1.4" rx="0.5" fill="#E2E8F0" stroke="#64748B" strokeWidth="0.3" />
           ))}
+          <g transform="translate(32 62) scale(1.22) translate(-32 -62)">
           {/* Split-coil pickup */}
           <rect x="26.5" y="46" width="5.5" height="2.6" rx="0.8" fill="#0F172A" />
           <rect x="31.5" y="49" width="5.5" height="2.6" rx="0.8" fill="#0F172A" />
@@ -110,6 +117,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           {/* Knobs */}
           <circle cx="40" cy="53" r="1.5" fill="#E2E8F0" stroke="#475569" strokeWidth="0.4" />
           <circle cx="41.3" cy="57" r="1.5" fill="#E2E8F0" stroke="#475569" strokeWidth="0.4" />
+          </g>
           {/* Four heavy strings */}
           {[30.9, 31.7, 32.5, 33.3].map((x) => (
             <line key={x} x1={x} y1="2" x2={x} y2="57" stroke="#E5E7EB" strokeWidth="0.45" />
@@ -317,8 +325,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
             <line key={x} x1={x} y1="46" x2={x - 1 + i * 0.2} y2={Math.max(10, 12 + i * 2.6)} stroke="#FCD34D" strokeWidth="0.4" opacity="0.8" />
           ))}
           <path d="M17 44H48" stroke="#78350F" strokeWidth="1.2" />
-          {/* Raised lid prop */}
-          <line x1="49" y1="40" x2="56" y2="33" stroke="#94A3B8" strokeWidth="1" strokeLinecap="round" />
           {/* Keyboard */}
           <rect x="12" y="50" width="41" height="7" rx="0.8" fill="#F8FAFC" stroke="#1F2937" strokeWidth="0.8" />
           {Array.from({ length: 14 }, (_, i) => 12 + (i + 1) * (41 / 15)).map((x) => (
