@@ -96,7 +96,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   onSelectGearTab,
   isDiBoxHighlighted = false,
   onDiBoxHighlightChange,
-  stageSize = 'standard',
+  stageSize = 'standard' as StageSize,
   onStageSizeChange,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -182,7 +182,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
   // The floor/stage is a fixed-size world (see stageGeometry), scaled to fit the
   // window. A bigger room size gives more floor; gear then shows smaller on screen.
-  const WORLD = getWorld(stageSize);
+  const WORLD = getWorld(stageSize as StageSize);
   const canvasSize = WORLD;
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 1000, height: 600 });
