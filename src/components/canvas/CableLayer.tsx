@@ -101,8 +101,15 @@ export const CableLayer: React.FC<CableLayerProps> = ({
 
         const micCenter = getGearCenter(micOrDi);
         const srcCenter = getGearCenter(source);
-        const micDims = getGearBoxDimensions(micOrDi.gearId);
-        const srcDims = getGearBoxDimensions(source.gearId);
+        // Same sizes the gear boxes are drawn at (assigned mics/DIs are compact).
+        const micDims = getGearBoxDimensions(micOrDi.gearId, true, micOrDi.customScale, micOrDi.customWidth, micOrDi.customHeight);
+        const srcDims = getGearBoxDimensions(
+          source.gearId,
+          !!source.latchedSourceInstanceId,
+          source.customScale,
+          source.customWidth,
+          source.customHeight
+        );
 
         const midX = (micCenter.x + srcCenter.x) / 2;
         const midY = (micCenter.y + srcCenter.y) / 2;

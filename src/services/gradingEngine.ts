@@ -8,7 +8,7 @@ import {
 } from '../types';
 import { getGearById } from '../data/gearCatalog';
 import { getTaskById } from '../data/challenges';
-import { WORLD, getPaZone, getItemCenter } from '../components/canvas/stageGeometry';
+import { getWorld, getPaZone, getItemCenter, StageSize } from '../components/canvas/stageGeometry';
 
 export interface SignalChainCheckResult {
   valid: boolean;
@@ -530,8 +530,10 @@ export function evaluateStudioSetup(
   placedGear: PlacedGear[],
   connections: CableConnection[],
   mixerChannels: MixerChannelState[],
-  activeChallengeId?: string | null
+  activeChallengeId?: string | null,
+  stageSize?: StageSize | null
 ): RubricEvaluation {
+  const world = getWorld(stageSize);
   const criticalIssues: string[] = [];
   const suggestions: string[] = [];
   const positives: string[] = [];
@@ -1242,14 +1244,14 @@ export function evaluateStudioSetup(
     } else {
       // Placement: each PA belongs in one of the two marked downstage corner zones.
       const leftPA =
-        paSpeakers.find((pa) => getPaZone(pa) === 'left') ||
-        paSpeakers.find((pa) => getPaZone(pa) === null && getItemCenter(pa).x < WORLD.width / 2);
+        paSpeakers.find((pa) => getPaZone(pa, stageSize) === 'left') ||
+        paSpeakers.find((pa) => getPaZone(pa, stageSize) === null && getItemCenter(pa).x < world.width / 2);
       const rightPA =
-        paSpeakers.find((pa) => getPaZone(pa) === 'right') ||
-        paSpeakers.find((pa) => getPaZone(pa) === null && getItemCenter(pa).x >= WORLD.width / 2);
+        paSpeakers.find((pa) => getPaZone(pa, stageSize) === 'right') ||
+        paSpeakers.find((pa) => getPaZone(pa, stageSize) === null && getItemCenter(pa).x >= world.width / 2);
 
-      const misplaced = paSpeakers.filter((pa) => getPaZone(pa) === null).length;
-      const zonesFilled = new Set(paSpeakers.map(getPaZone).filter(Boolean)).size;
+      const misplaced = paSpeakers.filter((pa) => getPaZone(pa, stageSize) === null).length;
+      const zonesFilled = new Set(paSpeakers.map((pa) => getPaZone(pa, stageSize)).filter(Boolean)).size;
       if (misplaced > 0) {
         paPoints -= 3;
         paIssues.push(

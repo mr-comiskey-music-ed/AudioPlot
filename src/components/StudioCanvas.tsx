@@ -28,9 +28,9 @@ import { GearItemNode } from './canvas/GearItemNode';
 import { CanvasInspector } from './canvas/CanvasInspector';
 import { traceSignalPath, HighlightedSignalPath } from './canvas/signalPath';
 import { SignalFlowHUD } from './canvas/SignalFlowHUD';
-import { WORLD } from './canvas/stageGeometry';
+import { getWorld, StageSize } from './canvas/stageGeometry';
 import { PaZoneOverlay } from './canvas/PaZoneOverlay';
-import { ZoomControls } from './canvas/ZoomControls';
+import { StageSizeControl } from './canvas/StageSizeControl';
 
 interface StudioCanvasProps {
   environment: EnvironmentMode;
@@ -61,6 +61,8 @@ interface StudioCanvasProps {
   onSelectGearTab?: (tab: GearCategory | 'all') => void;
   isDiBoxHighlighted?: boolean;
   onDiBoxHighlightChange?: (highlighted: boolean) => void;
+  stageSize?: StageSize;
+  onStageSizeChange?: (size: StageSize) => void;
 }
 
 interface MarqueeBoxState {
@@ -94,6 +96,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   onSelectGearTab,
   isDiBoxHighlighted = false,
   onDiBoxHighlightChange,
+  stageSize = 'standard',
+  onStageSizeChange,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -176,70 +180,21 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedItemIds, selectedItemId, placedGear, onSelectItem]);
 
-  // The floor/stage is a fixed-size world (see stageGeometry). It is scaled to
-  // fit the window ("Fit") and can be zoomed in further.
+  // The floor/stage is a fixed-size world (see stageGeometry), scaled to fit the
+  // window. A bigger room size gives more floor; gear then shows smaller on screen.
+  const WORLD = getWorld(stageSize);
   const canvasSize = WORLD;
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const sizerRef = useRef<HTMLDivElement>(null);
-  const [fitScale, setFitScale] = useState(1);
-  const [zoom, setZoom] = useState(1);
-  const scale = fitScale * zoom;
+  const [viewport, setViewport] = useState({ width: 1000, height: 600 });
+  const scale = Math.min(viewport.width / WORLD.width, viewport.height / WORLD.height);
   const scaleRef = useRef(scale);
   scaleRef.current = scale;
-  const zoomRef = useRef(zoom);
-  zoomRef.current = zoom;
-  const zoomAnchorRef = useRef<{ worldX: number; worldY: number; screenX: number; screenY: number } | null>(null);
-  const MIN_ZOOM = 1;
-  const MAX_ZOOM = 2.5;
 
   // Convert screen coordinates into world coordinates.
   const getWorldRect = () => {
     const r = containerRef.current!.getBoundingClientRect();
     return { left: r.left, top: r.top, width: WORLD.width, height: WORLD.height };
   };
-
-  const applyZoom = (nextZoom: number, anchorClient?: { x: number; y: number }) => {
-    const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(nextZoom * 100) / 100));
-    const scroller = scrollerRef.current;
-    if (scroller && containerRef.current) {
-      const sRect = scroller.getBoundingClientRect();
-      const ax = anchorClient ? anchorClient.x : sRect.left + sRect.width / 2;
-      const ay = anchorClient ? anchorClient.y : sRect.top + sRect.height / 2;
-      const wRect = getWorldRect();
-      zoomAnchorRef.current = {
-        worldX: (ax - wRect.left) / scaleRef.current,
-        worldY: (ay - wRect.top) / scaleRef.current,
-        screenX: ax - sRect.left,
-        screenY: ay - sRect.top,
-      };
-    }
-    setZoom(clamped);
-  };
-
-  // Keep the point under the cursor (or the view center) still while zooming.
-  React.useLayoutEffect(() => {
-    const anchor = zoomAnchorRef.current;
-    const scroller = scrollerRef.current;
-    const sizer = sizerRef.current;
-    if (!anchor || !scroller || !sizer) return;
-    zoomAnchorRef.current = null;
-    scroller.scrollLeft = sizer.offsetLeft + anchor.worldX * scale - anchor.screenX;
-    scroller.scrollTop = sizer.offsetTop + anchor.worldY * scale - anchor.screenY;
-  }, [scale]);
-
-  // Ctrl + scroll wheel (and Chromebook/Mac trackpad pinch) zooms the stage.
-  useEffect(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-    const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return;
-      e.preventDefault();
-      const factor = Math.exp(-e.deltaY * 0.01);
-      applyZoom(zoomRef.current * factor, { x: e.clientX, y: e.clientY });
-    };
-    scroller.addEventListener('wheel', onWheel, { passive: false });
-    return () => scroller.removeEventListener('wheel', onWheel);
-  }, []);
 
   // Dynamic click & drag box resizing state
   const [resizingId, setResizingId] = useState<string | null>(null);
@@ -449,9 +404,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) {
-          setFitScale(Math.min(width / WORLD.width, height / WORLD.height));
-        }
+        if (width > 0 && height > 0) setViewport({ width, height });
       }
     });
     observer.observe(scrollerRef.current);
@@ -1467,7 +1420,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       id="studio-canvas-container"
       className="relative flex-1 h-full w-full bg-stone-950 overflow-hidden select-none cursor-default"
     >
-      {/* Scrollable viewport: the stage world is scaled to fit, then zoomed */}
+      {/* Viewport: the stage world is scaled to fit the window */}
       <div
         ref={scrollerRef}
         id="studio-canvas-scroller"
@@ -1480,10 +1433,9 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         }}
         onDrop={handleDropOnCanvas}
         onClick={handleContainerClick}
-        className="absolute inset-0 overflow-auto flex"
+        className="absolute inset-0 overflow-hidden flex"
       >
         <div
-          ref={sizerRef}
           className="relative shrink-0"
           style={{
             width: `${Math.floor(WORLD.width * scale)}px`,
@@ -1557,8 +1509,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
                   <rect
                     x="16"
                     y="16"
-                    width="1088"
-                    height="668"
+                    width={WORLD.width - 32}
+                    height={WORLD.height - 32}
                     rx="16"
                     fill="none"
                     stroke="#D97706"
@@ -1567,8 +1519,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
                     strokeOpacity="0.4"
                   />
                   <text
-                    x="560"
-                    y="670"
+                    x={WORLD.width / 2}
+                    y={WORLD.height - 30}
                     textAnchor="middle"
                     fill="#38BDF8"
                     fontSize="10"
@@ -1578,8 +1530,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
                     CONTROL ROOM WINDOW
                   </text>
                   <rect
-                    x="410"
-                    y="680"
+                    x={WORLD.width / 2 - 150}
+                    y={WORLD.height - 20}
                     width="300"
                     height="12"
                     rx="3"
@@ -1595,8 +1547,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
                   <rect
                     x="16"
                     y="16"
-                    width="1088"
-                    height="668"
+                    width={WORLD.width - 32}
+                    height={WORLD.height - 32}
                     rx="12"
                     fill="none"
                     stroke="#6366F1"
@@ -1604,20 +1556,20 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
                     strokeDasharray="8 6"
                     strokeOpacity="0.35"
                   />
-                  <text x="560" y="28" textAnchor="middle" fill="#71717A" fontSize="9" fontWeight="bold" letterSpacing="1.5">
+                  <text x={WORLD.width / 2} y="28" textAnchor="middle" fill="#71717A" fontSize="9" fontWeight="bold" letterSpacing="1.5">
                     UPSTAGE BACKDROP
                   </text>
                   <line
                     x1="20"
-                    y1="682"
-                    x2="1100"
-                    y2="682"
+                    y1={WORLD.height - 18}
+                    x2={WORLD.width - 20}
+                    y2={WORLD.height - 18}
                     stroke="#818CF8"
                     strokeWidth="2"
                     strokeDasharray="6 4"
                     strokeOpacity="0.6"
                   />
-                  <text x="560" y="676" textAnchor="middle" fill="#A5B4FC" fontSize="9" fontWeight="bold" letterSpacing="1">
+                  <text x={WORLD.width / 2} y={WORLD.height - 24} textAnchor="middle" fill="#A5B4FC" fontSize="9" fontWeight="bold" letterSpacing="1">
                     AUDIENCE / FRONT-OF-HOUSE
                   </text>
                 </>
@@ -1626,7 +1578,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
             {/* Live Stage: where the main PA speakers belong */}
             {environment === 'live_stage' && (
-              <PaZoneOverlay placedGear={placedGear} selectedItemId={selectedItemId} draggingId={draggingId} />
+              <PaZoneOverlay placedGear={placedGear} selectedItemId={selectedItemId} draggingId={draggingId} stageSize={stageSize} />
             )}
 
             {/* Snake Box (Stage or Studio Snake) */}
@@ -1701,6 +1653,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
                   activeCableTool={activeCableTool}
                   isHighlightedInSignalPath={isHighlightedInPath}
                   hasAnySignalPathActive={isHighlightSignalPathEnabled && !!highlightedSignalPath}
+                  stageSize={stageSize}
                   signalPathRole={
                     isHighlightedInPath
                       ? highlightedSignalPath?.selectedGearId === item.instanceId
@@ -1740,7 +1693,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
                 selectedItem.customWidth,
                 selectedItem.customHeight
               );
-              // The inspector stays the same on-screen size at any zoom level.
+              // The inspector stays the same on-screen size at any room size.
               const inv = 1 / scale;
               const popupWidth = 340 * inv;
               const popupHeight = 160 * inv;
@@ -1830,15 +1783,10 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         </div>
       )}
 
-      {/* Zoom Controls */}
-      <ZoomControls
-        zoom={zoom}
-        min={MIN_ZOOM}
-        max={MAX_ZOOM}
-        onZoomIn={() => applyZoom(zoom + 0.25)}
-        onZoomOut={() => applyZoom(zoom - 0.25)}
-        onFit={() => applyZoom(1)}
-      />
+      {/* Room size: more floor for bigger setups */}
+      {onStageSizeChange && (
+        <StageSizeControl environment={environment} value={stageSize} onChange={onStageSizeChange} />
+      )}
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirmDialog && (

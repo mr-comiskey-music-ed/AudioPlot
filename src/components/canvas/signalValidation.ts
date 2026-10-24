@@ -7,7 +7,7 @@ import {
 } from '../../types';
 import { getGearById } from '../../data/gearCatalog';
 import { isAcousticInstrument } from './canvasMath';
-import { getPaZone } from './stageGeometry';
+import { getPaZone, StageSize } from './stageGeometry';
 
 // Signal Flow Validation Logic for Gear-to-Gear
 export function validateGearToGearConnection(
@@ -386,7 +386,8 @@ export function getGearIssues(
   placedGear: PlacedGear[],
   mixerChannels: MixerChannelState[],
   connections: CableConnection[],
-  environment: EnvironmentMode
+  environment: EnvironmentMode,
+  stageSize?: StageSize | null
 ): string[] {
   const def = getGearById(item.gearId);
   if (!def) return [];
@@ -705,7 +706,7 @@ export function getGearIssues(
       issues.push('PA Speaker must be patched to Stage Snake Main Output (MAIN L or MAIN R) via XLR cable');
     }
 
-    if (environment === 'live_stage' && getPaZone(item) === null) {
+    if (environment === 'live_stage' && getPaZone(item, stageSize) === null) {
       issues.push('Move this PA speaker into one of the dashed PA zones at the front corners of the stage');
     }
   }

@@ -9,6 +9,7 @@ import {
   isAcousticInstrument,
 } from './canvasMath';
 import { getGearIssues } from './signalValidation';
+import { StageSize } from './stageGeometry';
 
 interface GearItemNodeProps {
   item: PlacedGear;
@@ -30,6 +31,7 @@ interface GearItemNodeProps {
   isHighlightedInSignalPath?: boolean;
   hasAnySignalPathActive?: boolean;
   signalPathRole?: string;
+  stageSize?: StageSize;
 }
 
 export const GearItemNode: React.FC<GearItemNodeProps> = ({
@@ -52,6 +54,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
   isHighlightedInSignalPath = false,
   hasAnySignalPathActive = false,
   signalPathRole,
+  stageSize,
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
@@ -118,7 +121,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
   );
 
   // Setup warnings
-  const itemIssues = getGearIssues(item, placedGear, mixerChannels, connections, environment);
+  const itemIssues = getGearIssues(item, placedGear, mixerChannels, connections, environment, stageSize);
 
   // Cable connection check
   const isCabled = (() => {

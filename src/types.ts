@@ -175,6 +175,8 @@ export interface StudioProjectState {
   teacherName?: string;
   environment: EnvironmentMode;
   activeChallengeId?: string | null;
+  /** Room size chosen by the student; missing = standard. */
+  stageSize?: 'standard' | 'large' | 'xl';
   placedGear: PlacedGear[];
   connections: CableConnection[];
   mixerChannels: MixerChannelState[];

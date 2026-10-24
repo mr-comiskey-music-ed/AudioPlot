@@ -9,7 +9,6 @@ import {
   Cable,
   Ear,
   ListChecks,
-  BookOpen,
   Trophy,
   Lightbulb,
   MousePointerClick,
@@ -20,7 +19,6 @@ interface LearnModalProps {
   isOpen: boolean;
   onClose: () => void;
   environment: EnvironmentMode;
-  onOpenFieldGuide: () => void;
   onOpenTasks: () => void;
 }
 
@@ -78,7 +76,7 @@ const steps = (env: EnvironmentMode): Step[] => [
       { if: 'DI box', then: '1/4" cable from the instrument in, XLR from the DI out', why: 'The DI turns the instrument signal into a mic-level XLR signal.' },
       { if: 'Any mic', then: 'The right stand height', why: 'Low for amps and kick, seated, standing vocal, or overhead boom for cymbals.' },
       ...(env === 'recording_studio'
-        ? [{ if: 'Studio vocal on a condenser', then: 'Pop filter', why: 'Stops "P" and "B" blasts from hitting the capsule.' }]
+        ? [{ if: 'Studio vocal on a condenser', then: 'Pop filter (and a shockmount)', why: 'The pop filter stops "P" and "B" blasts; the shockmount blocks floor rumble.' }]
         : [{ if: 'Live vocal', then: 'Keep it upstage of (behind) the PA', why: 'A mic in front of a speaker causes feedback.' }]),
     ],
     inApp: 'Click a mic to set its stand height, pop filter and +48V. A red "!" on any gear lists exactly what it is still missing.',
@@ -93,6 +91,7 @@ const steps = (env: EnvironmentMode): Step[] => [
     bullets: [
       'One mic or DI = one channel. A stereo pair (like drum overheads) = two channels.',
       'Signal flow: source → mic/DI → XLR cable → snake input → mixer channel.',
+      'Two cable types: 1/4" (blue) carries an instrument signal a short way to an amp or DI. XLR (orange) is balanced, so it rejects noise over long runs and carries phantom power. Only XLR goes into the snake.',
       'The snake has 8 inputs. If you need more than 8, rethink: which sources can share, and which matter most?',
       'Patch in a sensible order, for example drums, bass, guitars, keys, then vocals. Engineers call this the input list.',
     ],
@@ -145,7 +144,7 @@ const examples: Record<EnvironmentMode, { title: string; lines: string[][] }> = 
   },
 };
 
-export const LearnModal: React.FC<LearnModalProps> = ({ isOpen, onClose, environment, onOpenFieldGuide, onOpenTasks }) => {
+export const LearnModal: React.FC<LearnModalProps> = ({ isOpen, onClose, environment, onOpenTasks }) => {
   const [index, setIndex] = useState(0);
   const [exampleEnv, setExampleEnv] = useState<EnvironmentMode>(environment);
 
@@ -342,14 +341,6 @@ export const LearnModal: React.FC<LearnModalProps> = ({ isOpen, onClose, environ
         {/* Footer */}
         <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
-            <button
-              onClick={onOpenFieldGuide}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 text-stone-300 border border-white/10 text-xs font-bold transition-all cursor-pointer"
-              title="Detailed reference: mic types, stands, cables"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Field Guide</span>
-            </button>
             <button
               onClick={onOpenTasks}
               className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer"

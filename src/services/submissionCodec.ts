@@ -37,7 +37,7 @@ const GEAR_KEYS: Record<string, string> = {
 };
 const PROJECT_KEYS: Record<string, string> = {
   title: 't', studentName: 's', studentId: 'si', period: 'p', className: 'k',
-  teacherName: 'tn', environment: 'e', activeChallengeId: 'a', notes: 'n',
+  teacherName: 'tn', environment: 'e', activeChallengeId: 'a', notes: 'n', stageSize: 'z',
 };
 const CHANNEL_KEYS: Record<string, string> = {
   label: 'l', phantomPower: 'p', gain: 'g', fader: 'f', pan: 'pn', solo: 'so', muted: 'mu',

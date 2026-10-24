@@ -1,12 +1,13 @@
 import React from 'react';
 import { CheckCircle2, Speaker } from 'lucide-react';
 import { PlacedGear } from '../../types';
-import { PA_ZONES, PaZoneSide, getPaZone } from './stageGeometry';
+import { getPaZones, PaZoneSide, getPaZone, StageSize } from './stageGeometry';
 
 interface PaZoneOverlayProps {
   placedGear: PlacedGear[];
   selectedItemId: string | null;
   draggingId: string | null;
+  stageSize?: StageSize;
 }
 
 /**
@@ -14,15 +15,15 @@ interface PaZoneOverlayProps {
  * exactly where the main speakers are expected. A zone turns green once a PA
  * speaker's center is inside it, and glows while a PA speaker is being moved.
  */
-export const PaZoneOverlay: React.FC<PaZoneOverlayProps> = ({ placedGear, selectedItemId, draggingId }) => {
+export const PaZoneOverlay: React.FC<PaZoneOverlayProps> = ({ placedGear, selectedItemId, draggingId, stageSize }) => {
   const paSpeakers = placedGear.filter((g) => g.gearId === 'gear_pa_speaker');
   const activePa = paSpeakers.find((g) => g.instanceId === selectedItemId || g.instanceId === draggingId);
 
   return (
     <>
       {(['left', 'right'] as PaZoneSide[]).map((side) => {
-        const zone = PA_ZONES[side];
-        const isFilled = paSpeakers.some((g) => getPaZone(g) === side);
+        const zone = getPaZones(stageSize)[side];
+        const isFilled = paSpeakers.some((g) => getPaZone(g, stageSize) === side);
         const isTarget = !!activePa && !isFilled;
         const output = side === 'left' ? 'MAIN L' : 'MAIN R';
 

@@ -105,6 +105,11 @@ export const GuidedTourModal: React.FC<GuidedTourModalProps> = ({
   onClose,
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  // Every time the How-To opens, start again from step 1.
+  useEffect(() => {
+    if (isOpen) setCurrentStepIndex(0);
+  }, [isOpen]);
   const [targetRects, setTargetRects] = useState<DOMRect[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
 

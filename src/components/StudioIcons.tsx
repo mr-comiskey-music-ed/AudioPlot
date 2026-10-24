@@ -18,41 +18,39 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
     case 'GuitarElectric':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
-          {/* Solid Body Double Cutaway */}
+          {/* Offset double-cutaway solid body */}
           <path
-            d="M20 18C16 20 14 26 15 32C16 38 12 42 14 50C16 58 26 60 34 58C42 56 48 50 48 40C48 32 44 28 42 22C40 18 36 22 34 22C32 22 30 18 28 14C24 16 22 16 20 18Z"
+            d="M27 37C25 32 20 28 17.5 30.5C15.5 32.5 18.5 38 18.5 42C18.5 45 15.5 48 16.5 53C17.5 58 23.5 61 32 61C40.5 61 46.5 58 47.5 53C48.5 48 45.5 45 45.5 42C45.5 39 48 35.5 46.5 33.5C45 31.5 41 33 37.5 37Z"
             fill="#DC2626"
-            stroke="#991B1B"
-            strokeWidth="1.5"
+            stroke="#7F1D1D"
+            strokeWidth="1.3"
+            strokeLinejoin="round"
           />
           {/* Pickguard */}
-          <path
-            d="M24 24C20 28 20 36 22 42C24 48 30 50 36 48C38 42 36 34 34 28C32 24 28 24 24 24Z"
-            fill="#F8FAFC"
-            stroke="#E2E8F0"
-            strokeWidth="1"
-          />
-          {/* Pickups */}
-          <rect x="26" y="30" width="10" height="3" rx="1" fill="#1E293B" stroke="#64748B" strokeWidth="0.5" />
-          <rect x="26" y="36" width="10" height="3" rx="1" fill="#1E293B" stroke="#64748B" strokeWidth="0.5" />
-          {/* Bridge & Control Knobs */}
-          <rect x="27" y="44" width="8" height="4" rx="1" fill="#94A3B8" />
-          <circle cx="38" cy="42" r="1.5" fill="#E2E8F0" />
-          <circle cx="36" cy="46" r="1.5" fill="#E2E8F0" />
-          {/* Guitar Neck & Headstock */}
-          <rect x="29" y="4" width="4" height="20" fill="#CA8A04" stroke="#854D0E" strokeWidth="0.8" />
-          <path d="M28 4C28 2 34 2 35 4L34 7L29 7Z" fill="#854D0E" />
-          {/* Tuning Pegs */}
-          <circle cx="27" cy="3" r="1" fill="#E2E8F0" />
-          <circle cx="27" cy="5" r="1" fill="#E2E8F0" />
-          <circle cx="27" cy="7" r="1" fill="#E2E8F0" />
-          <circle cx="35" cy="3" r="1" fill="#E2E8F0" />
-          <circle cx="35" cy="5" r="1" fill="#E2E8F0" />
-          <circle cx="35" cy="7" r="1" fill="#E2E8F0" />
+          <path d="M28 38.5C24.5 40 22 43.5 22.5 47.5C23 51.5 26 54 29.5 54.5L36.5 38.5Z" fill="#F8FAFC" stroke="#CBD5E1" strokeWidth="0.6" />
+          {/* Neck with frets */}
+          <rect x="29.6" y="9" width="4.8" height="30" rx="0.6" fill="#E0B070" stroke="#92400E" strokeWidth="0.6" />
+          {[13, 17, 21, 25, 29, 33].map((y) => (
+            <line key={y} x1="29.8" y1={y} x2="34.2" y2={y} stroke="#A16207" strokeWidth="0.45" />
+          ))}
+          {/* Six-in-line headstock with tuners */}
+          <path d="M29.6 9.5L28.8 3C28.7 1.8 29.8 1 31 1.3L35.8 2.8C36.8 3.1 37 4.3 36.2 5L34.4 9.5Z" fill="#E0B070" stroke="#92400E" strokeWidth="0.6" strokeLinejoin="round" />
+          {[2.6, 4.2, 5.8, 7.4].map((y) => (
+            <circle key={y} cx="27.4" cy={y} r="0.85" fill="#E2E8F0" stroke="#64748B" strokeWidth="0.3" />
+          ))}
+          {/* Three single-coil pickups */}
+          {[42, 46.5, 51].map((y) => (
+            <rect key={y} x="27.5" y={y} width="9" height="2.3" rx="1.1" fill="#F1F5F9" stroke="#475569" strokeWidth="0.5" />
+          ))}
+          {/* Bridge */}
+          <rect x="28" y="55.2" width="8" height="2.4" rx="0.5" fill="#94A3B8" stroke="#475569" strokeWidth="0.4" />
+          {/* Volume & tone knobs */}
+          <circle cx="40" cy="50" r="1.4" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="0.4" />
+          <circle cx="41.2" cy="53.6" r="1.4" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="0.4" />
           {/* Strings */}
-          <line x1="30" y1="4" x2="30" y2="44" stroke="#CBD5E1" strokeWidth="0.5" />
-          <line x1="31" y1="4" x2="31" y2="44" stroke="#CBD5E1" strokeWidth="0.5" />
-          <line x1="32" y1="4" x2="32" y2="44" stroke="#CBD5E1" strokeWidth="0.5" />
+          {[30.8, 32, 33.2].map((x) => (
+            <line key={x} x1={x} y1="4" x2={x} y2="56" stroke="#E5E7EB" strokeWidth="0.35" />
+          ))}
         </svg>
       );
 
@@ -84,25 +82,38 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
     case 'GuitarBass':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
-          {/* Long Scale Electric Bass Body */}
+          {/* Offset double-cutaway bass body (longer upper horn) */}
           <path
-            d="M18 24C14 26 14 34 16 40C14 46 16 56 24 58C32 60 42 58 44 48C46 38 42 32 38 28C34 24 32 24 28 20C24 20 20 22 18 24Z"
+            d="M27.5 40C26 35 21 29 18 31C15.5 33 18.5 39 18.5 44C18.5 47 15.5 50 16.5 55C17.5 60 24 63 32 63C40 63 46.5 60 47.5 55C48.5 50 45.5 47.5 45.5 44.5C45.5 41.5 48 38 46.5 36C45 34 40.5 36 36.5 40Z"
             fill="#7C3AED"
-            stroke="#5B21B6"
-            strokeWidth="1.5"
+            stroke="#4C1D95"
+            strokeWidth="1.3"
+            strokeLinejoin="round"
           />
-          {/* Split Coil Pickups */}
-          <rect x="24" y="36" width="6" height="3" rx="1" fill="#1E293B" />
-          <rect x="28" y="40" width="6" height="3" rx="1" fill="#1E293B" />
-          {/* High Mass Bridge */}
-          <rect x="25" y="48" width="9" height="4" rx="1" fill="#CBD5E1" />
-          {/* Extra Long Neck & 4-in-line Headstock */}
-          <rect x="28.5" y="2" width="3" height="22" fill="#CA8A04" stroke="#854D0E" strokeWidth="0.8" />
-          <path d="M27 2C27 1 33 0 34 2L32 6L28 6Z" fill="#5B21B6" />
-          {/* 4 Heavy Bass Strings */}
-          <line x1="29" y1="2" x2="29" y2="48" stroke="#E2E8F0" strokeWidth="0.8" />
-          <line x1="30" y1="2" x2="30" y2="48" stroke="#E2E8F0" strokeWidth="0.8" />
-          <line x1="31" y1="2" x2="31" y2="48" stroke="#E2E8F0" strokeWidth="0.8" />
+          {/* Tortoise-style pickguard */}
+          <path d="M28.5 41.5C25 43 22.5 46.5 23 50C23.5 53.5 26.5 55.5 29.5 55.5L35.5 41.5Z" fill="#78350F" stroke="#451A03" strokeWidth="0.5" />
+          {/* Long neck with frets */}
+          <rect x="30" y="7" width="4" height="35" rx="0.6" fill="#E0B070" stroke="#92400E" strokeWidth="0.6" />
+          {[11, 15.5, 20, 24.5, 29, 33.5, 38].map((y) => (
+            <line key={y} x1="30.2" y1={y} x2="33.8" y2={y} stroke="#A16207" strokeWidth="0.45" />
+          ))}
+          {/* Four-in-line headstock with large tuners */}
+          <path d="M30 7.5L29.3 2.2C29.2 1.1 30.2 0.4 31.3 0.6L35.5 1.6C36.5 1.8 36.8 3 36 3.6L34 7.5Z" fill="#E0B070" stroke="#92400E" strokeWidth="0.6" strokeLinejoin="round" />
+          {[1.8, 3.4, 5, 6.6].map((y) => (
+            <rect key={y} x="26.4" y={y - 0.7} width="2.6" height="1.4" rx="0.5" fill="#E2E8F0" stroke="#64748B" strokeWidth="0.3" />
+          ))}
+          {/* Split-coil pickup */}
+          <rect x="26.5" y="46" width="5.5" height="2.6" rx="0.8" fill="#0F172A" />
+          <rect x="31.5" y="49" width="5.5" height="2.6" rx="0.8" fill="#0F172A" />
+          {/* Bridge */}
+          <rect x="27.5" y="56" width="9" height="3" rx="0.6" fill="#CBD5E1" stroke="#475569" strokeWidth="0.4" />
+          {/* Knobs */}
+          <circle cx="40" cy="53" r="1.5" fill="#E2E8F0" stroke="#475569" strokeWidth="0.4" />
+          <circle cx="41.3" cy="57" r="1.5" fill="#E2E8F0" stroke="#475569" strokeWidth="0.4" />
+          {/* Four heavy strings */}
+          {[30.9, 31.7, 32.5, 33.3].map((x) => (
+            <line key={x} x1={x} y1="2" x2={x} y2="57" stroke="#E5E7EB" strokeWidth="0.45" />
+          ))}
         </svg>
       );
 
@@ -125,8 +136,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           {/* Kick Drum Floor Spurs */}
           <line x1="14" y1="46" x2="6" y2="58" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" />
           <line x1="50" y1="46" x2="58" y2="58" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" />
-          {/* Subtle Logo */}
-          <text x="32" y="28" fill="#64748B" fontSize="6" fontWeight="bold" textAnchor="middle">BASS DRUM</text>
         </svg>
       );
 
@@ -183,8 +192,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <ellipse cx="32" cy="23" rx="5" ry="1.8" fill="#FEF08A" stroke="#B45309" strokeWidth="0.6" />
           {/* Bottom Hi-Hat Cymbal */}
           <ellipse cx="32" cy="28" rx="16" ry="4.5" fill="#D97706" stroke="#92400E" strokeWidth="1" />
-          {/* Hi-Hat Label */}
-          <text x="32" y="38" fill="#FDE047" fontSize="5" fontWeight="bold" textAnchor="middle">HI-HATS</text>
         </svg>
       );
 
@@ -204,8 +211,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <ellipse cx="16" cy="21.5" rx="3" ry="1.2" fill="#FDE68A" />
           {/* Bottom Hi-Hat Cymbal */}
           <ellipse cx="16" cy="24" rx="10" ry="3" fill="#D97706" stroke="#92400E" strokeWidth="0.8" />
-          {/* Hi-Hat Label */}
-          <text x="16" y="32" fill="#FBBF24" fontSize="4" fontWeight="bold" textAnchor="middle">HI-HATS</text>
 
           {/* 2. CRASH CYMBAL (Center-Left / Higher Boom) */}
           <line x1="32" y1="10" x2="32" y2="50" stroke="#94A3B8" strokeWidth="1.5" />
@@ -215,8 +220,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <ellipse cx="32" cy="12" rx="13" ry="4" fill="#FBBF24" stroke="#D97706" strokeWidth="1" />
           <ellipse cx="32" cy="11.5" rx="4" ry="1.5" fill="#FEF08A" stroke="#B45309" strokeWidth="0.6" />
           <rect x="31" y="8" width="2" height="3" fill="#475569" />
-          {/* Crash Label */}
-          <text x="32" y="21" fill="#FDE047" fontSize="4" fontWeight="bold" textAnchor="middle">CRASH</text>
 
           {/* 3. RIDE CYMBAL (Right / Heavy Bronze) */}
           <line x1="48" y1="16" x2="48" y2="50" stroke="#94A3B8" strokeWidth="1.5" />
@@ -226,14 +229,11 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <ellipse cx="48" cy="18" rx="14" ry="4.5" fill="#D97706" stroke="#B45309" strokeWidth="1" />
           <ellipse cx="48" cy="17.2" rx="5" ry="2" fill="#FBBF24" stroke="#78350F" strokeWidth="0.8" />
           <rect x="47" y="14" width="2" height="3" fill="#475569" />
-          {/* Ride Label */}
-          <text x="48" y="28" fill="#FBBF24" fontSize="4" fontWeight="bold" textAnchor="middle">RIDE</text>
 
           {/* Overhead Stereo Bracket Guide Line */}
           <path d="M12 6 H52" stroke="#38BDF8" strokeWidth="0.8" strokeDasharray="2 1.5" opacity="0.7" />
           <circle cx="12" cy="6" r="1.5" fill="#38BDF8" />
           <circle cx="52" cy="6" r="1.5" fill="#38BDF8" />
-          <text x="32" y="5.2" fill="#38BDF8" fontSize="3.5" fontWeight="bold" textAnchor="middle">STEREO OVERHEADS</text>
         </svg>
       );
 
@@ -297,27 +297,38 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
     case 'GrandPiano':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
-          {/* Piano Rim / Wing Curve */}
+          {/* Grand piano seen from above: straight bass side, curved treble side, keyboard at the front */}
           <path
-            d="M10 14C10 12 12 10 14 10H50C52 10 54 12 54 14V30C54 44 42 52 28 52H14C12 52 10 50 10 48V14Z"
-            fill="#0F172A"
-            stroke="#334155"
-            strokeWidth="1.5"
+            d="M13 50V9C13 5.5 15.5 3 19 3C24 3 27 7 29 13C31.5 20.5 37 24 44 27.5C49.5 30.3 52 35 52 41V50Z"
+            fill="#111827"
+            stroke="#475569"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
           />
-          {/* Cast Iron Plate Soundboard Inside */}
+          {/* Golden soundboard inside the open lid */}
           <path
-            d="M14 14H48V28C48 38 38 46 26 46H14V14Z"
-            fill="#CA8A04"
-            opacity="0.8"
+            d="M16 47V10.5C16 8 17.5 6.5 19.5 6.5C22.5 6.5 24.5 9.5 26 14.5C28.5 22.5 34.5 26.5 42 30.5C46.5 32.8 49 36.5 49 41V47Z"
+            fill="#B45309"
+            stroke="#78350F"
+            strokeWidth="0.6"
           />
-          {/* Curved Piano Lid Edge */}
-          <path d="M12 12L52 26" stroke="#94A3B8" strokeWidth="1.5" />
-          {/* Keyboard Keys Bed */}
-          <rect x="10" y="44" width="44" height="8" rx="1" fill="#F8FAFC" stroke="#0F172A" strokeWidth="1" />
-          {/* Black Keys */}
-          {[14, 18, 24, 28, 32, 38, 42, 48].map((x, i) => (
-            <rect key={i} x={x} y="44" width="2" height="4.5" fill="#0F172A" />
+          {/* Cast-iron plate & strings */}
+          {[18, 21, 24, 27, 30, 33, 36, 39, 42, 45].map((x, i) => (
+            <line key={x} x1={x} y1="46" x2={x - 1 + i * 0.2} y2={Math.max(10, 12 + i * 2.6)} stroke="#FCD34D" strokeWidth="0.4" opacity="0.8" />
           ))}
+          <path d="M17 44H48" stroke="#78350F" strokeWidth="1.2" />
+          {/* Raised lid prop */}
+          <line x1="49" y1="40" x2="56" y2="33" stroke="#94A3B8" strokeWidth="1" strokeLinecap="round" />
+          {/* Keyboard */}
+          <rect x="12" y="50" width="41" height="7" rx="0.8" fill="#F8FAFC" stroke="#1F2937" strokeWidth="0.8" />
+          {Array.from({ length: 14 }, (_, i) => 12 + (i + 1) * (41 / 15)).map((x) => (
+            <line key={x} x1={x} y1="50" x2={x} y2="57" stroke="#CBD5E1" strokeWidth="0.3" />
+          ))}
+          {[0, 1, 3, 4, 5, 7, 8, 10, 11, 12].map((k) => (
+            <rect key={k} x={12 + (k + 1) * (41 / 15) - 0.8} y="50" width="1.6" height="4" fill="#111827" />
+          ))}
+          {/* Bench */}
+          <rect x="22" y="59.5" width="21" height="3.5" rx="1" fill="#1F2937" stroke="#475569" strokeWidth="0.6" />
         </svg>
       );
 
@@ -455,95 +466,30 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
           <defs>
-            <linearGradient id="saxBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id="saxBrass" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#FDE68A" />
-              <stop offset="45%" stopColor="#F59E0B" />
-              <stop offset="85%" stopColor="#D97706" />
+              <stop offset="50%" stopColor="#F59E0B" />
               <stop offset="100%" stopColor="#B45309" />
             </linearGradient>
-            <linearGradient id="saxBellGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#F59E0B" />
-              <stop offset="50%" stopColor="#FDE68A" />
-              <stop offset="100%" stopColor="#B45309" />
-            </linearGradient>
-            <radialGradient id="saxBellInterior" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#451A03" />
-              <stop offset="70%" stopColor="#78350F" />
-              <stop offset="100%" stopColor="#B45309" />
-            </radialGradient>
           </defs>
-
-          {/* 1. Mouthpiece (Black ebonite beak) */}
-          <path d="M11 15 L17 16 L17 19 L11 18 Z" fill="#18181B" stroke="#27272A" strokeWidth="0.8" />
-          {/* Gold Ligature band */}
-          <rect x="13.5" y="15.2" width="2.2" height="3.2" rx="0.4" fill="#FBBF24" stroke="#B45309" strokeWidth="0.5" />
-
-          {/* 2. Cork Joint */}
-          <rect x="17" y="16" width="3" height="3.2" rx="0.3" fill="#D97706" stroke="#92400E" strokeWidth="0.5" />
-
-          {/* 3. Neck / Crook (Smooth arc downward into body) */}
-          <path
-            d="M 20 17.5 C 26 17.5, 28 20, 26 24"
-            fill="none"
-            stroke="url(#saxBodyGrad)"
-            strokeWidth="3.2"
-            strokeLinecap="round"
-          />
-          {/* Neck octave key & reinforcement */}
-          <path d="M 21 16.5 Q 25 15.5 26 19" fill="none" stroke="#FEF3C7" strokeWidth="0.8" />
-          <circle cx="27" cy="19.5" r="0.9" fill="#FEF3C7" />
-
-          {/* 4. Main Conical Body Tube (Top to Bow) */}
-          <path
-            d="M 24 24 L 28 24.5 L 25 48 L 21 47.5 Z"
-            fill="url(#saxBodyGrad)"
-            stroke="#B45309"
-            strokeWidth="0.9"
-          />
-
-          {/* 5. U-Bow (Smooth sweeping bottom curve connecting body to bell) */}
-          <path
-            d="M 21 47.5 C 20 57, 38 58, 40 48 L 43 49 C 41 61, 17 60, 18 47 Z"
-            fill="url(#saxBodyGrad)"
-            stroke="#B45309"
-            strokeWidth="0.9"
-          />
-
-          {/* 6. Flared Bell (Upward facing horn flare) */}
-          <path
-            d="M 38 49 L 40 33 L 52 30 L 43 50 Z"
-            fill="url(#saxBellGrad)"
-            stroke="#B45309"
-            strokeWidth="0.9"
-          />
-
-          {/* 7. Bell Opening & Lip Rim (Tilted ellipse) */}
-          <ellipse
-            cx="46"
-            cy="31.5"
-            rx="6.5"
-            ry="3.2"
-            transform="rotate(-15 46 31.5)"
-            fill="url(#saxBellInterior)"
-            stroke="#FEF3C7"
-            strokeWidth="1.2"
-          />
-
-          {/* 8. Key Rods and Pearl Key Cups down the body */}
-          <line x1="23.5" y1="26" x2="22.5" y2="45" stroke="#E2E8F0" strokeWidth="1" strokeLinecap="round" />
-          <circle cx="23.8" cy="27" r="1.5" fill="#FEF3C7" stroke="#78350F" strokeWidth="0.6" />
-          <circle cx="23.5" cy="31" r="1.5" fill="#FEF3C7" stroke="#78350F" strokeWidth="0.6" />
-          <circle cx="23.2" cy="35" r="1.5" fill="#FEF3C7" stroke="#78350F" strokeWidth="0.6" />
-          <circle cx="22.9" cy="39" r="1.5" fill="#FEF3C7" stroke="#78350F" strokeWidth="0.6" />
-          <circle cx="22.6" cy="43" r="1.5" fill="#FEF3C7" stroke="#78350F" strokeWidth="0.6" />
-
-          {/* 9. Bell Key Guards & Low Key Cups */}
-          <line x1="39" y1="38" x2="42" y2="46" stroke="#FEF3C7" strokeWidth="0.9" />
-          <circle cx="40" cy="40" r="1.4" fill="#FEF3C7" stroke="#78350F" strokeWidth="0.6" />
-          <circle cx="41.5" cy="44" r="1.4" fill="#FEF3C7" stroke="#78350F" strokeWidth="0.6" />
-
-          {/* 10. Body to Bell Connecting Brace */}
-          <rect x="26.5" y="38" width="11" height="1.6" rx="0.5" fill="#B45309" stroke="#FEF3C7" strokeWidth="0.4" />
+          {/* Mouthpiece & neck */}
+          <path d="M10 8.5L15.5 7.6L16 10.6L10.6 11.4Z" fill="#111827" stroke="#374151" strokeWidth="0.5" />
+          <path d="M15.8 9.1C20 8.2 23.6 9 24.6 13" stroke="url(#saxBrass)" strokeWidth="2.8" strokeLinecap="round" />
+          {/* Main body tube, bow and rising bell section (gets wider toward the bell) */}
+          <path d="M24.6 13L23.4 44C23 51 26.5 56.5 32.5 56.5C38.5 56.5 42 52.5 42 46.5L42.5 40" stroke="#B45309" strokeWidth="7.4" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M24.6 13L23.4 44C23 51 26.5 56.5 32.5 56.5C38.5 56.5 42 52.5 42 46.5L42.5 40" stroke="url(#saxBrass)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+          {/* Flared bell */}
+          <path d="M38.8 42L35.5 27.5H52L46.3 42Z" fill="url(#saxBrass)" stroke="#B45309" strokeWidth="0.9" strokeLinejoin="round" />
+          <ellipse cx="43.75" cy="27.5" rx="8.5" ry="2.6" fill="#78350F" stroke="#FDE68A" strokeWidth="1.1" />
+          {/* Pearl key touches along the body */}
+          {[18, 23, 28, 33, 38].map((y, i) => (
+            <circle key={y} cx={25.6 - i * 0.25} cy={y} r="1.6" fill="#FEF3C7" stroke="#92400E" strokeWidth="0.5" />
+          ))}
+          {/* Key rod */}
+          <line x1="27.6" y1="17" x2="26.6" y2="40" stroke="#FEF3C7" strokeWidth="0.6" />
+          {/* Low key cups on the bow */}
+          <circle cx="33" cy="54.5" r="1.4" fill="#D97706" stroke="#FEF3C7" strokeWidth="0.5" />
+          <circle cx="39" cy="50" r="1.4" fill="#D97706" stroke="#FEF3C7" strokeWidth="0.5" />
         </svg>
       );
 
@@ -713,17 +659,14 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           {/* 1/4" Instrument Input Jack (Left) */}
           <circle cx="16" cy="32" r="4.5" fill="#1E293B" stroke="#38BDF8" strokeWidth="1.5" />
           <circle cx="16" cy="32" r="2" fill="#0284C7" />
-          <text x="16" y="24" fill="#ECFDF5" fontSize="5" fontWeight="bold" textAnchor="middle">1/4&quot; IN</text>
           {/* XLR Balanced Output Jack (Right) */}
           <circle cx="48" cy="32" r="6" fill="#1E293B" stroke="#F97316" strokeWidth="1.5" />
           <circle cx="46" cy="30" r="1" fill="#FEF08A" />
           <circle cx="50" cy="30" r="1" fill="#FEF08A" />
           <circle cx="48" cy="35" r="1" fill="#FEF08A" />
-          <text x="48" y="22" fill="#ECFDF5" fontSize="5" fontWeight="bold" textAnchor="middle">XLR OUT</text>
           {/* Ground Lift Toggle Switch */}
           <rect x="28" y="26" width="8" height="12" rx="2" fill="#1E293B" />
           <circle cx="32" cy="30" r="2" fill="#E2E8F0" />
-          <text x="32" y="44" fill="#D1FAE5" fontSize="4.5" fontWeight="bold" textAnchor="middle">GND LIFT</text>
         </svg>
       );
 
@@ -757,9 +700,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
 
           {/* Shure Brand Collar Band Ring */}
           <rect x="25.5" y="24" width="13" height="3" rx="0.5" fill="#E2E8F0" stroke="#475569" strokeWidth="0.6" />
-          <text x="32" y="26.3" fill="#0F172A" fontSize="2.2" fontWeight="900" textAnchor="middle" letterSpacing="0.2">
-            SHURE
-          </text>
 
           {/* Iconic Spherical Ball Mesh Grille */}
           <circle cx="32" cy="15" r="11" fill="url(#sm58-grille-grad)" stroke="#475569" strokeWidth="1" />
@@ -803,9 +743,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
 
           {/* Silver/White SHURE SM57 Brand Ring */}
           <rect x="26" y="19" width="12" height="3" rx="0.5" fill="#E2E8F0" stroke="#475569" strokeWidth="0.6" />
-          <text x="32" y="21.3" fill="#0F172A" fontSize="2.2" fontWeight="900" textAnchor="middle" letterSpacing="0.2">
-            SM57
-          </text>
 
           {/* Cylindrical Rotating Polycarbonate Grille Basket */}
           <rect x="25.5" y="7" width="13" height="12" rx="1.5" fill="url(#sm57-grille-grad)" stroke="#475569" strokeWidth="0.8" />
@@ -897,7 +834,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
               
               {/* Sennheiser "e604" model badge */}
               <rect x="32" y="32" width="8" height="4.5" rx="0.75" fill="#09090B" stroke="#3F3F46" strokeWidth="0.5" />
-              <text x="36" y="35.5" fill="#FAFAFA" fontSize="2.4" fontWeight="900" textAnchor="middle" letterSpacing="0.2">e604</text>
               
               {/* XLR Output Connector Base */}
               <path d="M33 45L39 45L38 51L34 51Z" fill="#09090B" stroke="#3F3F46" strokeWidth="0.8" />
@@ -1012,7 +948,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <circle cx="55" cy="44" r="1.5" fill="#64748B" />
           {/* Front LCD Frequency / Audio Display */}
           <rect x="14" y="22" width="22" height="14" rx="1.5" fill="#0369A1" stroke="#0284C7" strokeWidth="1" />
-          <text x="25" y="29" fill="#E0F2FE" fontSize="5.5" fontWeight="black" textAnchor="middle">518.2MHz</text>
           <rect x="16" y="32" width="4" height="2" fill="#22C55E" />
           <rect x="21" y="32" width="4" height="2" fill="#22C55E" />
           <rect x="26" y="32" width="4" height="2" fill="#EAB308" />
@@ -1040,10 +975,8 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <rect x="38" y="14" width="7" height="4" rx="1" fill="#0F172A" stroke="#6366F1" strokeWidth="1" />
           {/* Backlit Display */}
           <rect x="21" y="24" width="22" height="10" rx="1.5" fill="#0284C7" stroke="#38BDF8" strokeWidth="0.8" />
-          <text x="32" y="31" fill="#FFFFFF" fontSize="5.5" fontWeight="black" textAnchor="middle">IEM RX 1</text>
           {/* Battery Status Indicator & LEDs */}
           <rect x="22" y="38" width="10" height="4" rx="1" fill="#065F46" />
-          <text x="27" y="41.5" fill="#A7F3D0" fontSize="3.5" fontWeight="bold" textAnchor="middle">RF OK</text>
           <circle cx="40" cy="40" r="2" fill="#22C55E" />
           {/* Belt Clip Outline */}
           <path d="M20 54H44" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" />

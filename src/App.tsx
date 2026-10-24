@@ -26,7 +26,6 @@ import { StudioCanvas } from './components/StudioCanvas';
 import { MixerConsole } from './components/MixerConsole';
 import { GradingPanel } from './components/GradingPanel';
 import { ShareSubmitModal } from './components/ShareSubmitModal';
-import { MicPlacementGuideModal } from './components/MicPlacementGuideModal';
 import { IntroWelcomeModal } from './components/IntroWelcomeModal';
 import { ModeSwitchModal } from './components/ModeSwitchModal';
 import { ChallengeModal } from './components/ChallengeModal';
@@ -40,6 +39,8 @@ import { BatchReviewBar } from './components/BatchReviewBar';
 import { parseBatch, BatchParseResult } from './services/batchGrading';
 import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES, getTaskById, resolveTaskId, SANDBOX_ID } from './data/challenges';
 import { useUndoRedo, DEFAULT_MASTER_BUS } from './hooks/useUndoRedo';
+import { StageSize, getWorld } from './components/canvas/stageGeometry';
+import { getGearBoxDimensions } from './components/canvas/canvasMath';
 
 const INITIAL_CHANNELS: MixerChannelState[] = [
   { channelNumber: 1, assignedGearInstanceId: null, label: 'CH 1', phantomPower: false, gain: 72, fader: 75, pan: 0, solo: false, muted: false, meterValue: 0 },
@@ -64,6 +65,8 @@ export default function App() {
   // Task the teacher assigned via an assignment link (?task=...), if any.
   const [assignedTaskId, setAssignedTaskId] = useState<string | null>(null);
   const [isLearnOpen, setIsLearnOpen] = useState(false);
+  // Room/stage size: bigger rooms give more floor for more musicians and gear.
+  const [stageSize, setStageSize] = useState<StageSize>('standard');
 
   // Undo/Redo state management for placedGear, connections, mixerChannels, and masterBus
   const {
@@ -101,7 +104,6 @@ export default function App() {
   // Modals & Soundcheck state
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isIntroModalOpen, setIsIntroModalOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
@@ -124,6 +126,7 @@ export default function App() {
     setClassName(loaded.className || 'Audio Production');
     setEnvironment(loaded.environment || 'recording_studio');
     setActiveChallengeId(resolveTaskId(loaded.activeChallengeId, loaded.environment));
+    setStageSize(loaded.stageSize || 'standard');
     resetHistory({
       placedGear: loaded.placedGear || [],
       connections: loaded.connections || [],
@@ -185,6 +188,7 @@ export default function App() {
           setClassName(loaded.className || 'Audio Production');
           setEnvironment(loaded.environment || 'recording_studio');
           setActiveChallengeId(resolveTaskId(loaded.activeChallengeId, loaded.environment));
+          setStageSize(loaded.stageSize || 'standard');
           resetHistory({
             placedGear: loaded.placedGear || [],
             connections: loaded.connections || [],
@@ -324,8 +328,8 @@ export default function App() {
 
   // Compute real-time automated rubric grade
   const evaluation = useMemo(() => {
-    return evaluateStudioSetup(environment, placedGear, connections, mixerChannels, activeChallengeId);
-  }, [environment, placedGear, connections, mixerChannels, activeChallengeId]);
+    return evaluateStudioSetup(environment, placedGear, connections, mixerChannels, activeChallengeId, stageSize);
+  }, [environment, placedGear, connections, mixerChannels, activeChallengeId, stageSize]);
 
   // Current & Next Challenge definition
   const allChallenges = environment === 'recording_studio' ? STUDIO_CHALLENGES : LIVE_STAGE_CHALLENGES;
@@ -371,10 +375,11 @@ export default function App() {
       masterBus,
       // Sandbox work is marked so batch grading knows it was not a graded task.
       activeChallengeId: activeChallengeId ?? SANDBOX_ID,
+      stageSize: stageSize === 'standard' ? undefined : stageSize,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-  }, [projectTitle, studentName, period, className, environment, placedGear, connections, mixerChannels, masterBus, activeChallengeId]);
+  }, [projectTitle, studentName, period, className, environment, placedGear, connections, mixerChannels, masterBus, activeChallengeId, stageSize]);
 
   // Clean PDF Document export handler
   const handleExportPdf = useCallback(async () => {
@@ -603,6 +608,26 @@ export default function App() {
     });
   }
 
+  // Changing the room size keeps every item where it is; when the room gets
+  // smaller, anything that would fall outside is pulled back in.
+  const handleStageSizeChange = (size: StageSize) => {
+    if (size === stageSize) return;
+    const world = getWorld(size);
+    setPlacedGear(
+      (prev) =>
+        prev.map((g) => {
+          const d = getGearBoxDimensions(g.gearId, !!g.latchedSourceInstanceId, g.customScale, g.customWidth, g.customHeight);
+          return {
+            ...g,
+            x: Math.max(10, Math.min(world.width - d.width - 10, g.x)),
+            y: Math.max(10, Math.min(world.height - d.height - 10, g.y)),
+          };
+        }),
+      { action: 'Change room size' }
+    );
+    setStageSize(size);
+  };
+
   const handleRequestEnvironmentChange = (newEnv: EnvironmentMode) => {
     if (newEnv === environment) return;
     setPendingEnvSwitch(newEnv);
@@ -681,7 +706,7 @@ export default function App() {
         onEnvironmentChange={handleRequestEnvironmentChange}
         onOpenShareModal={handleOpenShareModal}
         onExportPdf={handleExportPdf}
-        onOpenGuideModal={() => setIsGuideModalOpen(true)}
+        onOpenGuideModal={() => setIsLearnOpen(true)}
         onOpenTour={() => setIsTourOpen(true)}
         onOpenChallengeModal={() => setIsChallengeModalOpen(true)}
         onOpenLearn={() => setIsLearnOpen(true)}
@@ -736,6 +761,8 @@ export default function App() {
             onSelectGearTab={setGearPaletteSelectedTab}
             isDiBoxHighlighted={isDiBoxHighlighted}
             onDiBoxHighlightChange={setIsDiBoxHighlighted}
+            stageSize={stageSize}
+            onStageSizeChange={handleStageSizeChange}
           />
         </div>
 
@@ -753,7 +780,7 @@ export default function App() {
           onOpenShareModal={handleOpenShareModal}
           onPrintReport={() => printGradingReport(currentProjectState, evaluation)}
           onExportPdf={handleExportPdf}
-          onOpenGuideModal={() => setIsGuideModalOpen(true)}
+          onOpenGuideModal={() => setIsLearnOpen(true)}
           isExpanded={isGradingExpanded}
           onToggleExpanded={() => setIsGradingExpanded((prev) => !prev)}
           onOpenTasks={() => setIsChallengeModalOpen(true)}
@@ -855,14 +882,8 @@ export default function App() {
         onClose={() => setIsVerifiedModalOpen(false)}
         studentName={verifiedProject?.studentName || ''}
         project={verifiedProject || currentProjectState}
-        evaluation={verifiedProject ? evaluateStudioSetup(verifiedProject.environment || 'recording_studio', verifiedProject.placedGear || [], verifiedProject.connections || [], verifiedProject.mixerChannels || [], resolveTaskId(verifiedProject.activeChallengeId, verifiedProject.environment)) : evaluation}
+        evaluation={verifiedProject ? evaluateStudioSetup(verifiedProject.environment || 'recording_studio', verifiedProject.placedGear || [], verifiedProject.connections || [], verifiedProject.mixerChannels || [], resolveTaskId(verifiedProject.activeChallengeId, verifiedProject.environment), verifiedProject.stageSize) : evaluation}
         onLoadProject={handleLoadProject}
-      />
-
-      {/* Microphone & Signal Chain Field Guide Modal */}
-      <MicPlacementGuideModal
-        isOpen={isGuideModalOpen}
-        onClose={() => setIsGuideModalOpen(false)}
       />
 
       {/* Mode Switch Project Confirmation Modal */}
@@ -889,10 +910,6 @@ export default function App() {
         isOpen={isLearnOpen}
         onClose={() => setIsLearnOpen(false)}
         environment={environment}
-        onOpenFieldGuide={() => {
-          setIsLearnOpen(false);
-          setIsGuideModalOpen(true);
-        }}
         onOpenTasks={() => {
           setIsLearnOpen(false);
           setIsChallengeModalOpen(true);

@@ -91,7 +91,8 @@ export function gradeProject(project: StudioProjectState): RubricEvaluation {
     project.placedGear || [],
     project.connections || [],
     project.mixerChannels || [],
-    resolveTaskId(project.activeChallengeId, project.environment)
+    resolveTaskId(project.activeChallengeId, project.environment),
+    project.stageSize
   );
 }
 

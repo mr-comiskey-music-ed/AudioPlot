@@ -71,7 +71,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
       id="studio-header"
       className="bg-black/40 backdrop-blur-xl border-b border-white/10 text-stone-100 px-4 py-2 shadow-2xl select-none sticky top-0 z-30 w-full"
     >
-      <div className="w-full flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
+      <div className="w-full flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
         {/* Left: Branding & Assignment Metadata */}
         <div className="flex items-center gap-3 shrink-0">
           <AppLogo size="sm" />
@@ -79,8 +79,8 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             <h1 className="text-xl font-extrabold tracking-tight text-stone-100 flex items-center gap-1.5">
               {appName}
             </h1>
-            <span className="text-white/20 text-sm">•</span>
-            <span className="text-xs text-stone-400 font-medium tracking-wide hidden sm:inline">
+            <span className="text-white/20 text-sm hidden 2xl:inline">•</span>
+            <span className="text-xs text-stone-400 font-medium tracking-wide hidden 2xl:inline">
               Studio & Stage Plot Designer & Signal Flow Simulator
             </span>
             {isSharedView && studentName && (
@@ -95,7 +95,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
         </div>
 
         {/* Right: In-line Environment Switcher + Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Environment Toggle (Recording Studio vs Live Stage) */}
           <div className="flex items-center bg-black/50 p-0.5 rounded-full border border-white/10 backdrop-blur-md shadow-inner">
             <button
@@ -109,7 +109,8 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               title="Switch to Recording Studio Floor Plan"
             >
               <Sliders className="w-3.5 h-3.5" />
-              <span>Recording Studio</span>
+              <span className="min-[1440px]:hidden">Studio</span>
+              <span className="hidden min-[1440px]:inline">Recording Studio</span>
             </button>
             <button
               id="btn-env-live"
@@ -122,7 +123,8 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               title="Switch to Live Concert Stage Plot"
             >
               <Radio className="w-3.5 h-3.5" />
-              <span>Live Stage</span>
+              <span className="min-[1440px]:hidden">Stage</span>
+              <span className="hidden min-[1440px]:inline">Live Stage</span>
             </button>
           </div>
 
@@ -134,15 +136,15 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               id="btn-header-undo"
               onClick={onUndo}
               disabled={!canUndo}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full border backdrop-blur-md transition-all text-xs font-semibold ${
+              className={`flex items-center justify-center w-7 h-7 rounded-full border backdrop-blur-md transition-all text-xs font-semibold ${
                 canUndo
                   ? 'bg-white/5 hover:bg-white/15 text-stone-200 hover:text-white border-white/15 cursor-pointer'
                   : 'bg-white/[0.02] text-stone-600 border-white/5 cursor-not-allowed'
               }`}
-              title="Undo last change (Ctrl+Z / Cmd+Z)"
+              title="Undo (Ctrl+Z / Cmd+Z)"
+              aria-label="Undo"
             >
               <Undo2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Undo</span>
             </button>
           )}
 
@@ -151,15 +153,15 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               id="btn-header-redo"
               onClick={onRedo}
               disabled={!canRedo}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full border backdrop-blur-md transition-all text-xs font-semibold ${
+              className={`flex items-center justify-center w-7 h-7 rounded-full border backdrop-blur-md transition-all text-xs font-semibold ${
                 canRedo
                   ? 'bg-white/5 hover:bg-white/15 text-stone-200 hover:text-white border-white/15 cursor-pointer'
                   : 'bg-white/[0.02] text-stone-600 border-white/5 cursor-not-allowed'
               }`}
-              title="Redo last undone change (Ctrl+Y / Cmd+Shift+Z)"
+              title="Redo (Ctrl+Y / Cmd+Shift+Z)"
+              aria-label="Redo"
             >
               <Redo2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Redo</span>
             </button>
           )}
 
@@ -171,7 +173,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             title="Clear Plot (Reset all equipment & connections)"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Clear Plot</span>
+            <span>Clear</span>
           </button>
 
           {/* Task / Sandbox Pill Button */}
@@ -179,7 +181,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             <button
               id="btn-open-challenges"
               onClick={onOpenChallengeModal}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm max-w-[220px] ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm max-w-[200px] ${
                 activeChallengeId
                   ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-amber-950/60 ring-2 ring-amber-300'
                   : 'bg-white/5 hover:bg-white/10 text-stone-300 border-dashed border-stone-500/60'
@@ -193,7 +195,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             </button>
           )}
 
-          {/* Learn: decision walkthrough (links to the field guide) */}
+          {/* Learn: the four questions behind any setup */}
           <button
             id="btn-learn"
             onClick={onOpenLearn || onOpenGuideModal}
