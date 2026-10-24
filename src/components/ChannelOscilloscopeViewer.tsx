@@ -231,6 +231,9 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
           let level = 0;
           if (live) {
             for (let i = i0; i <= i1; i++) level = Math.max(level, freqArray[i] / 255);
+            // The analyser reports down to -100 dB; drop the quiet floor (room
+            // noise, reverb tails) so only the instrument's real energy shows.
+            level = Math.max(0, (level - 0.35) / 0.65);
             // Fader/trim still matter, without letting quiet bins pop up
             level = Math.min(1, level * Math.min(1.4, totalGain));
           }
@@ -243,7 +246,7 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
           const x = gap + b * (barW + gap);
           const grad = ctx.createLinearGradient(0, floorY, 0, floorY - h);
           grad.addColorStop(0, 'rgba(56,189,248,0.35)');
-          grad.addColorStop(1, shown > 0.95 ? '#ef4444' : '#38bdf8');
+          grad.addColorStop(1, clipping ? '#ef4444' : '#38bdf8');
           ctx.fillStyle = grad;
           ctx.fillRect(x, floorY - h, barW, h);
         }
