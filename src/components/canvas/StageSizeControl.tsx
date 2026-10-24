@@ -1,5 +1,5 @@
 import React from 'react';
-import { Expand } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 import { EnvironmentMode } from '../../types';
 import { STAGE_SIZES, StageSize } from './stageGeometry';
 
@@ -23,7 +23,7 @@ export const StageSizeControl: React.FC<StageSizeControlProps> = ({ environment,
       title={`Make the ${noun.toLowerCase()} bigger to fit more musicians and gear`}
     >
       <span className="flex items-center gap-1 pl-1.5 pr-1 text-[10px] font-black uppercase tracking-wider text-stone-400">
-        <Expand className="w-3.5 h-3.5" />
+        <Maximize2 className="w-3.5 h-3.5" />
         {noun} size
       </span>
       {STAGE_SIZES.map((s) => (
