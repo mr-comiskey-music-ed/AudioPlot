@@ -40,7 +40,7 @@ export const PaZoneOverlay: React.FC<PaZoneOverlayProps> = ({ placedGear, select
             style={{ left: zone.x, top: zone.y, width: zone.w, height: zone.h }}
           >
             <div
-              className={`absolute bottom-2 ${side === 'left' ? 'left-3' : 'right-3'} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider ${
+              className={`absolute top-2 ${side === 'left' ? 'left-3' : 'right-3'} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider ${
                 isFilled ? 'text-emerald-300/90' : isTarget ? 'text-amber-200' : 'text-indigo-300/80'
               }`}
             >
