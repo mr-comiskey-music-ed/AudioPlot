@@ -525,7 +525,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     idealSources: ['Voice', 'Drum Set', 'Bass Guitar', 'Electric Guitar'],
     description: 'Personal wired in-ear listening monitor headphone amp for performers. Connects to Monitor sends (MON 1/2) via XLR and assigns to a musician.',
     specs: 'XLR In -> Wired Personal Stage Foldback.',
-    iconType: 'IEMBodypack',
+    iconType: 'IEMWiredPack',
     color: '#7C3AED',
     size: { width: 46, height: 44 },
   },

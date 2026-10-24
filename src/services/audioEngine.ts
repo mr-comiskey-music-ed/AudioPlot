@@ -351,7 +351,8 @@ class StudioAudioEngine {
     gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
 
     const analyserNode = this.ctx.createAnalyser();
-    analyserNode.fftSize = 256;
+    // 2048 gives ~23 Hz bins, enough for a believable low-to-high spectrum
+    analyserNode.fftSize = 2048;
     analyserNode.smoothingTimeConstant = 0.75;
 
     let pannerNode: StereoPannerNode | null = null;
@@ -414,7 +415,7 @@ class StudioAudioEngine {
     this.masterGainNode = this.ctx.createGain();
     this.masterBalanceNode = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
     this.masterAnalyserNode = this.ctx.createAnalyser();
-    this.masterAnalyserNode.fftSize = 256;
+    this.masterAnalyserNode.fftSize = 2048;
     this.masterAnalyserNode.smoothingTimeConstant = 0.8;
 
     // Stereo Splitter and dedicated Left/Right channel analysers for live mix meter
@@ -634,6 +635,11 @@ class StudioAudioEngine {
       peakAmplitude: maxDev,
       rmsAmplitude: rms,
     };
+  }
+
+  /** Sample rate of the audio engine (needed to map FFT bins to Hz). */
+  public getSampleRate(): number {
+    return this.ctx?.sampleRate ?? 48000;
   }
 
   /**

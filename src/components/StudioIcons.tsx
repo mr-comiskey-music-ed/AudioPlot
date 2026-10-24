@@ -150,36 +150,41 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
     case 'SnareDrum':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
-          {/* Snare Metal Shell on Stand */}
-          <ellipse cx="32" cy="24" rx="20" ry="10" fill="#E2E8F0" stroke="#475569" strokeWidth="1.5" />
-          {/* Drum Batter Head */}
-          <ellipse cx="32" cy="24" rx="17" ry="8" fill="#F8FAFC" stroke="#CBD5E1" strokeWidth="1" />
-          {/* Shell Depth */}
-          <path d="M12 24V34C12 39.5 21 44 32 44C43 44 52 39.5 52 34V24" fill="#64748B" stroke="#334155" strokeWidth="1.5" />
-          {/* Snare Strainer Throw-Off Lever */}
-          <rect x="51" y="27" width="4" height="6" rx="1" fill="#CBD5E1" stroke="#334155" strokeWidth="0.8" />
-          {/* Snare Stand Basket & Legs */}
-          <path d="M32 44V56M32 56L20 62M32 56L44 62" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
+          {/* Stand */}
+          <path d="M32 46V56M32 56L21 62M32 56L43 62" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
+          {/* Shallow metal shell (drawn first so the head sits on top) */}
+          <path d="M12 26V36C12 41 21 45 32 45C43 45 52 41 52 36V26Z" fill="#64748B" stroke="#334155" strokeWidth="1.4" strokeLinejoin="round" />
+          <path d="M12 36C12 41 21 45 32 45C43 45 52 41 52 36" stroke="#CBD5E1" strokeWidth="1.6" />
+          {/* Tension lugs */}
+          {[17, 25, 32, 39, 47].map((x) => (
+            <rect key={x} x={x - 1} y={x === 32 ? 31 : 30} width="2" height="7" rx="0.6" fill="#E2E8F0" stroke="#475569" strokeWidth="0.4" />
+          ))}
+          {/* Snare throw-off */}
+          <rect x="50.5" y="29" width="4" height="6" rx="1" fill="#CBD5E1" stroke="#334155" strokeWidth="0.7" />
+          {/* Chrome hoop and white batter head: same width as the shell */}
+          <ellipse cx="32" cy="26" rx="20" ry="9" fill="#E2E8F0" stroke="#475569" strokeWidth="1.4" />
+          <ellipse cx="32" cy="26" rx="17.5" ry="7.4" fill="#F8FAFC" stroke="#CBD5E1" strokeWidth="0.8" />
         </svg>
       );
 
     case 'TomDrum':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
-          {/* Tom Drum Batter Head & Rim */}
-          <ellipse cx="32" cy="22" rx="19" ry="9.5" fill="#E2E8F0" stroke="#1E3A8A" strokeWidth="1.5" />
-          <ellipse cx="32" cy="22" rx="16" ry="7.5" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="1" />
-          {/* Deep Wood Lacquer Shell */}
-          <path d="M13 22V36C13 42 21.5 46.5 32 46.5C42.5 46.5 51 42 51 36V22" fill="#1D4ED8" stroke="#1E3A8A" strokeWidth="1.5" />
-          {/* Bottom Rim */}
-          <path d="M13 36C13 42 21.5 46.5 32 46.5C42.5 46.5 51 42 51 36" stroke="#94A3B8" strokeWidth="1.5" />
-          {/* Chrome Tension Lugs */}
-          <rect x="18" y="25" width="2.5" height="12" rx="0.5" fill="#E2E8F0" stroke="#475569" strokeWidth="0.5" />
-          <rect x="30.5" y="27" width="2.5" height="13" rx="0.5" fill="#E2E8F0" stroke="#475569" strokeWidth="0.5" />
-          <rect x="43" y="25" width="2.5" height="12" rx="0.5" fill="#E2E8F0" stroke="#475569" strokeWidth="0.5" />
-          {/* Tom Mount Bracket */}
-          <circle cx="32" cy="40" r="2.5" fill="#64748B" stroke="#CBD5E1" strokeWidth="0.5" />
-          <line x1="32" y1="42.5" x2="32" y2="58" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Mount arm */}
+          <line x1="32" y1="46" x2="32" y2="60" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Deep wood shell (drawn first so the head sits on top) */}
+          <path d="M13 22V39C13 44.5 21.5 49 32 49C42.5 49 51 44.5 51 39V22Z" fill="#1D4ED8" stroke="#1E3A8A" strokeWidth="1.4" strokeLinejoin="round" />
+          {/* Shell highlight */}
+          <path d="M17 26V39C17 42 21 44.5 25 45.5" stroke="#60A5FA" strokeWidth="1.4" strokeLinecap="round" opacity="0.6" />
+          {/* Bottom hoop */}
+          <path d="M13 39C13 44.5 21.5 49 32 49C42.5 49 51 44.5 51 39" stroke="#CBD5E1" strokeWidth="1.6" />
+          {/* Tension lugs */}
+          {[18, 32, 46].map((x) => (
+            <rect key={x} x={x - 1.2} y={x === 32 ? 31 : 29} width="2.4" height="9" rx="0.6" fill="#E2E8F0" stroke="#475569" strokeWidth="0.4" />
+          ))}
+          {/* Top hoop and batter head: same width as the shell */}
+          <ellipse cx="32" cy="22" rx="19" ry="8.5" fill="#E2E8F0" stroke="#1E3A8A" strokeWidth="1.4" />
+          <ellipse cx="32" cy="22" rx="16.5" ry="7" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="0.8" />
         </svg>
       );
 
@@ -966,6 +971,38 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           {/* Rear / Top Antenna (Angled) */}
           <line x1="50" y1="16" x2="56" y2="4" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" />
           <circle cx="56" cy="4" r="1.5" fill="#A5B4FC" />
+        </svg>
+      );
+
+    case 'IEMWiredPack':
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
+          {/* Two input jacks on the bottom (cable from the snake/mixer) */}
+          <rect x="22" y="56" width="5" height="5" rx="1" fill="#94A3B8" stroke="#334155" strokeWidth="0.6" />
+          <rect x="37" y="56" width="5" height="5" rx="1" fill="#94A3B8" stroke="#334155" strokeWidth="0.6" />
+          {/* Black metal body */}
+          <rect x="15" y="12" width="34" height="45" rx="3" fill="#111827" stroke="#4B5563" strokeWidth="1.4" />
+          {/* Top control panel */}
+          <rect x="15" y="12" width="34" height="11" rx="3" fill="#1F2937" stroke="#4B5563" strokeWidth="1" />
+          {/* Two volume knobs on top */}
+          <rect x="21" y="5" width="7" height="8" rx="2" fill="#0B0F17" stroke="#6B7280" strokeWidth="0.8" />
+          <line x1="24.5" y1="6" x2="24.5" y2="10" stroke="#F9FAFB" strokeWidth="0.9" strokeLinecap="round" />
+          <rect x="31" y="5" width="7" height="8" rx="2" fill="#0B0F17" stroke="#6B7280" strokeWidth="0.8" />
+          <line x1="34.5" y1="6" x2="34.5" y2="10" stroke="#F9FAFB" strokeWidth="0.9" strokeLinecap="round" />
+          {/* Status LEDs and headphone jack */}
+          <circle cx="41" cy="16" r="1" fill="#EF4444" />
+          <circle cx="41" cy="19.5" r="1" fill="#22C55E" />
+          <circle cx="45.5" cy="17.5" r="2" fill="#0B0F17" stroke="#9CA3AF" strokeWidth="0.8" />
+          {/* Mode switch */}
+          <rect x="17.5" y="15" width="2.5" height="5" rx="0.6" fill="#374151" />
+          {/* Triangle logo mark (no text) */}
+          <path d="M32 26L37 34H27Z" stroke="#9CA3AF" strokeWidth="0.8" strokeLinejoin="round" />
+          {/* Battery door with screws */}
+          <rect x="18.5" y="37" width="27" height="13" rx="1" fill="#0B0F17" stroke="#374151" strokeWidth="0.8" />
+          <rect x="29.5" y="36" width="5" height="2.4" rx="0.5" fill="#1F2937" stroke="#4B5563" strokeWidth="0.5" />
+          {[[20.5, 39], [43.5, 39], [20.5, 48], [43.5, 48]].map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="0.7" fill="#6B7280" />
+          ))}
         </svg>
       );
 

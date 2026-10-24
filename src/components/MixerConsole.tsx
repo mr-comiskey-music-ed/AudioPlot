@@ -443,7 +443,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
           <span className="font-extrabold uppercase tracking-wider text-stone-200 flex items-center gap-1.5 group-hover:text-white transition-colors">
             <Sliders className="w-3.5 h-3.5 text-orange-400" />
-            Studio Console/Mixer, Advanced Metering, & Equipment List
+            Console / Mixer
           </span>
         </div>
 
@@ -465,10 +465,10 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-sm'
                 : 'bg-white/5 hover:bg-white/10 border-white/10 text-stone-400 hover:text-stone-200'
             }`}
-            title="Toggle Real-Time Oscilloscope & Equipment List"
+            title="Show the live meter and gear list"
           >
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">Oscilloscope & Equipment List</span>
+            <span className="hidden sm:inline">Meter & Gear List</span>
             <ClipboardList className="w-3.5 h-3.5 text-orange-400 ml-0.5" />
           </button>
 
