@@ -801,7 +801,7 @@ export default function App() {
         isOpen={isTourOpen}
         onClose={() => setIsTourOpen(false)}
         environment={environment}
-        assignedTaskTitle={assignedTaskId ? getTaskById(assignedTaskId)?.title.split(':').pop()?.trim() : null}
+        assignedTaskTitle={assignedTaskId && assignedTaskId === activeChallengeId ? getTaskById(assignedTaskId)?.title.split(':').pop()?.trim() : null}
         onChooseRoom={(env) => {
           setIsTourOpen(false);
           // Same room: just start building. Different room: the usual switch (asks first if there is work).
