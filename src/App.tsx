@@ -26,7 +26,6 @@ import { StudioCanvas } from './components/StudioCanvas';
 import { MixerConsole } from './components/MixerConsole';
 import { GradingPanel } from './components/GradingPanel';
 import { ShareSubmitModal } from './components/ShareSubmitModal';
-import { IntroWelcomeModal } from './components/IntroWelcomeModal';
 import { ModeSwitchModal } from './components/ModeSwitchModal';
 import { ChallengeModal } from './components/ChallengeModal';
 import { LearnModal } from './components/LearnModal';
@@ -104,7 +103,6 @@ export default function App() {
   // Modals & Soundcheck state
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isIntroModalOpen, setIsIntroModalOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
   const [isPerfectionModalOpen, setIsPerfectionModalOpen] = useState(false);
@@ -138,27 +136,18 @@ export default function App() {
     });
   }, [resetHistory]);
 
-  const triggerTourIfFirstTime = useCallback(() => {
-    const hasSeenTour = localStorage.getItem('audioplot_tour_seen');
-    if (!hasSeenTour) {
-      setTimeout(() => {
-        setIsTourOpen(true);
+  // First visit: open the How-To tour (it starts with the welcome and ends
+  // with a choice of Studio / Live Stage / Learn).
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem('audioplot_tour_seen')) {
+        setTimeout(() => setIsTourOpen(true), 150);
         localStorage.setItem('audioplot_tour_seen', 'true');
-      }, 150);
+      }
+    } catch {
+      setTimeout(() => setIsTourOpen(true), 150);
     }
   }, []);
-
-  // Check if first visit for intro modal
-  useEffect(() => {
-    const hasSeenIntro = localStorage.getItem('audioplot_intro_seen');
-    const openedFromAssignment = new URLSearchParams(window.location.search).has('task');
-    if (!hasSeenIntro && !openedFromAssignment) {
-      setIsIntroModalOpen(true);
-      localStorage.setItem('audioplot_intro_seen', 'true');
-    } else {
-      triggerTourIfFirstTime();
-    }
-  }, [triggerTourIfFirstTime]);
 
   // Parse URL parameters on initial load and popstate
   useEffect(() => {
@@ -807,32 +796,33 @@ export default function App() {
         onToggleCollapse={() => setIsMixerCollapsed((prev) => !prev)}
       />
 
-      {/* Intro Welcome Modal */}
-      <IntroWelcomeModal
-        isOpen={isIntroModalOpen}
-        onClose={() => {
-          setIsIntroModalOpen(false);
-          triggerTourIfFirstTime();
-        }}
-        onStartMode={(mode) => {
-          setEnvironment(mode);
-          setProjectTitle(
-            mode === 'live_stage' ? 'Live Concert Stage Plot' : 'Studio Recording Session Plot'
-          );
-          setIsIntroModalOpen(false);
-          triggerTourIfFirstTime();
-        }}
-        onOpenChallenges={() => {
-          setIsIntroModalOpen(false);
-          setIsChallengeModalOpen(true);
-        }}
-      />
-
       {/* Guided Walkthrough / Interactive Tour */}
       <GuidedTourModal
         isOpen={isTourOpen}
         onClose={() => setIsTourOpen(false)}
         environment={environment}
+        assignedTaskTitle={assignedTaskId ? getTaskById(assignedTaskId)?.title.split(':').pop()?.trim() : null}
+        onChooseRoom={(env) => {
+          setIsTourOpen(false);
+          // Same room: just start building. Different room: the usual switch (asks first if there is work).
+          if (env !== environment) {
+            if (placedGear.length === 0) {
+              setEnvironment(env);
+              setActiveChallengeId(null);
+              setProjectTitle(env === 'live_stage' ? 'Live Concert Stage Plot' : 'Studio Recording Session Plot');
+            } else {
+              handleRequestEnvironmentChange(env);
+            }
+          }
+        }}
+        onOpenLearn={() => {
+          setIsTourOpen(false);
+          setIsLearnOpen(true);
+        }}
+        onOpenTasks={() => {
+          setIsTourOpen(false);
+          setIsChallengeModalOpen(true);
+        }}
       />
 
       {/* Student Name Prompt Modal when default 'Albert G Lane' is still set */}

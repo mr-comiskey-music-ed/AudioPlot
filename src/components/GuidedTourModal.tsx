@@ -9,9 +9,14 @@ import {
   ChevronLeft,
   X,
   Sparkles,
-  Check,
+  Headphones,
+  Radio,
+  GraduationCap,
+  Trophy,
+  ArrowRight,
 } from 'lucide-react';
 import { EnvironmentMode } from '../types';
+import { AppLogo } from './AppLogo';
 
 export interface TourStep {
   id: string;
@@ -28,69 +33,89 @@ export interface TourStep {
 
 const TOUR_STEPS: TourStep[] = [
   {
-    id: 'gear_locker',
+    id: 'welcome',
     stepNumber: 1,
-    title: '1. Gear Locker & Equipment',
-    tagline: 'Drag & Drop Instruments, Mics & DIs',
+    title: 'Welcome to AudioPlot',
+    tagline: 'Plan a studio session or a live show',
     description:
-      'Find all instruments, dynamic/condenser mics, direct boxes (DIs), and amplifiers in the left drawer. Simply drag and drop any item onto the studio plot to place it, or drop it on top of existing gear to swap it.',
+      'Place instruments, choose the right mics and DIs, cable everything to the snake, and set up the mixer. Hit Soundcheck to hear your setup. This quick tour shows you where everything is.',
+    targetSelectors: [],
+    directionHint: '',
+    icon: <Sparkles className="w-5 h-5 text-orange-400" />,
+    accentColor: 'orange',
+  },
+  {
+    id: 'gear_locker',
+    stepNumber: 2,
+    title: 'Gear Locker',
+    tagline: 'Drag instruments, mics and DIs onto the floor',
+    description:
+      'Everything lives in the drawer on the left. Drag any item onto the floor to place it, or drop it on top of existing gear to swap it.',
     targetSelectors: ['#gear-palette-drawer', 'aside#gear-palette-drawer'],
-    directionHint: '⬅️ Look at the Equipment Locker on the left',
+    directionHint: '',
     icon: <GripVertical className="w-5 h-5 text-orange-400" />,
     accentColor: 'orange',
-    keyTip: 'Switch category tabs (Instruments, Mics, DIs, Monitoring) to explore all available gear.',
+    keyTip: 'Use the tabs (Instruments, Microphones, DIs & Amps, Monitoring & PA) to find gear.',
   },
   {
     id: 'cables_patching',
-    stepNumber: 2,
-    title: '2. Cables & Patching',
-    tagline: 'Connect Gear to Amps, DIs & Snake',
+    stepNumber: 3,
+    title: 'Cables',
+    tagline: 'Connect gear to DIs, amps and the snake',
     description:
-      'Grab an XLR or 1/4" instrument cable from the hook rack in the back-left corner, or simply click & drag directly from any instrument or microphone to wire it into amplifiers, DI boxes, or the Snake.',
+      'Pick up an XLR or 1/4" cable here, then drag from a mic, DI or instrument to where it should go.',
     targetSelectors: ['#cable-hooks-panel'],
-    directionHint: '↖️ Look at the Cable Hooks in the back-left corner',
+    directionHint: '',
     icon: <Cable className="w-5 h-5 text-blue-400" />,
     accentColor: 'blue',
-    keyTip: 'Balanced XLR lines connect mics and DIs to snake inputs. 1/4" TS cables connect guitars and keys.',
+    keyTip: 'XLR goes from mics and DIs into the snake. 1/4" goes from guitars and keys into amps or DIs.',
   },
   {
     id: 'snake_and_console',
-    stepNumber: 3,
-    title: '3. Stage Snake, Console & Metering',
-    tagline: 'Soundcheck, Metering & Equipment List',
+    stepNumber: 4,
+    title: 'Snake & Mixer',
+    tagline: 'Where every input lands',
     description:
-      'Patching audio into the Stage Snake feeds signals into the bottom mixing console. Adjust preamps, set faders, toggle +48V Phantom Power, and click "Oscilloscope & Equipment List" to inspect real-time audio metering, spectrum analysis, and your complete plot equipment inventory!',
+      'Everything you plug into the snake shows up on the mixer at the bottom. Set gain, faders and +48V there, and press Soundcheck to hear it. "Meter & Gear List" shows a live meter and everything you have placed.',
     targetSelectors: ['#stage-snake-box', '#mixer-console-container'],
-    directionHint: '⬇️ Look at BOTH the Stage Snake on the floor & Bottom Mixing Console',
+    directionHint: '',
     icon: <Sliders className="w-5 h-5 text-purple-400" />,
     accentColor: 'purple',
-    keyTip: 'Use the Oscilloscope & Equipment List in the console bar to monitor live signal waveforms and track all placed gear & cables.',
   },
   {
     id: 'progress_and_rubric',
-    stepNumber: 4,
-    title: '4. Progress Bar & Rubric',
-    tagline: 'Live Feedback & Audio Best Practices',
+    stepNumber: 5,
+    title: 'Progress & Checks',
+    tagline: 'See what is working and what is missing',
     description:
-      'Check your current assignment score with the Progress Bar on the right. Expand it at any time to review automated checks for microphone techniques, cable logic, phantom power safety, and acoustic bleed.',
+      'The panel on the right checks your setup as you build. In the sandbox nothing is graded; in a task it shows your score. Red "!" badges on gear tell you exactly what each item still needs.',
     targetSelectors: ['#grading-rubric-collapsed-bar', '#grading-rubric-panel', '#grading-panel'],
-    directionHint: '➡️ Look at the Progress Bar on the right',
+    directionHint: '',
     icon: <Award className="w-5 h-5 text-emerald-400" />,
     accentColor: 'emerald',
-    keyTip: 'Achieve a 90%+ score to earn the Master Engineer & Gold Status badge!',
   },
   {
     id: 'metadata_and_submit',
-    stepNumber: 5,
-    title: '5. Share & Submit Options',
-    tagline: 'Copy Your Code & Export PDF Report',
+    stepNumber: 6,
+    title: 'Share & Submit',
+    tagline: 'Turn in your work',
     description:
-      'Click "Share & Submit" at the top right to open the export modal. Enter your student name, then copy your submission code to paste into Google Classroom, or download the comprehensive PDF report complete with a live screenshot of your stage plot, equipment manifest, and grading breakdown.',
+      'When you are done, click Share & Submit, type your name, and copy your code into Google Classroom. You can also download a PDF of your plot.',
     targetSelectors: ['#btn-share-submit'],
-    directionHint: '↗️ Look at the Share & Submit button in the top right',
+    directionHint: '',
     icon: <Share2 className="w-5 h-5 text-amber-400" />,
     accentColor: 'amber',
-    keyTip: 'Entering your student name is required to copy your code or export your PDF report.',
+  },
+  {
+    id: 'start',
+    stepNumber: 7,
+    title: 'Where do you want to start?',
+    tagline: 'You can switch any time from the top bar',
+    description: '',
+    targetSelectors: [],
+    directionHint: '',
+    icon: <ArrowRight className="w-5 h-5 text-orange-400" />,
+    accentColor: 'orange',
   },
 ];
 
@@ -98,11 +123,21 @@ interface GuidedTourModalProps {
   isOpen: boolean;
   onClose: () => void;
   environment?: EnvironmentMode;
+  /** Final step choices */
+  onChooseRoom?: (env: EnvironmentMode) => void;
+  onOpenLearn?: () => void;
+  onOpenTasks?: () => void;
+  /** Task opened from a teacher's assignment link (replaces the room choice) */
+  assignedTaskTitle?: string | null;
 }
 
 export const GuidedTourModal: React.FC<GuidedTourModalProps> = ({
   isOpen,
   onClose,
+  onChooseRoom,
+  onOpenLearn,
+  onOpenTasks,
+  assignedTaskTitle,
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
@@ -360,7 +395,7 @@ export const GuidedTourModal: React.FC<GuidedTourModalProps> = ({
               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black tracking-wider uppercase border ${accentColorClasses.badgeBg}`}
             >
               <Sparkles className="w-3 h-3" />
-              <span>Step {step.stepNumber} of {TOUR_STEPS.length}</span>
+              <span>{step.id === 'welcome' ? 'Quick tour' : step.id === 'start' ? 'Ready' : `Step ${currentStepIndex} of ${TOUR_STEPS.length - 2}`}</span>
             </span>
           </div>
 
@@ -370,18 +405,20 @@ export const GuidedTourModal: React.FC<GuidedTourModalProps> = ({
             className="flex items-center gap-1 text-[11px] font-semibold text-stone-400 hover:text-stone-100 px-2.5 py-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer border border-stone-700 bg-stone-900"
             title="Skip interactive tour"
           >
-            <span>Skip Tour</span>
+            <span>{step.id === 'start' ? 'Close' : 'Skip'}</span>
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Header Content */}
         <div className="flex items-start gap-3.5 mb-3">
-          <div
-            className={`p-2.5 rounded-2xl border ${accentColorClasses.badgeBg} shrink-0 bg-stone-900`}
-          >
-            {step.icon}
-          </div>
+          {step.id === 'welcome' ? (
+            <AppLogo size="lg" />
+          ) : (
+            <div className={`p-2.5 rounded-2xl border ${accentColorClasses.badgeBg} shrink-0 bg-stone-900`}>
+              {step.icon}
+            </div>
+          )}
           <div>
             <h3 className="text-base sm:text-lg font-black text-stone-100 tracking-tight leading-tight">
               {step.title}
@@ -393,9 +430,62 @@ export const GuidedTourModal: React.FC<GuidedTourModalProps> = ({
         </div>
 
         {/* Description Body */}
-        <p className="text-xs sm:text-[13px] text-stone-200 leading-relaxed mb-4 bg-stone-900/80 p-3.5 rounded-2xl border border-stone-800">
-          {step.description}
-        </p>
+        {step.id === 'start' ? (
+          assignedTaskTitle ? (
+            <div className="mb-4 space-y-2">
+              <button
+                onClick={onClose}
+                className="w-full flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-sm transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4" /> Start your task: {assignedTaskTitle}
+                </span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onOpenLearn}
+                className="w-full flex items-center gap-2 p-3 rounded-2xl bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 text-xs font-bold transition-colors cursor-pointer"
+              >
+                <GraduationCap className="w-4 h-4 text-orange-400" /> Learn the basics first
+              </button>
+            </div>
+          ) : (
+            <div className="mb-4 space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { key: 'studio', label: 'Studio', sub: 'Recording session', Icon: Headphones, cls: 'hover:border-orange-400 text-orange-300' },
+                    { key: 'stage', label: 'Live Stage', sub: 'Concert setup', Icon: Radio, cls: 'hover:border-purple-400 text-purple-300' },
+                    { key: 'learn', label: 'Learn', sub: 'The basics first', Icon: GraduationCap, cls: 'hover:border-emerald-400 text-emerald-300' },
+                  ] as const
+                ).map(({ key, label, sub, Icon, cls }) => (
+                  <button
+                    key={key}
+                    onClick={() =>
+                      key === 'learn' ? onOpenLearn?.() : onChooseRoom?.(key === 'studio' ? 'recording_studio' : 'live_stage')
+                    }
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-stone-900 border border-stone-700 transition-colors cursor-pointer ${cls}`}
+                  >
+                    <Icon className="w-6 h-6" />
+                    <span className="text-xs font-black text-stone-100">{label}</span>
+                    <span className="text-[10px] text-stone-400">{sub}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={onOpenTasks}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-stone-400 hover:text-amber-300 transition-colors cursor-pointer"
+              >
+                <Trophy className="w-3.5 h-3.5 text-amber-400" /> I have a task from my teacher
+              </button>
+            </div>
+          )
+        ) : (
+          <p className="text-xs sm:text-[13px] text-stone-200 leading-relaxed mb-4 bg-stone-900/80 p-3.5 rounded-2xl border border-stone-800">
+            {step.description}
+            {step.keyTip && <span className="block mt-2 text-stone-400">{step.keyTip}</span>}
+          </p>
+        )}
 
         {/* Footer Navigation Controls & Dots */}
         <div className="flex items-center justify-between pt-2.5 border-t border-stone-800 mt-1">
@@ -428,18 +518,16 @@ export const GuidedTourModal: React.FC<GuidedTourModalProps> = ({
               </button>
             )}
 
+            {step.id !== 'start' && (
             <button
               id="btn-tour-next"
               onClick={handleNext}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl font-black text-xs shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${accentColorClasses.button}`}
             >
-              <span>{currentStepIndex === TOUR_STEPS.length - 1 ? 'Got it, Let’s Start!' : 'Next'}</span>
-              {currentStepIndex === TOUR_STEPS.length - 1 ? (
-                <Check className="w-3.5 h-3.5 stroke-[3]" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
-              )}
+              <span>{step.id === 'welcome' ? 'Show me around' : 'Next'}</span>
+              <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
             </button>
+            )}
           </div>
         </div>
       </div>
