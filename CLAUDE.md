@@ -10,6 +10,14 @@ the goal is students designing real setups with understanding.
 - Never save student data anywhere: no database, no backend, no
   server logs. Data that only travels inside the student's own code
   (like their name) is fine.
+- The only thing kept in the browser is an autosave of the student's
+  own plot (localStorage keys `audioplot:v1:autosave:<task or sandbox>`,
+  `src/utils/autosave.ts`), stored in the code format and never with the
+  student's name. It is never sent anywhere. On load, a "Restore your
+  last session?" prompt offers Restore or Start Fresh; autosave stays
+  off until they answer. Not used for shared-plot (`?plot=`) links or
+  while the teacher steps through batch review. The leave-page warning
+  appears only if the browser can't save.
 - Students show work with a base64 code pasted into Google Classroom.
 - Must run well on Chromebooks and stay lightweight.
 - Repo: github.com/mr-comiskey-music-ed/AudioPlot. Deployed on Vercel

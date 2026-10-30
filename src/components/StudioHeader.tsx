@@ -38,6 +38,8 @@ interface StudioHeaderProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  /** Small status element (autosave indicator) shown beside the Clear button. */
+  statusSlot?: React.ReactNode;
 }
 
 export const StudioHeader: React.FC<StudioHeaderProps> = ({
@@ -63,6 +65,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onRedo,
   canUndo = false,
   canRedo = false,
+  statusSlot,
 }) => {
   const appName = 'AudioPlot';
 
@@ -164,6 +167,8 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               <Redo2 className="w-3.5 h-3.5" />
             </button>
           )}
+
+          {statusSlot}
 
           {/* Clear Plot Button */}
           <button

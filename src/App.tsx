@@ -39,6 +39,9 @@ import { parseBatch, BatchParseResult } from './services/batchGrading';
 import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES, getTaskById, resolveTaskId, SANDBOX_ID } from './data/challenges';
 import { useUndoRedo, DEFAULT_MASTER_BUS } from './hooks/useUndoRedo';
 import { StageSize, getWorld } from './components/canvas/stageGeometry';
+import { encodeSubmission, decodeSubmission } from './services/submissionCodec';
+import { slotFor, loadSaved, writeSaved, clearSaved } from './utils/autosave';
+import { SaveIndicator, RestorePrompt, type SaveStatus } from './components/AutosaveUI';
 import { getGearBoxDimensions } from './components/canvas/canvasMath';
 
 const INITIAL_CHANNELS: MixerChannelState[] = [
@@ -369,6 +372,116 @@ export default function App() {
       updatedAt: new Date().toISOString(),
     };
   }, [projectTitle, studentName, period, className, environment, placedGear, connections, mixerChannels, masterBus, activeChallengeId, stageSize]);
+
+  // ---------- Autosave (kept in this browser only; see utils/autosave.ts) ----------
+  // Not used for shared-plot links. Each assignment link has its own slot. If a plot was saved on an
+  // earlier visit, ask before doing anything; autosave stays off until the student answers, so a blank
+  // plot can never overwrite saved work.
+  const autosaveSlot = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('plot') || window.location.hash.includes('plot=')) return null;
+    return slotFor(params.get('task'));
+  }, []);
+  const [restoreOffer, setRestoreOffer] = useState<{ project: StudioProjectState; code: string; savedAt: number } | null>(() => {
+    if (!autosaveSlot) return null;
+    const saved = loadSaved(autosaveSlot);
+    const project = saved ? decodeSubmission(saved.code) : null;
+    return saved && project ? { project, code: saved.code, savedAt: saved.savedAt } : null;
+  });
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const lastCodeRef = useRef<string>('');
+  const autosaveOn = autosaveSlot !== null && restoreOffer === null;
+  const projectRef = useRef(currentProjectState);
+  projectRef.current = currentProjectState;
+  const reviewActiveRef = useRef(false);
+  reviewActiveRef.current = review !== null || isSharedView;
+
+  /** Has the student done anything beyond what a fresh sandbox or task already shows? */
+  const hasWorkNow = () => {
+    const p = projectRef.current;
+    const baseline = currentChallenge?.instruments?.length ?? 0;
+    return (
+      p.placedGear.length > baseline ||
+      p.connections.length > 0 ||
+      JSON.stringify(p.mixerChannels) !== JSON.stringify(INITIAL_CHANNELS) ||
+      JSON.stringify(p.masterBus) !== JSON.stringify(DEFAULT_MASTER_BUS)
+    );
+  };
+
+  const saveNow = () => {
+    if (!autosaveSlot || reviewActiveRef.current) return; // teacher review / shared views are not the student's work
+    if (!hasWorkNow()) {
+      // The student cleared everything on purpose: don't offer the old plot back next time.
+      if (lastCodeRef.current) {
+        clearSaved(autosaveSlot);
+        lastCodeRef.current = '';
+        setSaveStatus('idle');
+      }
+      return;
+    }
+    // The name is never saved: it is typed only when making the code to turn in.
+    const code = encodeSubmission({ ...projectRef.current, studentName: '', studentId: undefined, teacherName: undefined });
+    if (code === lastCodeRef.current) return;
+    if (writeSaved(autosaveSlot, code)) {
+      lastCodeRef.current = code;
+      setSaveStatus('saved');
+      setSavedAt(Date.now());
+    } else {
+      setSaveStatus('failed');
+    }
+  };
+  const saveNowRef = useRef(saveNow);
+  saveNowRef.current = saveNow;
+  const hasWorkRef = useRef(hasWorkNow);
+  hasWorkRef.current = hasWorkNow;
+
+  // Save shortly after the student stops changing things
+  useEffect(() => {
+    if (!autosaveOn) return;
+    const timer = window.setTimeout(() => saveNowRef.current(), 1500);
+    return () => window.clearTimeout(timer);
+  }, [autosaveOn, placedGear, connections, mixerChannels, masterBus, environment, activeChallengeId, stageSize, projectTitle]);
+
+  // Save right away when the tab is hidden or closed, so a quick close doesn't lose the last change
+  useEffect(() => {
+    if (!autosaveOn) return;
+    const flush = () => saveNowRef.current();
+    const onVisibility = () => { if (document.visibilityState === 'hidden') flush(); };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [autosaveOn]);
+
+  // Only warn on leaving when the browser can't save (otherwise leaving is safe)
+  useEffect(() => {
+    if (saveStatus !== 'failed') return;
+    const warn = (e: BeforeUnloadEvent) => {
+      if (!hasWorkRef.current()) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [saveStatus]);
+
+  const handleRestoreSaved = () => {
+    if (!restoreOffer) return;
+    handleLoadProject(restoreOffer.project);
+    lastCodeRef.current = restoreOffer.code;
+    setSavedAt(restoreOffer.savedAt);
+    setSaveStatus('saved');
+    setRestoreOffer(null);
+  };
+
+  const handleStartFresh = () => {
+    if (autosaveSlot) clearSaved(autosaveSlot);
+    lastCodeRef.current = '';
+    setRestoreOffer(null);
+  };
 
   // Clean PDF Document export handler
   const handleExportPdf = useCallback(async () => {
@@ -708,7 +821,12 @@ export default function App() {
         onRedo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
+        statusSlot={<SaveIndicator status={saveStatus} savedAt={savedAt} />}
       />
+
+      {restoreOffer && (
+        <RestorePrompt savedAt={restoreOffer.savedAt} onRestore={handleRestoreSaved} onStartFresh={handleStartFresh} />
+      )}
 
       {/* Main Workspace (Left: Gear Drawer | Center: Studio Canvas | Right: Progress Bar) */}
       <main className="flex-1 relative overflow-hidden flex min-h-0 min-w-0">
