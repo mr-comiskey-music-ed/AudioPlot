@@ -405,11 +405,8 @@ export const LEARN_STEPS: LearnStep[] = [
         text: 'Put a dynamic vocal mic (SM58) on the singer, set its stand height to Standing, and cable it to a snake input.',
         check: (p) => { const m = vocalDynamic(p); return !!m && m.standHeight === 'standing_vocal' && hasSignal(p, m); },
       },
-      {
-        text: 'No pop filter live: the singer works close to the SM58, and its grille handles the "P" sounds.',
-        check: (p) => micsOn(p, 'inst_voice').length > 0 && micsOn(p, 'inst_voice').every((m) => !m.hasPopFilter),
-      },
     ],
+    note: 'The pop filter came off in the move to the stage. Live, the singer works close to the SM58, and its built-in grille handles the "P" sounds.',
     hear: 'Press Soundcheck. The vocal and the guitar DI play. The SM58 needs no +48V, since it is a dynamic mic.',
     enter: (p) => {
       if (p.environment === 'live_stage') return p;
@@ -418,6 +415,8 @@ export const LEARN_STEPS: LearnStep[] = [
         .filter((g) => g.gearId === 'gear_studio_headphones' || (isMic(g) && targetOf(q, g)?.gearId === 'inst_acoustic_guitar'))
         .map((g) => g.instanceId);
       q = remove(q, drop);
+      // Pop filters are a studio tool (the live inspector has no pop filter switch), so they come off here.
+      q = { ...q, placedGear: q.placedGear.map((g) => (g.hasPopFilter ? { ...g, hasPopFilter: false } : g)) };
       q = add(q, { instanceId: 'learn_eguitar', gearId: 'inst_electric_guitar', ...POS.eguitar, label: 'Electric Guitar' });
       q = add(q, { instanceId: 'learn_amp', gearId: 'gear_guitar_amp', ...POS.amp, label: 'Guitar Amp' });
       q = add(q, { instanceId: 'learn_kick', gearId: 'inst_kick_drum', ...POS.kick, label: 'Kick Drum' });
@@ -430,7 +429,7 @@ export const LEARN_STEPS: LearnStep[] = [
         q = add(q, { instanceId: 'learn_live_vox', gearId: 'mic_sm58', x: POS.voice.x + 80, y: POS.voice.y, latchedSourceInstanceId: need(voice(q)).instanceId });
         mic = need(vocalDynamic(q));
       }
-      q = update(q, mic.instanceId, { standHeight: 'standing_vocal', hasPopFilter: false });
+      q = update(q, mic.instanceId, { standHeight: 'standing_vocal' });
       return patch(q, mic.instanceId, 'VOX');
     },
   },
