@@ -15,8 +15,9 @@ import {
   Mic2,
   Speaker,
   Trophy,
+  ListChecks,
 } from 'lucide-react';
-import { LEARN_STEPS, LearnPlot, stepDone } from '../data/learnSteps';
+import { LEARN_STEPS, LearnMission, LearnPlot, stepDone } from '../data/learnSteps';
 
 interface LearnPanelProps {
   /** 0..LEARN_STEPS.length; the last value is the finish screen. */
@@ -185,10 +186,10 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
             </div>
 
             {/* Missions before the Think First question (or all of them when there is none) */}
-            <MissionList missions={step.missions.slice(0, step.think ? askAfter : visibleMissions)} results={results} offset={0} />
+            <MissionList missions={step.missions.slice(0, step.think ? askAfter : visibleMissions)} results={results} plot={plot} />
 
             {step.think && thinkReady && (
-              <div className="rounded-xl border border-amber-400/30 bg-amber-400/[0.07] p-3">
+              <div className="rounded-xl border-2 border-amber-400/40 bg-amber-400/[0.08] p-3 shadow-[0_0_0_3px_rgba(251,191,36,0.05)]">
                 <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1.5">
                   <Lightbulb className="w-3.5 h-3.5" /> Think first
                 </div>
@@ -197,6 +198,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
                   {step.think.options.map((opt, i) => {
                     const picked = answer === i;
                     const showRight = answered && opt.correct;
+                    if (answered && !picked && !opt.correct) return null;
                     return (
                       <button
                         key={i}
@@ -222,10 +224,20 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
                 </div>
                 {answered && (
                   <div className="mt-2 space-y-1.5 text-[12px] leading-relaxed">
-                    {!step.think.options[answer].correct && (
-                      <p className="text-rose-200">{step.think.options[answer].explain}</p>
+                    {step.think.options[answer].correct ? (
+                      <p className="text-emerald-200">
+                        <span className="font-bold">Right.</span> {step.think.options[answer].explain}
+                      </p>
+                    ) : (
+                      <>
+                        <p className="text-rose-200">
+                          <span className="font-bold">Not quite.</span> {step.think.options[answer].explain}
+                        </p>
+                        <p className="text-emerald-200">
+                          <span className="font-bold">The better answer:</span> {step.think.options.find((o) => o.correct)?.explain}
+                        </p>
+                      </>
                     )}
-                    <p className="text-emerald-200">{step.think.options.find((o) => o.correct)?.explain}</p>
                   </div>
                 )}
               </div>
@@ -233,7 +245,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
 
             {/* Missions after the question */}
             {step.think && answered && (
-              <MissionList missions={step.missions.slice(askAfter)} results={results.slice(askAfter)} offset={askAfter} />
+              <MissionList missions={step.missions.slice(askAfter)} results={results.slice(askAfter)} plot={plot} />
             )}
 
             {step.note && (step.think ? answered : true) && (
@@ -248,6 +260,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
                 <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-300">
                   <Check className="w-3.5 h-3.5" /> Step done
                 </div>
+                {step.doneNote && <p className="text-emerald-100 leading-relaxed">{step.doneNote}</p>}
                 {step.hear && (
                   <>
                     <p className="text-emerald-100 leading-relaxed flex gap-1.5">
@@ -315,30 +328,34 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
   );
 };
 
-const MissionList: React.FC<{ missions: { text: string }[]; results: boolean[]; offset: number }> = ({ missions, results }) => {
+const MissionList: React.FC<{ missions: LearnMission[]; results: boolean[]; plot: LearnPlot }> = ({ missions, results, plot }) => {
   if (missions.length === 0) return null;
   return (
-    <ul className="space-y-1.5">
-      {missions.map((m, i) => {
-        const ok = results[i];
-        return (
-          <li
-            key={i}
-            className={`flex gap-2 rounded-xl border p-2.5 leading-snug ${
-              ok ? 'border-emerald-500/30 bg-emerald-500/[0.07] text-emerald-100' : 'border-orange-400/30 bg-orange-400/[0.06] text-stone-100'
-            }`}
-          >
-            <span
-              className={`w-4 h-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0 ${
-                ok ? 'bg-emerald-500 border-emerald-500 text-stone-950' : 'border-orange-400/60'
-              }`}
-            >
-              {ok && <Check className="w-3 h-3" />}
-            </span>
-            <span>{m.text}</span>
-          </li>
-        );
-      })}
-    </ul>
+    <div>
+      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-orange-300 mb-1.5">
+        <ListChecks className="w-3.5 h-3.5" /> Your turn
+      </div>
+      <ul className="space-y-1">
+        {missions.map((m, i) => {
+          const ok = results[i];
+          const hint = !ok && m.hint ? m.hint(plot) : null;
+          return (
+            <li key={i} className={`flex gap-2 py-1 leading-snug ${ok ? 'text-emerald-200/90' : 'text-stone-100'}`}>
+              <span
+                className={`w-4 h-4 mt-0.5 rounded-full border flex items-center justify-center shrink-0 ${
+                  ok ? 'bg-emerald-500 border-emerald-500 text-stone-950' : 'border-orange-400/70'
+                }`}
+              >
+                {ok && <Check className="w-3 h-3" />}
+              </span>
+              <span>
+                {m.text}
+                {hint && <span className="block mt-1 text-[12px] text-amber-300">{hint}</span>}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 };

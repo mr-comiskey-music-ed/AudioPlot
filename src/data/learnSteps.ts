@@ -38,6 +38,8 @@ export interface ThinkFirst {
 export interface LearnMission {
   text: string;
   check: (p: LearnPlot) => boolean;
+  /** A nudge shown under the task while it isn't done yet, when the plot shows a likely wrong turn. */
+  hint?: (p: LearnPlot) => string | null;
 }
 
 export interface LearnStep {
@@ -52,6 +54,8 @@ export interface LearnStep {
   hear?: string;
   /** An extra fact shown with the step (not required). */
   note?: string;
+  /** An explanation shown only once the step is done (so it can't give the answer away). */
+  doneNote?: string;
   /** Open the mixer when the step starts. */
   openMixer?: boolean;
   enter?: (p: LearnPlot) => LearnPlot;
@@ -241,7 +245,7 @@ export const LEARN_STEPS: LearnStep[] = [
       question: 'A quiet vocal in a studio, sung up close. Which mic catches the most detail?',
       options: [
         { text: 'A dynamic vocal mic (SM58)', explain: 'The SM58 is rugged and handles loud stages well, but it is less sensitive, so it misses some of the detail a studio vocal needs.' },
-        { text: 'A large-diaphragm condenser (C214 or AT2035)', correct: true, explain: 'Right. A large-diaphragm condenser is sensitive and detailed, which is why it is the standard studio vocal mic.' },
+        { text: 'A large-diaphragm condenser (C214 or AT2035)', correct: true, explain: 'A large-diaphragm condenser is sensitive and detailed, which is why it is the standard studio vocal mic.' },
         { text: 'A small-diaphragm condenser (SM81)', explain: 'Small condensers are great on bright, fast sounds like acoustic guitar and cymbals. For vocals, the large-diaphragm condenser is the usual pick.' },
       ],
     },
@@ -270,7 +274,7 @@ export const LEARN_STEPS: LearnStep[] = [
       question: 'The condenser is cabled and patched, but its channel is silent. Why?',
       options: [
         { text: 'It needs a different cable', explain: 'XLR is the right cable: only XLR plugs into the snake. The cable is not the problem.' },
-        { text: 'Condenser mics need power to work', correct: true, explain: 'Right. A condenser has electronics inside that need power. The mixer sends it down the XLR cable as +48V phantom power. Dynamic mics need none.' },
+        { text: 'Condenser mics need power to work', correct: true, explain: 'A condenser has electronics inside that need power. The mixer sends it down the XLR cable as +48V phantom power. Dynamic mics need none.' },
         { text: 'The fader is all the way down', explain: 'The faders start at unity (normal level), so the fader is not it.' },
       ],
     },
@@ -297,7 +301,7 @@ export const LEARN_STEPS: LearnStep[] = [
       options: [
         { text: 'Only the DI', explain: 'The DI is clean and picks up nothing else in the room, but a pickup on its own sounds thin. It misses the sound of the wood and the air.' },
         { text: 'Only a mic', explain: 'A mic gets the full sound of the guitar, and that is fine. But engineers usually grab the DI as well, so they have both to work with.' },
-        { text: 'Both: a DI and a mic', correct: true, explain: 'Right. One source, two inputs: the DI for a clean signal, the mic for the body and air. In the mix you blend the two.' },
+        { text: 'Both: a DI and a mic', correct: true, explain: 'One source, two inputs: the DI for a clean signal, the mic for the body and air. In the mix you blend the two.' },
       ],
     },
     missions: [
@@ -392,7 +396,7 @@ export const LEARN_STEPS: LearnStep[] = [
       question: 'The studio condenser is still on the vocal. Why is it the wrong mic for a loud stage?',
       options: [
         { text: 'It is not loud enough', explain: 'Condensers are more sensitive than dynamics, not less. That sensitivity is the problem here.' },
-        { text: 'It hears too much: the drums, the amps and the PA', correct: true, explain: 'Right. A sensitive condenser picks up the whole stage and the speakers, and that leads to feedback. A dynamic mic like the SM58 mostly hears what is right in front of it.' },
+        { text: 'It hears too much: the drums, the amps and the PA', correct: true, explain: 'A sensitive condenser picks up the whole stage and the speakers, and that leads to feedback. A dynamic mic like the SM58 mostly hears what is right in front of it.' },
         { text: 'Phantom power does not work on stage', explain: 'Phantom power works fine live. The issue is how much of the stage the condenser hears.' },
       ],
     },
@@ -442,7 +446,7 @@ export const LEARN_STEPS: LearnStep[] = [
       question: 'Where should the mic go to capture the electric guitar?',
       options: [
         { text: 'Pointed at the guitar', explain: 'Unplugged, an electric guitar is nearly silent. Its sound comes out of the amp.' },
-        { text: 'In front of the amp\'s speaker', correct: true, explain: 'Right. Mic the speaker: that is where the guitar\'s sound actually comes from. An SM57 close to the grille is the classic choice.' },
+        { text: 'In front of the amp\'s speaker', correct: true, explain: 'Mic the speaker: that is where the guitar\'s sound actually comes from. An SM57 close to the grille is the classic choice.' },
         { text: 'Skip the mic: cable the guitar straight to the snake', explain: 'A guitar\'s 1/4" signal cannot plug straight into the snake. It needs an amp (then a mic) or a DI first.' },
       ],
     },
@@ -452,14 +456,21 @@ export const LEARN_STEPS: LearnStep[] = [
         check: (p) => cabled(p, eguitar(p), amp(p), 'quarter_inch'),
       },
       {
-        text: 'Put an instrument mic (SM57) on the amp, set its stand height to Floor, and cable it to a snake input.',
+        text: 'Pick a mic for the amp. The speaker is loud and the mic sits inches from it, and a guitar lives in the middle of the sound, not the deep lows. Set its stand height to Floor and cable it to a snake input.',
         check: (p) =>
           micsOn(p, 'gear_guitar_amp').some(
             (m) => transducer(m) === 'dynamic' && m.gearId !== 'mic_beta52a' && m.standHeight === 'amp_low' && hasSignal(p, m)
           ),
+        hint: (p) => {
+          const mics = micsOn(p, 'gear_guitar_amp');
+          if (mics.some((m) => isCondenser(m))) return 'A condenser is too sensitive this close to a loud amp, and it hears the whole stage. Try a dynamic mic.';
+          if (mics.some((m) => m.gearId === 'mic_beta52a')) return 'The Beta 52A is built for the deep lows of a kick drum. A guitar amp needs a mic made for the middle of the sound.';
+          return null;
+        },
       },
     ],
-    hear: 'Press Soundcheck. Now the guitar plays too: guitar → 1/4" → amp → mic → XLR → snake.',
+    doneNote: 'The Shure SM57 is the classic amp mic: a dynamic that takes a loud speaker inches away, hears mostly what is in front of it, and focuses on the guitar\'s midrange.',
+    hear: 'Press Soundcheck. Now the electric guitar plays too: guitar → 1/4" → amp → mic → XLR → snake.',
     solve: (p) => {
       let q = p;
       if (!cabled(q, eguitar(q), amp(q), 'quarter_inch')) q = cable(q, need(eguitar(q)).instanceId, need(amp(q)).instanceId, 'quarter_inch');
@@ -480,7 +491,7 @@ export const LEARN_STEPS: LearnStep[] = [
       question: 'Why does a kick drum get its own kind of mic?',
       options: [
         { text: 'Because it is the loudest drum', explain: 'It is loud, but an SM57 handles loud sounds too. The real reason is how low the kick goes.' },
-        { text: 'Because most of its sound is very low', correct: true, explain: 'Right. A large dynamic kick mic like the Beta 52A is built to capture deep lows and handle the hit of a kick drum.' },
+        { text: 'Because most of its sound is very low', correct: true, explain: 'A large dynamic kick mic like the Beta 52A is built to capture deep lows and handle the hit of a kick drum.' },
         { text: 'Because it needs phantom power', explain: 'The Beta 52A is a dynamic mic, so it needs no phantom power.' },
       ],
     },
