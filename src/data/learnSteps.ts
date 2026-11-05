@@ -11,7 +11,7 @@ import { evaluateStudioSetup, validateChannelSignalChain } from '../services/gra
 import { getPaZone, getPaZones } from '../components/canvas/stageGeometry';
 
 /**
- * Learn: one guided build, studio first, then the same singer at a live gig.
+ * Learn: one guided build, studio first, then the same band at a live gig.
  * Each step has missions that are checked live against the plot, and some have
  * a "Think First" question that asks why before the student does it.
  *
@@ -224,7 +224,7 @@ export const LEARN_STEPS: LearnStep[] = [
     part: 'studio',
     title: 'Start with the source',
     what:
-      'A singer-songwriter is recording vocals and acoustic guitar. Right now nothing is capturing them: a voice is sound waves in the air, and a microphone is what turns those waves into an electrical signal.',
+      'A singer and an acoustic guitarist are recording a song together. Right now nothing is capturing them: a voice is sound waves in the air, and a microphone is what turns those waves into an electrical signal.',
     missions: [
       {
         text: 'Drag any microphone onto the plot. Click it and set its Source to the Voice.',
@@ -360,7 +360,7 @@ export const LEARN_STEPS: LearnStep[] = [
       'In a studio, the musicians are in a different room from the speakers. They hear the session through headphones, which also keeps the sound from leaking back into the mics.',
     missions: [
       {
-        text: 'Place Studio Headphones for the singer and for the guitar. Click each pair and set its Performer.',
+        text: 'Place Studio Headphones for the singer and for the guitarist. Click each pair and set its Performer.',
         check: (p) =>
           [voice(p), acoustic(p)].every(
             (inst) =>
@@ -389,7 +389,7 @@ export const LEARN_STEPS: LearnStep[] = [
     part: 'live',
     title: 'A live vocal mic',
     intro:
-      'Same singer, now playing a gig, and a guitarist who also plays kick drum has joined. The studio headphones are gone (monitors come later). The mic on the acoustic guitar is gone too: on a loud stage it would pick up everything around it and invite feedback, so the DI does the job on its own.',
+      'Same band, now playing a gig, with two new players: an electric guitarist and a drummer. (A real drummer plays a whole kit, but to keep this short we will only mic the kick.) The studio headphones are gone (monitors come later). The mic on the acoustic guitar is gone too: on a loud stage it would pick up everything around it and invite feedback, so the DI does the job on its own.',
     what:
       'A stage is loud: drums, amps and speakers all at once. The vocal mic should hear the singer and as little else as possible.',
     think: {
@@ -486,7 +486,7 @@ export const LEARN_STEPS: LearnStep[] = [
   {
     part: 'live',
     title: 'The kick drum',
-    what: 'The kick drum is the low thump that drives the band.',
+    what: 'The kick drum is the low thump that drives the band. The drummer\'s other drums would each get a mic too; here we will do just the kick.',
     think: {
       question: 'Why does a kick drum get its own kind of mic?',
       options: [
@@ -555,7 +555,7 @@ export const LEARN_STEPS: LearnStep[] = [
         },
       },
     ],
-    note: 'Wedges are one option. The other is in-ear monitors (IEMs): an IEM transmitter cabled to MON 1 or MON 2, plus a bodypack set to the performer who wears it. Either one finishes this step.',
+    note: 'Players can share. One wedge can cover two people standing close together, and wedges can be daisy-chained: run XLR from one wedge to the next so the same mix feeds both. The other option is in-ear monitors (IEMs): an IEM transmitter cabled to MON 1 or MON 2, plus a bodypack set to the performer who wears it. Either wedges or IEMs finish this step.',
     hear: 'That is a full gig: every source in the snake, the crowd on the PA, and the band on monitors.',
     solve: (p) => {
       if (grade(p).categories.monitorSetup?.score === 10) return p;
