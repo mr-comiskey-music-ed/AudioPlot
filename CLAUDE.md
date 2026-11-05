@@ -16,8 +16,11 @@ the goal is students designing real setups with understanding.
   student's name. It is never sent anywhere. On load, a "Restore your
   last session?" prompt offers Restore or Start Fresh; autosave stays
   off until they answer. Not used for shared-plot (`?plot=`) links or
-  while the teacher steps through batch review. The leave-page warning
-  appears only if the browser can't save.
+  while the teacher steps through batch review or while in Learn. The
+  leave-page warning appears only if the browser can't save.
+- Learn progress is also kept in the browser (`audioplot:v1:learn`,
+  `src/utils/learnProgress.ts`): furthest step, Think First picks, and
+  whether Learn is done. No name.
 - Students show work with a base64 code pasted into Google Classroom.
 - Must run well on Chromebooks and stay lightweight.
 - Repo: github.com/mr-comiskey-music-ed/AudioPlot. Deployed on Vercel
@@ -29,8 +32,9 @@ the goal is students designing real setups with understanding.
 - Teachers can assign graded tasks: an open-ended one (any 4
   instruments) plus the existing challenges, which come with given
   instruments.
-- A Learn modal, like the other apps have. Keep it lean. It replaces
-  the old Field Guide, which is being dropped.
+- Learn: a guided, hands-on build (see the Learn section). The older
+  Four Questions modal (`LearnModal.tsx`) stays as a quick reference,
+  opened from the Learn panel and the grading panel.
 - The studio/stage canvas needs a way to expand for more
   instruments/gear. Not a zoom-in.
 
@@ -87,6 +91,10 @@ master bus → snake outputs (MAIN L/R, MON 1/2) → PA / monitors.
   snare, cymbals, bass amp, guitar amp, vocal), `live_jazz_quintet`
   (trumpet, sax, piano, bass, kick, snare, cymbals). Live tasks add PA
   (MAIN L/R, speakers in both PA zones) and monitor (MON 1/2) checks.
+- Instruments (and amps) a challenge gives can't be deleted or swapped
+  out on the canvas, and the grader's Instruments category checks they
+  are all still there (`givenInstrumentCounts` /
+  `lockedGivenInstruments`). Before this, deleting them scored 100%.
 - Task ids are saved in student codes. Never rename or remove one.
   Old codes with no task id grade as the open task for their
   environment (`resolveTaskId`).
@@ -97,6 +105,29 @@ stands/accessories 10, mixer routing 5; live stage adds PA 10 and
 monitors 10. Percentage = earned ÷ possible (n/a categories skipped).
 Letter bands: A ≥ 90, B ≥ 80, C ≥ 70, D ≥ 60, F below. Grades are
 always recomputed from the decoded plot, never read from the code.
+Known quirk, not fixed yet: signal chain gives 5 points per instrument
+(+5 for XLR), so a challenge with fewer than 4 instruments can't score
+100% (singer-songwriter tops out at 90%).
+
+## Learn (`src/data/learnSteps.ts`, `src/components/LearnPanel.tsx`)
+- One module, 11 steps: a singer-songwriter records (studio, steps 1-6),
+  then plays a gig joined by a player on electric guitar and kick
+  (live, steps 7-11). Steps: source, pick the mic, cable + phantom,
+  acoustic guitar DI *and* mic, stands + pop filter, headphones;
+  live condenser → SM58, guitar → amp → SM57, kick Beta 52A, PA on
+  MAIN L/R, wedge on MON 1/2 (IEMs mentioned, not required).
+- Each step has missions checked live on the real canvas (reusing
+  `validateChannelSignalChain` and the grader's category scores), so
+  Learn can't disagree with grading. No points or percentages appear in
+  Learn; finishing the steps is what counts.
+- "Think First" (a why question, explain-and-continue on a wrong pick)
+  only where the reason is the lesson: steps 2, 3, 4, 7, 8, 9.
+- Learn runs on its own plot. The student's plot is set aside and
+  restored on Exit; autosave is paused. Learn's instruments can't be
+  deleted. Each step's `solve` (the step done right) rebuilds the start
+  of any step, so students can resume or jump back.
+- Finishing sets `learnDone`, which goes in the code (`ld`) and shows as
+  "Learn done" in batch grading and the CSV.
 
 ## Code format (`src/services/submissionCodec.ts`)
 Format is frozen: changing keys, defaults, or the hash breaks old codes.
@@ -119,6 +150,7 @@ Format is frozen: changing keys, defaults, or the hash breaks old codes.
   Classroom text (HTML, names, status words, broken lines), pulls out
   every code, decodes, and grades. `BatchGradeModal` + `BatchReviewBar`
   show results and step through each student's plot. CSV export.
+- `ld` = learnDone (added Nov 2026; older codes don't have it).
 - Adding fields: new optional fields are safe (unknown keys pass
   through). Never reuse a short key.
 
@@ -126,13 +158,21 @@ Format is frozen: changing keys, defaults, or the hash breaks old codes.
 - Use percentages for grades, not stars.
 
 ## Status of earlier wants (checked in repo 2026-10-28)
-- Learn modal: done (`LearnModal.tsx`).
+- Learn: guided build done (Nov 2026); Four Questions modal kept as reference.
 - Sandbox default + assignable tasks: done (`?task=` links).
 - Expandable canvas: done, room size Standard / Large / Extra Large
   (`stageGeometry.ts`, saved as `stageSize`).
 - Field Guide removed: no references left in `src/`.
 - Student names in codes: intended. The share modal puts the name in
   the code (`s` key) so batch grading can show who's who.
+
+## Ideas for later
+- Rider / input list challenge: students get a band's real-style input
+  list ("CH 1 Kick – Beta 52 …") and build the stage to match, or build
+  a plot and write its input list. Wanted, not now.
+- Other real-world ideas floated: an 8-input budget (more sources than
+  inputs, students choose), and "engineer's notes" after soundcheck
+  (fix things that work but are wrong for the gig).
 
 ## Working style
 Start from the teaching goal, then shape features around it. Suggest

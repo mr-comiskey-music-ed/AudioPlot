@@ -29,6 +29,9 @@ import { ShareSubmitModal } from './components/ShareSubmitModal';
 import { ModeSwitchModal } from './components/ModeSwitchModal';
 import { ChallengeModal } from './components/ChallengeModal';
 import { LearnModal } from './components/LearnModal';
+import { LearnPanel } from './components/LearnPanel';
+import { LEARN_STEPS, LearnPlot, learnStartPlot } from './data/learnSteps';
+import { LearnProgress, loadLearnProgress, saveLearnProgress } from './utils/learnProgress';
 import { PerfectionModal } from './components/PerfectionModal';
 import { GuidedTourModal } from './components/GuidedTourModal';
 import { MobileDeviceNotice } from './components/MobileDeviceNotice';
@@ -66,7 +69,19 @@ export default function App() {
   const [activeChallengeId, setActiveChallengeId] = useState<string | null>(null);
   // Task the teacher assigned via an assignment link (?task=...), if any.
   const [assignedTaskId, setAssignedTaskId] = useState<string | null>(null);
+  // The Four Questions reference (a modal). Learn itself is the guided build below.
   const [isLearnOpen, setIsLearnOpen] = useState(false);
+  // Guided Learn: null = not in Learn. step === LEARN_STEPS.length is the finish screen.
+  const [learn, setLearn] = useState<{ step: number } | null>(null);
+  const [learnProgress, setLearnProgressState] = useState<LearnProgress>(() => loadLearnProgress());
+  const setLearnProgress = (update: (p: LearnProgress) => LearnProgress) =>
+    setLearnProgressState((prev) => {
+      const next = update(prev);
+      saveLearnProgress(next);
+      return next;
+    });
+  // The student's own plot, set aside while they are in Learn.
+  const learnSavedRef = useRef<StudioProjectState | null>(null);
   // Room/stage size: bigger rooms give more floor for more musicians and gear.
   const [stageSize, setStageSize] = useState<StageSize>('standard');
 
@@ -368,10 +383,11 @@ export default function App() {
       // Sandbox work is marked so batch grading knows it was not a graded task.
       activeChallengeId: activeChallengeId ?? SANDBOX_ID,
       stageSize: stageSize === 'standard' ? undefined : stageSize,
+      learnDone: learnProgress.done || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-  }, [projectTitle, studentName, period, className, environment, placedGear, connections, mixerChannels, masterBus, activeChallengeId, stageSize]);
+  }, [projectTitle, studentName, period, className, environment, placedGear, connections, mixerChannels, masterBus, activeChallengeId, stageSize, learnProgress.done]);
 
   // ---------- Autosave (kept in this browser only; see utils/autosave.ts) ----------
   // Not used for shared-plot links. Each assignment link has its own slot. If a plot was saved on an
@@ -395,7 +411,8 @@ export default function App() {
   const projectRef = useRef(currentProjectState);
   projectRef.current = currentProjectState;
   const reviewActiveRef = useRef(false);
-  reviewActiveRef.current = review !== null || isSharedView;
+  // Teacher review, shared views and Learn are not the student's own plot, so they are never autosaved.
+  reviewActiveRef.current = review !== null || isSharedView || learn !== null;
 
   /** Has the student done anything beyond what a fresh sandbox or task already shows? */
   const hasWorkNow = () => {
@@ -471,6 +488,7 @@ export default function App() {
   const handleRestoreSaved = () => {
     if (!restoreOffer) return;
     handleLoadProject(restoreOffer.project);
+    if (restoreOffer.project.learnDone) setLearnProgress((p) => ({ ...p, done: true }));
     lastCodeRef.current = restoreOffer.code;
     setSavedAt(restoreOffer.savedAt);
     setSaveStatus('saved');
@@ -769,6 +787,104 @@ export default function App() {
     setIsShareModalOpen(true);
   }, []);
 
+  // ---------- Learn (guided build on its own plot) ----------
+  const loadLearnPlot = (plot: LearnPlot, stepIndex: number) => {
+    if (isPlayingAudio) {
+      audioEngine.stop();
+      setIsPlayingAudio(false);
+    }
+    setEnvironment(plot.environment);
+    setStageSize('standard');
+    setActiveChallengeId(null);
+    setSelectedItemId(null);
+    setActiveCableTool(null);
+    setCableConnectingFromId(null);
+    resetHistory({
+      placedGear: plot.placedGear,
+      connections: plot.connections,
+      mixerChannels: plot.mixerChannels,
+      masterBus: plot.masterBus,
+    });
+    if (LEARN_STEPS[stepIndex]?.openMixer) setIsMixerCollapsed(false);
+  };
+
+  const handleEnterLearn = () => {
+    setIsLearnOpen(false);
+    if (learn) return;
+    learnSavedRef.current = currentProjectState;
+    const start = learnProgress.done ? 0 : Math.min(learnProgress.reached, LEARN_STEPS.length - 1);
+    loadLearnPlot(learnStartPlot(start), start);
+    setProjectTitle('Learn');
+    setLearn({ step: start });
+  };
+
+  const handleLearnGoTo = (index: number) => {
+    loadLearnPlot(learnStartPlot(index), index);
+    setLearn({ step: index });
+  };
+
+  const handleLearnNext = () => {
+    if (!learn) return;
+    const next = learn.step + 1;
+    if (next >= LEARN_STEPS.length) {
+      setLearnProgress((p) => ({ ...p, reached: LEARN_STEPS.length, done: true }));
+      if (isPlayingAudio) {
+        audioEngine.stop();
+        setIsPlayingAudio(false);
+      }
+      setLearn({ step: LEARN_STEPS.length });
+      return;
+    }
+    // Carry the student's own plot forward; the next step may add to it (the move to the stage).
+    const current: LearnPlot = { environment, placedGear, connections, mixerChannels, masterBus };
+    const enter = LEARN_STEPS[next].enter;
+    loadLearnPlot(enter ? enter(current) : current, next);
+    setLearnProgress((p) => ({ ...p, reached: Math.max(p.reached, next) }));
+    setLearn({ step: next });
+  };
+
+  const handleLearnAnswer = (option: number) => {
+    if (!learn) return;
+    const step = learn.step;
+    setLearnProgress((p) => ({ ...p, answers: { ...p.answers, [step]: option } }));
+  };
+
+  const handleExitLearn = () => {
+    const saved = learnSavedRef.current;
+    learnSavedRef.current = null;
+    setLearn(null);
+    if (isPlayingAudio) {
+      audioEngine.stop();
+      setIsPlayingAudio(false);
+    }
+    setSelectedItemId(null);
+    if (!saved) return;
+    setProjectTitle(saved.title);
+    setEnvironment(saved.environment);
+    setActiveChallengeId(resolveTaskId(saved.activeChallengeId, saved.environment));
+    setStageSize(saved.stageSize || 'standard');
+    resetHistory({
+      placedGear: saved.placedGear,
+      connections: saved.connections,
+      mixerChannels: saved.mixerChannels,
+      masterBus: saved.masterBus || DEFAULT_MASTER_BUS,
+    });
+  };
+
+  /** Leave Learn first (restoring the student's plot), then do something with their own work. */
+  const outOfLearn = (then: () => void) => () => {
+    if (learn) handleExitLearn();
+    then();
+  };
+
+  // In Learn, the instruments on the plot are part of the lesson.
+  const learnLockedIds = (ids: string[]) =>
+    ids.filter((id) => {
+      const g = placedGear.find((x) => x.instanceId === id);
+      const cat = g ? getGearById(g.gearId)?.category : undefined;
+      return cat === 'instrument' || g?.gearId === 'gear_guitar_amp';
+    });
+
   // ---------- Batch review ----------
   const showReviewAt = (order: number[], pos: number) => {
     const entry = batchResult?.entries[order[pos]];
@@ -807,16 +923,16 @@ export default function App() {
           setClassName(`Music Tech Period ${newP}`);
         }}
         environment={environment}
-        onEnvironmentChange={handleRequestEnvironmentChange}
-        onOpenShareModal={handleOpenShareModal}
+        onEnvironmentChange={(env) => !learn && handleRequestEnvironmentChange(env)}
+        onOpenShareModal={outOfLearn(handleOpenShareModal)}
         onExportPdf={handleExportPdf}
         onOpenGuideModal={() => setIsLearnOpen(true)}
         onOpenTour={() => setIsTourOpen(true)}
-        onOpenChallengeModal={() => setIsChallengeModalOpen(true)}
-        onOpenLearn={() => setIsLearnOpen(true)}
+        onOpenChallengeModal={outOfLearn(() => setIsChallengeModalOpen(true))}
+        onOpenLearn={handleEnterLearn}
         activeChallengeId={activeChallengeId}
         activeTaskLabel={currentChallenge ? currentChallenge.title.split(':').pop()!.trim() : null}
-        onResetPlot={handleResetPlot}
+        onResetPlot={learn ? () => learn.step < LEARN_STEPS.length && handleLearnGoTo(learn.step) : handleResetPlot}
         onUndo={undo}
         onRedo={redo}
         canUndo={canUndo}
@@ -824,7 +940,7 @@ export default function App() {
         statusSlot={<SaveIndicator status={saveStatus} savedAt={savedAt} />}
       />
 
-      {restoreOffer && (
+      {restoreOffer && !learn && (
         <RestorePrompt savedAt={restoreOffer.savedAt} onRestore={handleRestoreSaved} onStartFresh={handleStartFresh} />
       )}
 
@@ -872,11 +988,31 @@ export default function App() {
             onDiBoxHighlightChange={setIsDiBoxHighlighted}
             stageSize={stageSize}
             onStageSizeChange={handleStageSizeChange}
-            getLockedIds={review ? undefined : (ids) => lockedGivenInstruments(currentChallenge, placedGear, ids)}
+            getLockedIds={
+              review ? undefined : learn ? learnLockedIds : (ids) => lockedGivenInstruments(currentChallenge, placedGear, ids)
+            }
           />
         </div>
 
-        {/* Right: Live Automated Rubrics & Diagnostics Panel */}
+        {/* Right: the Learn guide while in Learn, otherwise the live rubric panel */}
+        {learn ? (
+          <LearnPanel
+            stepIndex={learn.step}
+            plot={{ environment, placedGear, connections, mixerChannels, masterBus }}
+            reached={learnProgress.reached}
+            finished={learnProgress.done}
+            answers={learnProgress.answers}
+            isPlayingAudio={isPlayingAudio}
+            onAnswer={handleLearnAnswer}
+            onGoTo={handleLearnGoTo}
+            onNext={handleLearnNext}
+            onRestartStep={() => handleLearnGoTo(learn.step)}
+            onToggleSoundcheck={handleToggleAudio}
+            onOpenReference={() => setIsLearnOpen(true)}
+            onTryItYourself={outOfLearn(() => setIsChallengeModalOpen(true))}
+            onExit={handleExitLearn}
+          />
+        ) : (
         <GradingPanel
           evaluation={evaluation}
           placedGear={placedGear}
@@ -895,6 +1031,7 @@ export default function App() {
           onToggleExpanded={() => setIsGradingExpanded((prev) => !prev)}
           onOpenTasks={() => setIsChallengeModalOpen(true)}
         />
+        )}
       </main>
 
       {/* Bottom: 8-Channel Hardware Interface / Mixer Console */}
@@ -936,7 +1073,7 @@ export default function App() {
         }}
         onOpenLearn={() => {
           setIsTourOpen(false);
-          setIsLearnOpen(true);
+          handleEnterLearn();
         }}
         onOpenTasks={() => {
           setIsTourOpen(false);

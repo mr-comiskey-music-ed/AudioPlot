@@ -291,6 +291,14 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                           <span className="font-bold text-stone-100 truncate flex items-center gap-1.5">
                             {open ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
                             {e.project.studentName || 'Unnamed student'}
+                            {e.project.learnDone && (
+                              <span
+                                className="text-[9px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1.5 rounded-full shrink-0"
+                                title="This student finished Learn"
+                              >
+                                Learn done
+                              </span>
+                            )}
                             {e.hasMultipleSubmissions && (
                               <span className="text-[9px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 rounded-full shrink-0">
                                 multiple codes

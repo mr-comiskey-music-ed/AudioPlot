@@ -175,6 +175,8 @@ export interface StudioProjectState {
   teacherName?: string;
   environment: EnvironmentMode;
   activeChallengeId?: string | null;
+  /** True once the student finished Learn (shown in batch grading). Missing = not done. */
+  learnDone?: boolean;
   /** Room size chosen by the student; missing = standard. */
   stageSize?: 'standard' | 'large' | 'xl';
   placedGear: PlacedGear[];

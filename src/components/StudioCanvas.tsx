@@ -143,8 +143,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       new Set(locked.map((id) => getGearById(placedGear.find((g) => g.instanceId === id)?.gearId || '')?.name || 'instrument'))
     );
     showErrorToast(
-      'Part of this challenge',
-      `The ${names.join(', ')} came with this challenge and can't be removed. Mic, cable and monitor them instead.`
+      'Part of this setup',
+      `The ${names.join(', ')} ${names.length > 1 ? 'are' : 'is'} part of this setup, so ${names.length > 1 ? 'they' : 'it'} can't be removed. Mic, cable and monitor ${names.length > 1 ? 'them' : 'it'} instead.`
     );
     return ids.filter((id) => !locked.includes(id));
   };

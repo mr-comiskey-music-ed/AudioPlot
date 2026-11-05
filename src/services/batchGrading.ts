@@ -215,7 +215,7 @@ export function downloadBatchCsv(entries: BatchEntry[]) {
     const s = String(v ?? '');
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const header = ['Student', 'Period', 'Challenge', 'Mode', 'Score', 'Max Score', 'Percent', 'Letter', 'Issues', ...categoryNames];
+  const header = ['Student', 'Period', 'Challenge', 'Mode', 'Learn Done', 'Score', 'Max Score', 'Percent', 'Letter', 'Issues', ...categoryNames];
   const rows = entries.map((e) => {
     const cats = Object.values(e.evaluation.categories);
     return [
@@ -223,6 +223,7 @@ export function downloadBatchCsv(entries: BatchEntry[]) {
       e.project.period,
       e.challengeTitle,
       e.project.environment === 'live_stage' ? 'Live Stage' : 'Studio',
+      e.project.learnDone ? 'Yes' : 'No',
       e.evaluation.totalScore,
       e.evaluation.maxTotalScore,
       e.evaluation.percentage,
