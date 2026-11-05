@@ -81,6 +81,8 @@ export default function App() {
     });
   // The student's own plot, set aside while they are in Learn.
   const learnSavedRef = useRef<StudioProjectState | null>(null);
+  // The student's Learn plots for each part (studio / live), so moving between steps never loses work.
+  const learnPartPlotsRef = useRef<{ studio?: LearnPlot; live?: LearnPlot }>({});
   // Room/stage size: bigger rooms give more floor for more musicians and gear.
   const [stageSize, setStageSize] = useState<StageSize>('standard');
 
@@ -802,21 +804,46 @@ export default function App() {
       mixerChannels: plot.mixerChannels,
       masterBus: plot.masterBus,
     });
-    if (LEARN_STEPS[stepIndex]?.openMixer) setIsMixerCollapsed(false);
+    showLearnMixer(stepIndex);
   };
+
+  // The mixer pops up on steps that use it and tucks away again on steps about the plot.
+  const showLearnMixer = (stepIndex: number) => setIsMixerCollapsed(!LEARN_STEPS[stepIndex]?.openMixer);
+  const learnPartOf = (stepIndex: number) => (LEARN_STEPS[stepIndex]?.part ?? 'live');
+  const currentLearnPlot = (): LearnPlot => ({ environment, placedGear, connections, mixerChannels, masterBus });
 
   const handleEnterLearn = () => {
     setIsLearnOpen(false);
     if (learn) return;
     learnSavedRef.current = currentProjectState;
     const start = learnProgress.done ? 0 : Math.min(learnProgress.reached, LEARN_STEPS.length - 1);
-    loadLearnPlot(learnStartPlot(start), start);
+    // Back in Learn during the same visit: pick up the plot they left.
+    loadLearnPlot(learnPartPlotsRef.current[learnPartOf(start)] ?? learnStartPlot(start), start);
     setProjectTitle('Learn');
     setLearn({ step: start });
   };
 
+  /** Move to a step. The student's plot stays as it is within a part; crossing between studio and live
+   *  swaps to the other part's plot (theirs if they built one, otherwise a ready-made one). */
   const handleLearnGoTo = (index: number) => {
-    loadLearnPlot(learnStartPlot(index), index);
+    if (!learn) return;
+    const fromPart = learnPartOf(learn.step);
+    const toPart = learnPartOf(index);
+    if (fromPart === toPart) {
+      setSelectedItemId(null);
+      showLearnMixer(index);
+    } else {
+      learnPartPlotsRef.current[fromPart] = currentLearnPlot();
+      loadLearnPlot(learnPartPlotsRef.current[toPart] ?? learnStartPlot(index), index);
+    }
+    setLearn({ step: index });
+  };
+
+  /** Start this step over from a ready-made plot (the Restart button and Clear). */
+  const handleLearnRestartStep = (index: number) => {
+    const plot = learnStartPlot(index);
+    learnPartPlotsRef.current[learnPartOf(index)] = plot;
+    loadLearnPlot(plot, index);
     setLearn({ step: index });
   };
 
@@ -832,10 +859,17 @@ export default function App() {
       setLearn({ step: LEARN_STEPS.length });
       return;
     }
-    // Carry the student's own plot forward; the next step may add to it (the move to the stage).
-    const current: LearnPlot = { environment, placedGear, connections, mixerChannels, masterBus };
-    const enter = LEARN_STEPS[next].enter;
-    loadLearnPlot(enter ? enter(current) : current, next);
+    // Carry the student's own plot forward. Within a part nothing reloads; moving to the stage
+    // builds the live plot from their studio plot (or returns to the live plot they already have).
+    const current = currentLearnPlot();
+    if (learnPartOf(next) === learnPartOf(learn.step)) {
+      setSelectedItemId(null);
+      showLearnMixer(next);
+    } else {
+      learnPartPlotsRef.current[learnPartOf(learn.step)] = current;
+      const enter = LEARN_STEPS[next].enter;
+      loadLearnPlot(learnPartPlotsRef.current[learnPartOf(next)] ?? (enter ? enter(current) : current), next);
+    }
     setLearnProgress((p) => ({ ...p, reached: Math.max(p.reached, next) }));
     setLearn({ step: next });
   };
@@ -847,6 +881,7 @@ export default function App() {
   };
 
   const handleExitLearn = () => {
+    if (learn) learnPartPlotsRef.current[learnPartOf(learn.step)] = currentLearnPlot();
     const saved = learnSavedRef.current;
     learnSavedRef.current = null;
     setLearn(null);
@@ -929,7 +964,7 @@ export default function App() {
         onOpenLearn={handleEnterLearn}
         activeChallengeId={activeChallengeId}
         activeTaskLabel={currentChallenge ? currentChallenge.title.split(':').pop()!.trim() : null}
-        onResetPlot={learn ? () => learn.step < LEARN_STEPS.length && handleLearnGoTo(learn.step) : handleResetPlot}
+        onResetPlot={learn ? () => learn.step < LEARN_STEPS.length && handleLearnRestartStep(learn.step) : handleResetPlot}
         onUndo={undo}
         onRedo={redo}
         canUndo={canUndo}
@@ -1003,7 +1038,7 @@ export default function App() {
             onAnswer={handleLearnAnswer}
             onGoTo={handleLearnGoTo}
             onNext={handleLearnNext}
-            onRestartStep={() => handleLearnGoTo(learn.step)}
+            onRestartStep={() => handleLearnRestartStep(learn.step)}
             onToggleSoundcheck={handleToggleAudio}
             onOpenReference={() => setIsLearnOpen(true)}
             onTryItYourself={outOfLearn(() => setIsChallengeModalOpen(true))}
