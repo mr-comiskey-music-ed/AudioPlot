@@ -374,113 +374,137 @@ export const getGearBoxDimensions = (
   return { width, height };
 };
 
+// ---------- Mic placement options ----------
+// What a student can pick for where a mic sits, by the source it is aimed at. The first option is the
+// usual starting point. Ids are saved in student codes, so never rename or remove one: relabel it or add
+// a new one instead.
+type PlacementOption = { id: string; label: string };
+
+const GENERIC_PLACEMENTS: PlacementOption[] = [
+  { id: 'on_axis', label: 'On-Axis (Direct)' },
+  { id: 'off_axis_45', label: 'Off-Axis (45° Angle)' },
+  { id: 'distant_room', label: 'Distant Room (1-2 ft)' },
+];
+
+const OVERHEAD_PAIR: PlacementOption[] = [
+  { id: 'xy_pair', label: 'XY Pair Overhead (Tight, Mono-Safe)' },
+  { id: 'spaced_ab', label: 'Spaced Pair A/B (Wide)' },
+  { id: 'ortf', label: 'ORTF Pair (Natural Stereo Image)' },
+  { id: 'glyn_johns', label: 'Glyn Johns (One Over Kit, One at Side)' },
+];
+
+const PLACEMENTS: Record<string, PlacementOption[]> = {
+  room: [
+    { id: 'mid_room', label: 'Mid Room, 6-10 ft (Natural Blend)' },
+    { id: 'hallway', label: 'Far Back of Room (Long Ambience)' },
+    { id: 'wall_reflection', label: 'Near a Wall (Boundary Boost)' },
+    { id: 'corner', label: 'In a Corner (Boosted Lows)' },
+  ],
+  gear_guitar_amp: [
+    { id: 'cap_edge', label: 'Between Cap and Edge (Balanced)' },
+    { id: 'cone_center', label: 'Cap / Center (Bright, Aggressive)' },
+    { id: 'cone_edge', label: 'Cone Edge (Warmer, Fuller)' },
+    { id: 'angle_45', label: '45° Off-Axis (Smoother Highs)' },
+    { id: 'open_back', label: 'Back of Open-Back Cab (Roomy)' },
+  ],
+  gear_bass_amp: [
+    { id: 'cone_center', label: 'Cone Center (Punch, Attack)' },
+    { id: 'cone_edge', label: 'Cone Edge (Warmer, Rounder)' },
+    { id: 'direct_port', label: 'Front Port (Big Lows, Less Definition)' },
+  ],
+  inst_acoustic_guitar: [
+    { id: 'fret_12', label: '12th Fret, 8-12 in (Balanced Clarity)' },
+    { id: 'neck_joint', label: '14th Fret / Neck Joint (Warm, Less Boomy)' },
+    { id: 'bridge', label: 'Lower Bout Near Bridge (Bright Attack)' },
+    { id: 'soundhole', label: 'Close to Soundhole (Boomy, Back Off)' },
+  ],
+  inst_double_bass: [
+    { id: 'bridge_fhole', label: '6-8 in From F-Hole (Warm, Articulate)' },
+    { id: 'fingerboard', label: 'End of Fingerboard (Attack, Finger Detail)' },
+    { id: 'lower_bout', label: 'Lower Bout (Deep Wood Resonance)' },
+  ],
+  inst_cello: [
+    { id: 'cello_fhole', label: '12-18 in From F-Hole (Warm, Full)' },
+    { id: 'cello_over_bridge', label: 'Above Bridge, Aimed at F-Hole (Closer)' },
+    { id: 'cello_distance', label: '2-3 ft Out and Up (Natural Blend)' },
+  ],
+  inst_violin: [
+    { id: 'above_front', label: '1-2 ft Above and in Front (Natural, Sweet)' },
+    { id: 'bridge_fholes', label: '6-12 in Above Bridge / F-Holes (Close)' },
+    { id: 'bow_contact', label: 'Over Bow Contact Point (Bright, Scratchy)' },
+  ],
+  inst_voice: [
+    { id: 'direct_4_6', label: '4-6 in, Straight On (Standard)' },
+    { id: 'off_axis_sibilance', label: 'Slightly Off-Axis (Tames S and P Sounds)' },
+    { id: 'room_air', label: '1-2 ft Back (Natural, Less Bass Boost)' },
+    { id: 'close_live', label: 'Lips Near Grille, 1-2 in (Live, Strong Bass)' },
+  ],
+  inst_kick_drum: [
+    { id: 'inside_mid', label: 'Inside, Halfway to Beater (Balanced Punch)' },
+    { id: 'inside_port', label: 'Inside Through Port (Beater Click)' },
+    { id: 'resonant_head', label: 'Outside Front Head (Sub Boom)' },
+    { id: 'boundary_center', label: 'Inside, on a Pillow (Boundary, Round Punch)' },
+  ],
+  inst_snare_drum: [
+    { id: 'top_rim', label: 'Top Head, 1-2 in Over Rim (Standard)' },
+    { id: 'bottom_wire', label: 'Under Snare, Aimed at Wires (Sizzle)' },
+  ],
+  inst_tom_drum: [
+    { id: 'top_head', label: '1-2 in Over Rim, Aimed at Head (Attack)' },
+    { id: 'between_toms', label: 'Between Two Toms (Shared, Saves Inputs)' },
+    { id: 'bottom_head', label: 'Under, at Resonant Head (Boomy Sustain)' },
+  ],
+  inst_drum_cymbals: OVERHEAD_PAIR,
+  inst_drum_set: [...OVERHEAD_PAIR, { id: 'drum_room', label: 'Drum Room Mic, 6-10 ft Back (Big, Roomy)' }],
+  inst_hi_hat: [
+    { id: 'hihat_edge', label: '3-4 in Above Edge, Aimed Away From Snare' },
+    { id: 'hihat_far', label: '6-12 in Above and Back (Softer, Blends)' },
+  ],
+  inst_trumpet: [
+    { id: 'bell_45', label: '8-12 in, Off-Axis From Bell (Smooth)' },
+    { id: 'bell_center', label: 'On Bell Axis, 6-12 in (Bright, Can Overload)' },
+    { id: 'back_2ft', label: '2 ft Back (Soft, Room Blend)' },
+  ],
+  inst_saxophone: [
+    { id: 'upper_keys', label: '1 ft Out, Bell to Upper Keys (Balanced)' },
+    { id: 'bell_45', label: 'Above Bell at 45° (Warm, More Body)' },
+    { id: 'bell_center', label: 'Aimed Into Bell (Bright, Misses Key Sound)' },
+  ],
+  inst_flute: [
+    { id: 'flute_mid', label: '6-12 in, Mouth to First Fingers (Balanced)' },
+    { id: 'flute_embouchure', label: 'Near the Mouth Hole (Breathy, Close)' },
+    { id: 'flute_distance', label: '1-2 ft Back (Natural, Less Breath Noise)' },
+  ],
+  inst_choir: [
+    { id: 'choir_ortf', label: 'ORTF Pair, High and in Front (Natural Blend)' },
+    { id: 'choir_spaced', label: 'Spaced Pair Across the Front (Wide)' },
+    { id: 'choir_hanging', label: 'Hanging Above the Choir (Even Pickup)' },
+  ],
+  inst_acoustic_piano: [
+    { id: 'spaced_lid', label: 'Spaced Pair Inside Lid, Bass + Treble (Wide)' },
+    { id: 'hammers', label: 'Over the Hammers, Inside Lid (Bright Attack)' },
+    { id: 'soundboard', label: 'Bass-String Side of Soundboard (Warm Lows)' },
+    { id: 'outside_pair', label: 'Pair Out Past the Curve (Natural Room Blend)' },
+  ],
+};
+// Same spots, different name
+PLACEMENTS.ambient = PLACEMENTS.room;
+
 // Dynamic mic placement options based on targeted source
-export const getPlacementOptionsForTarget = (sourceDefId?: string): { id: string; label: string }[] => {
-  if (!sourceDefId) {
-    return [
-      { id: 'on_axis', label: 'On-Axis (Direct)' },
-      { id: 'off_axis_45', label: 'Off-Axis (45° Angle)' },
-      { id: 'distant_room', label: 'Distant Room (1-2 ft)' },
-    ];
-  }
+export const getPlacementOptionsForTarget = (sourceDefId?: string): { id: string; label: string }[] =>
+  (sourceDefId && PLACEMENTS[sourceDefId]) || GENERIC_PLACEMENTS;
 
-  if (sourceDefId === 'room' || sourceDefId === 'ambient') {
-    return [
-      { id: 'corner', label: 'Corner Placement (Bass Trap / Room Reinforcement)' },
-      { id: 'wall_reflection', label: 'Wall Reflection Boundary' },
-      { id: 'hallway', label: 'Hallway / Extended Ambience' },
-    ];
+/**
+ * Readable name for a saved placement id, for the signal map and PDF. Looks in the source's own list first,
+ * then every list (so an id saved before a list changed still reads), then falls back to the id itself.
+ */
+export const getPlacementLabel = (placementId?: string, sourceDefId?: string): string => {
+  if (!placementId) return '';
+  const own = getPlacementOptionsForTarget(sourceDefId).find((o) => o.id === placementId);
+  if (own) return own.label;
+  for (const list of [...Object.values(PLACEMENTS), GENERIC_PLACEMENTS]) {
+    const hit = list.find((o) => o.id === placementId);
+    if (hit) return hit.label;
   }
-
-  if (sourceDefId === 'gear_guitar_amp') {
-    return [
-      { id: 'cone_center', label: 'Cone Center (Bright Edge)' },
-      { id: 'cone_edge', label: 'Cone Edge (Warm Body)' },
-      { id: 'angle_45', label: '45° Off-Axis (Smooth Highs)' },
-      { id: 'open_back', label: 'Cabinet Back (Open Back)' },
-    ];
-  }
-
-  if (sourceDefId === 'gear_bass_amp') {
-    return [
-      { id: 'cone_center', label: 'Cone Center (Punch)' },
-      { id: 'cone_edge', label: 'Cone Edge (Deep Lows)' },
-      { id: 'direct_port', label: 'Front Bass Port' },
-    ];
-  }
-
-  if (sourceDefId === 'inst_acoustic_guitar') {
-    return [
-      { id: 'fret_12', label: '12th Fret (Balanced Clarity)' },
-      { id: 'soundhole', label: 'Soundhole (Full Resonance)' },
-      { id: 'bridge', label: 'Bridge / Lower Bout (Crisp Attack)' },
-    ];
-  }
-
-  if (sourceDefId === 'inst_double_bass') {
-    return [
-      { id: 'bridge_fhole', label: '6-8" Off Bridge / F-Hole (Warm & Articulate)' },
-      { id: 'fingerboard', label: 'Near Fingerboard (Attack & Slap Click)' },
-      { id: 'lower_bout', label: 'Lower Bout / Body (Deep Wood Resonance)' },
-    ];
-  }
-
-  if (sourceDefId === 'inst_voice') {
-    return [
-      { id: 'direct_4_6', label: '4-6" Direct (Center)' },
-      { id: 'off_axis_sibilance', label: 'Slight Off-Axis (Sibilance Control)' },
-      { id: 'room_air', label: '1-2 ft Distance (Natural Room Air)' },
-    ];
-  }
-
-  if (sourceDefId === 'inst_kick_drum') {
-    return [
-      { id: 'inside_port', label: 'Inside Port (Beater Attack)' },
-      { id: 'resonant_head', label: 'Front Resonant Head (Sub Boom)' },
-      { id: 'boundary_center', label: 'Internal Boundary Pillow' },
-    ];
-  }
-
-  if (sourceDefId === 'inst_snare_drum') {
-    return [
-      { id: 'top_rim', label: 'Top Head (1" Above Rim)' },
-      { id: 'bottom_wire', label: 'Bottom Snare Wires (Sizzle)' },
-    ];
-  }
-
-  if (sourceDefId === 'inst_drum_cymbals' || sourceDefId === 'inst_hi_hat') {
-    return [
-      { id: 'xy_pair', label: 'Overhead XY Coincident Pair' },
-      { id: 'spaced_ab', label: 'Spaced Pair A/B' },
-      { id: 'hihat_edge', label: 'Hi-Hats Edge (3" Above Top Cymbal)' },
-    ];
-  }
-
-  if (sourceDefId === 'inst_trumpet' || sourceDefId === 'inst_saxophone') {
-    return [
-      { id: 'bell_center', label: 'Direct Bell 6" (Crisp)' },
-      { id: 'bell_45', label: '45° Off-Bell (Warm/Smooth)' },
-    ];
-  }
-
-  if (sourceDefId === 'inst_violin') {
-    return [
-      { id: 'bridge_fholes', label: '6" Above Bridge / F-Holes' },
-      { id: 'bow_contact', label: 'Bowing Contact Zone' },
-    ];
-  }
-
-  if (sourceDefId === 'inst_acoustic_piano') {
-    return [
-      { id: 'hammers', label: 'Over Damper Hammers' },
-      { id: 'soundboard', label: 'Soundboard Lower Strings' },
-      { id: 'spaced_lid', label: 'Spaced Stereo Lid' },
-    ];
-  }
-
-  return [
-    { id: 'on_axis', label: 'On-Axis (Direct)' },
-    { id: 'off_axis_45', label: 'Off-Axis (45° Angle)' },
-    { id: 'distant_room', label: 'Distant Room (1-2 ft)' },
-  ];
+  return placementId.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 };

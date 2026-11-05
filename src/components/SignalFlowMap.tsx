@@ -24,6 +24,7 @@ import {
 import { getGearById } from '../data/gearCatalog';
 import { validateChannelSignalChain } from '../services/gradingEngine';
 import { StudioIcon } from './StudioIcons';
+import { getPlacementLabel } from './canvas/canvasMath';
 
 interface SignalFlowMapProps {
   channels: MixerChannelState[];
@@ -393,7 +394,7 @@ export const SignalFlowMap: React.FC<SignalFlowMapProps> = ({
             <div className="text-[10px] text-stone-300 mt-0.5 flex items-center gap-1.5 flex-wrap">
               {assignedGear?.micPlacement && (
                 <span className="bg-white/10 px-1.5 py-0.2 rounded text-stone-300 text-[9px]">
-                  Placement: {assignedGear.micPlacement}
+                  Placement: {getPlacementLabel(assignedGear.micPlacement, placedGear.find((g) => g.instanceId === assignedGear.latchedSourceInstanceId)?.gearId ?? assignedGear.latchedSourceInstanceId)}
                 </span>
               )}
               {intermediateAmpGear && ampDef && (
