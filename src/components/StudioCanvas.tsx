@@ -1359,6 +1359,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         ? {
             ...g,
             latchedSourceInstanceId: sourceId,
+            // The old source's placement options don't apply to a new source
+            micPlacement: g.latchedSourceInstanceId === sourceId ? g.micPlacement : undefined,
             x: targetSource ? snappedX : g.x,
             y: targetSource ? snappedY : g.y,
           }

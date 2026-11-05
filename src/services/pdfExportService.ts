@@ -4,6 +4,7 @@ import { getGearById } from '../data/gearCatalog';
 import { getGearBoxDimensions } from '../components/canvas/canvasMath';
 import { calculateXlrCablesCount } from '../utils/cableUtils';
 import { resolveTaskId, taskTitle } from '../data/challenges';
+import { getPlacementLabel } from '../components/canvas/canvasMath';
 
 /**
  * PDF export: a printable stage plot drawn straight from the student's project
@@ -511,7 +512,7 @@ export async function generateStudioPlotPdf(
       const p48 = on48 ? 'ON' : needs48 ? 'OFF (needs +48V)' : 'off';
       const stand = def?.category === 'di_box' ? '' : STAND_LABELS[item.standHeight || ''] || 'Not set';
       const notes = [
-        item.micPlacement ? humanize(item.micPlacement) : '',
+        item.micPlacement ? getPlacementLabel(item.micPlacement, src?.gearId) : '',
         item.hasPopFilter ? 'Pop filter' : '',
         item.hasShockmount ? 'Shockmount' : '',
         ch && ch.label && ch.label !== `CH ${n}` ? `Console label: ${ch.label}` : '',

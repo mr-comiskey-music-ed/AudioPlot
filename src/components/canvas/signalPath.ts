@@ -6,7 +6,7 @@ import {
   PlacedGear,
 } from '../../types';
 import { getGearById } from '../../data/gearCatalog';
-import { isAcousticInstrument } from './canvasMath';
+import { isAcousticInstrument, getPlacementLabel } from './canvasMath';
 
 export interface SignalPathNode {
   id: string;
@@ -338,7 +338,12 @@ export function traceSignalPath(
       type: 'transducer',
       label: tDef?.name || 'Transducer',
       subLabel:
-        primaryTransducer.micPlacement ||
+        (primaryTransducer.micPlacement
+          ? getPlacementLabel(
+              primaryTransducer.micPlacement,
+              placedGear.find((g) => g.instanceId === primaryTransducer.latchedSourceInstanceId)?.gearId ?? primaryTransducer.latchedSourceInstanceId
+            )
+          : '') ||
         (tDef?.category === 'microphone' ? 'Microphone' : tDef?.category === 'di_box' ? 'Direct Box' : 'Amplifier'),
       gearId: primaryTransducer.gearId,
       cableTypeToNext: 'xlr',
