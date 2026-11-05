@@ -110,12 +110,14 @@ Known quirk, not fixed yet: signal chain gives 5 points per instrument
 100% (singer-songwriter tops out at 90%).
 
 ## Learn (`src/data/learnSteps.ts`, `src/components/LearnPanel.tsx`)
-- One module, 11 steps: a singer-songwriter records (studio, steps 1-6),
-  then plays a gig joined by a player on electric guitar and kick
-  (live, steps 7-11). Steps: source, pick the mic, cable + phantom,
-  acoustic guitar DI *and* mic, stands + pop filter, headphones;
-  live condenser → SM58, guitar → amp → SM57, kick Beta 52A, PA on
-  MAIN L/R, wedge on MON 1/2 (IEMs mentioned, not required).
+- One module, 11 steps, four separate players: a singer and an acoustic
+  guitarist record in the studio (steps 1-6), then play a gig joined by
+  an electric guitarist and a drummer (live, steps 7-11; only the kick
+  is mic'd, to keep it short). Steps: source, pick the mic, cable +
+  phantom, acoustic guitar DI *and* mic, stands + pop filter,
+  headphones; live condenser → SM58, guitar → amp → SM57, kick Beta 52A,
+  PA on MAIN L/R, wedge on MON 1/2 (wedge sharing, daisy chains and
+  IEMs are mentioned, not required).
 - Each step has missions checked live on the real canvas (reusing
   `validateChannelSignalChain` and the grader's category scores), so
   Learn can't disagree with grading. No points or percentages appear in
