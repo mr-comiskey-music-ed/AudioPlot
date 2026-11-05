@@ -105,9 +105,10 @@ stands/accessories 10, mixer routing 5; live stage adds PA 10 and
 monitors 10. Percentage = earned ÷ possible (n/a categories skipped).
 Letter bands: A ≥ 90, B ≥ 80, C ≥ 70, D ≥ 60, F below. Grades are
 always recomputed from the decoded plot, never read from the code.
-Known quirk, not fixed yet: signal chain gives 5 points per instrument
-(+5 for XLR), so a challenge with fewer than 4 instruments can't score
-100% (singer-songwriter tops out at 90%).
+Signal chain = 20 for instrument chains + 5 for XLR. The 20 is 5 per
+working chain for up to 4 instruments; a setup with fewer than 4 splits
+the 20 among its instruments (2 instruments = 10 each), so small
+challenges can reach 100%. Setups of 4+ score as before.
 
 ## Learn (`src/data/learnSteps.ts`, `src/components/LearnPanel.tsx`)
 - One module, 11 steps: a singer-songwriter records (studio, steps 1-6),

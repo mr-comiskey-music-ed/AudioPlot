@@ -668,16 +668,23 @@ export function evaluateStudioSetup(
     const maxChainPoints = 25;
     const chainIssues: string[] = [];
 
+    // 20 points for instrument chains: 5 each for up to 4 instruments. A smaller setup
+    // (e.g. a 2-instrument challenge) splits the 20 among its instruments so it can still score full marks.
+    const chainsNeeded = Math.min(4, placedInstruments.length);
+    const pointsPerChain = chainsNeeded > 0 ? 20 / chainsNeeded : 0;
+    let instrumentChainPoints = 0;
     placedInstruments.forEach((inst) => {
       const status = getInstrumentSignalChainStatus(inst, placedGear, connections, mixerChannels, environment);
       if (status.valid) {
-        chainPoints += 5;
+        instrumentChainPoints += pointsPerChain;
         const def = getGearById(inst.gearId);
         positives.push(`${def?.name || 'Instrument'} signal chain is verified & patched.`);
       } else if (status.error) {
         chainIssues.push(status.error);
       }
     });
+
+    chainPoints += Math.round(Math.min(20, instrumentChainPoints));
 
     // Check XLR lines from Mics, DIs, and Bass Amps
     const activeSources = [...placedMics, ...placedDIs];
