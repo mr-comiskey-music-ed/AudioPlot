@@ -13,6 +13,7 @@ import {
   User,
   ShieldCheck,
   AlertTriangle,
+  RotateCcw,
 } from 'lucide-react';
 import { StudioProjectState, RubricEvaluation } from '../types';
 import {
@@ -32,6 +33,10 @@ interface ShareSubmitModalProps {
   onUpdateStudentName: (name: string) => void;
   /** Grade pasted codes (one or a whole class). Returns false if no codes were found. */
   onGradeCodes?: (text: string) => boolean;
+  /** Load a saved code back onto the plot. Returns false if no readable code was found. */
+  onRestoreCode?: (text: string) => boolean;
+  /** True when the plot already has something on it (restoring replaces it). */
+  hasWork?: boolean;
 }
 
 export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
@@ -42,6 +47,8 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
   studentName,
   onUpdateStudentName,
   onGradeCodes,
+  onRestoreCode,
+  hasWork = false,
 }) => {
   const [codeCopied, setCodeCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -49,6 +56,10 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
   const [localName, setLocalName] = useState(studentName || '');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [pdfStatus, setPdfStatus] = useState<string | null>(null);
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [restoreInput, setRestoreInput] = useState('');
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [restoreConfirm, setRestoreConfirm] = useState(false);
   const [teacherCodeInput, setTeacherCodeInput] = useState('');
   const [verificationError, setVerificationError] = useState<string | null>(null);
 
@@ -103,6 +114,28 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
       setPdfStatus('Export failed');
       setTimeout(() => setPdfStatus(null), 3000);
     }
+  };
+
+  const handleRestore = () => {
+    setRestoreError(null);
+    if (!restoreInput.trim()) {
+      setRestoreError('Paste your saved code first.');
+      return;
+    }
+    // Replacing a plot that has work on it takes a second click
+    if (hasWork && !restoreConfirm) {
+      setRestoreConfirm(true);
+      return;
+    }
+    if (onRestoreCode && !onRestoreCode(restoreInput)) {
+      setRestoreConfirm(false);
+      setRestoreError('That code is not readable. Check that the whole code was copied.');
+      return;
+    }
+    setRestoreInput('');
+    setRestoreConfirm(false);
+    setRestoreOpen(false);
+    onClose();
   };
 
   const handleVerifyGrade = () => {
@@ -279,6 +312,67 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
               </p>
             )}
           </div>
+
+          {/* Restore progress from a code the student saved earlier (new computer, cleared browser) */}
+          {onRestoreCode && (
+            <div className="px-4 py-3 bg-white/[0.03] border border-white/10 rounded-2xl">
+              <button
+                id="btn-toggle-restore-code"
+                onClick={() => setRestoreOpen((o) => !o)}
+                className="w-full flex items-center justify-between text-xs font-bold text-stone-300 hover:text-white cursor-pointer"
+                aria-expanded={restoreOpen}
+              >
+                <span className="flex items-center gap-1.5">
+                  <RotateCcw className="w-4 h-4 text-stone-400" />
+                  Restore progress from a code
+                </span>
+                <span className="text-[10px] font-semibold text-stone-500">{restoreOpen ? 'Hide' : 'Show'}</span>
+              </button>
+              {restoreOpen && (
+                <div className="mt-2 space-y-2">
+                  <p className="text-[11px] text-stone-400">
+                    Working on a different computer, or your browser lost your plot? Paste the last code you copied to pick up
+                    where you left off.
+                  </p>
+                  <textarea
+                    id="textarea-restore-code"
+                    rows={2}
+                    value={restoreInput}
+                    onChange={(e) => {
+                      setRestoreInput(e.target.value);
+                      setRestoreConfirm(false);
+                      if (restoreError) setRestoreError(null);
+                    }}
+                    placeholder="Paste your saved code..."
+                    className="w-full bg-stone-900/90 border border-white/25 focus:border-teal-400 rounded-xl p-2.5 text-[11px] text-teal-300 font-mono outline-none resize-none placeholder:text-stone-500"
+                  />
+                  {restoreError && (
+                    <p className="text-[11px] text-rose-400 font-bold flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{restoreError}</span>
+                    </p>
+                  )}
+                  {restoreConfirm && (
+                    <p className="text-[11px] text-amber-300 font-bold">
+                      This replaces what is on your plot now. Press again to go ahead.
+                    </p>
+                  )}
+                  <button
+                    id="btn-restore-code"
+                    onClick={handleRestore}
+                    className={`w-full py-2 px-4 rounded-full font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      restoreConfirm
+                        ? 'bg-amber-500 hover:bg-amber-400 text-stone-950'
+                        : 'bg-white/10 hover:bg-white/15 border border-white/20 text-stone-100'
+                    }`}
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>{restoreConfirm ? 'Yes, replace my plot' : 'Restore my plot'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Teacher Code Check Section (Orange Theme) */}
           <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-2xl space-y-3 backdrop-blur-md">

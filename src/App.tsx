@@ -1131,6 +1131,20 @@ export default function App() {
         evaluation={evaluation}
         studentName={studentName}
         onUpdateStudentName={setStudentName}
+        hasWork={placedGear.length > 0 || connections.length > 0}
+        onRestoreCode={(text) => {
+          // The same forgiving reader the teacher uses, so a code pasted with extra text around it still works
+          const entry = parseBatch(text).entries[0];
+          if (!entry) return false;
+          if (isPlayingAudio) {
+            audioEngine.stop();
+            setIsPlayingAudio(false);
+          }
+          handleLoadProject(entry.project);
+          setSelectedItemId(null);
+          if (entry.project.learnDone) setLearnProgress((p) => ({ ...p, done: true }));
+          return true;
+        }}
         onGradeCodes={(text) => {
           const result = parseBatch(text);
           if (result.entries.length === 0) return false;
