@@ -21,17 +21,17 @@ export const AppLogo: React.FC<AppLogoProps> = ({ className = '', size = 'md' })
       aria-label="AudioPlot"
     >
       <rect width="32" height="32" rx="7" fill="#17151a" stroke="rgba(249,115,22,0.35)" strokeWidth="0.75" />
-      <path d="M6.5 21.5V6.5h5.5M19.5 6.5h6v15" fill="none" stroke="#f97316" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7.925 21.5V9.7a3.2 3.2 0 0 1 3.2 -3.2H12M20 6.5H20.875a3.2 3.2 0 0 1 3.2 3.2V21.5" fill="none" stroke="#f97316" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
       <path
-        d="M6.5 18.5c1.6 0 1.6-2.6 3.2-2.6s1.6 2.6 3.2 2.6 1.6-2.6 3.1-2.6 1.6 2.6 3.2 2.6 1.6-2.6 3.2-2.6 1.6 2.6 3.1 2.6"
+        d="M7.925 18.5c1.36 0 1.36-2.6 2.72-2.6s1.36 2.6 2.72 2.6 1.36-2.6 2.635-2.6 1.36 2.6 2.72 2.6 1.36-2.6 2.72-2.6 1.36 2.6 2.635 2.6"
         fill="none"
         stroke="#f97316"
         strokeWidth="2"
         strokeLinecap="round"
       />
-      <circle cx="6.5" cy="25.3" r="3.5" fill="#38bdf8" />
+      <circle cx="7.925" cy="25.3" r="3.5" fill="#38bdf8" />
       <circle cx="16" cy="6.5" r="3.5" fill="#e7e5e4" />
-      <circle cx="25.5" cy="25.3" r="3.5" fill="#f97316" />
+      <circle cx="24.075" cy="25.3" r="3.5" fill="#f97316" />
     </svg>
   );
 };
