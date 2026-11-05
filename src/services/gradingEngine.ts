@@ -9,6 +9,7 @@ import {
 import { getGearById } from '../data/gearCatalog';
 import { getTaskById } from '../data/challenges';
 import { getWorld, getPaZone, getItemCenter, StageSize } from '../components/canvas/stageGeometry';
+import { wedgesFedFromSnake } from '../components/canvas/monitorChain';
 
 export interface SignalChainCheckResult {
   valid: boolean;
@@ -1316,17 +1317,10 @@ export function evaluateStudioSetup(
     let monPoints = 10;
     const monIssues: string[] = [];
 
-    // Stage Monitors check
+    // Stage Monitors check: each wedge needs the monitor mix, straight from MON 1/2 or daisy-chained
+    const fedWedges = wedgesFedFromSnake(placedGear, connections);
     stageMonitors.forEach((mon) => {
-      const monConn = connections.find(
-        (c) =>
-          ((c.fromInstanceId === 'snake_out_mon1' && c.toInstanceId === mon.instanceId) ||
-            (c.toInstanceId === 'snake_out_mon1' && c.fromInstanceId === mon.instanceId) ||
-            (c.fromInstanceId === 'snake_out_mon2' && c.toInstanceId === mon.instanceId) ||
-            (c.toInstanceId === 'snake_out_mon2' && c.fromInstanceId === mon.instanceId)) &&
-          c.cableType === 'xlr'
-      );
-      if (!monConn) {
+      if (!fedWedges.has(mon.instanceId)) {
         monPoints -= 3;
         monIssues.push('Stage Monitor speaker requires an XLR connection to Snake MON 1 or MON 2 output.');
       }

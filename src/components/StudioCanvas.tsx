@@ -1266,10 +1266,17 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
     );
   };
 
+  const DRUM_KIT_IDS = ['inst_drum_set', 'inst_kick_drum', 'inst_snare_drum', 'inst_tom_drum', 'inst_hi_hat', 'inst_drum_cymbals'];
+
   const setLatchedSource = (instanceId: string, sourceId: string | undefined) => {
     const isDrummerTarget = sourceId === 'drummer';
+    const currentForDrummer = placedGear.find((g) => g.instanceId === instanceId);
+    // "Drummer (All Kit)": snap to the kit piece nearest this item (with only a kick on stage, the kick).
+    const kitPieces = placedGear.filter((g) => DRUM_KIT_IDS.includes(g.gearId));
+    const distTo = (g: PlacedGear) => (currentForDrummer ? Math.hypot(g.x - currentForDrummer.x, g.y - currentForDrummer.y) : 0);
+    const nearestKitPiece = [...kitPieces].sort((a, b) => distTo(a) - distTo(b))[0] ?? null;
     const targetSource = isDrummerTarget
-      ? placedGear.find((g) => g.gearId === 'gear_drum_kit')
+      ? nearestKitPiece
       : sourceId
       ? placedGear.find((g) => g.instanceId === sourceId)
       : null;

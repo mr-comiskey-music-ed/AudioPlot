@@ -5,6 +5,7 @@ import {
   MixerChannelState,
   PlacedGear,
 } from '../../types';
+import { wedgesFedFromSnake } from './monitorChain';
 import { getGearById } from '../../data/gearCatalog';
 import { isAcousticInstrument } from './canvasMath';
 import { getPaZone, StageSize } from './stageGeometry';
@@ -634,39 +635,9 @@ export function getGearIssues(
 
   // ================= 6. MONITORS & SPEAKERS & IEMS =================
   if (item.gearId === 'gear_stage_monitor') {
-    const isDirectlyConnectedToSnake = connections.some(
-      (c) =>
-        c.cableType === 'xlr' &&
-        (c.fromInstanceId === 'snake_out_mon1' ||
-          c.fromInstanceId === 'snake_out_mon2' ||
-          c.toInstanceId === 'snake_out_mon1' ||
-          c.toInstanceId === 'snake_out_mon2') &&
-        (c.fromInstanceId === item.instanceId || c.toInstanceId === item.instanceId)
-    );
-
-    const isDaisyChainedToSnake = connections.some(
-      (c) =>
-        c.cableType === 'xlr' &&
-        (c.fromInstanceId === item.instanceId || c.toInstanceId === item.instanceId) &&
-        placedGear.some(
-          (other) =>
-            other.gearId === 'gear_stage_monitor' &&
-            other.instanceId !== item.instanceId &&
-            (other.instanceId === c.fromInstanceId || other.instanceId === c.toInstanceId) &&
-            connections.some(
-              (c2) =>
-                c2.cableType === 'xlr' &&
-                (c2.fromInstanceId === 'snake_out_mon1' ||
-                  c2.fromInstanceId === 'snake_out_mon2' ||
-                  c2.toInstanceId === 'snake_out_mon1' ||
-                  c2.toInstanceId === 'snake_out_mon2') &&
-                (c2.fromInstanceId === other.instanceId || c2.toInstanceId === other.instanceId)
-            )
-        )
-    );
-
-    if (!isDirectlyConnectedToSnake && !isDaisyChainedToSnake) {
-      issues.push('Stage Monitor must be patched to a Stage Snake Aux output (MON 1 or MON 2) via XLR cable');
+    // Fed straight from MON 1/2, or daisy-chained from a wedge that is.
+    if (!wedgesFedFromSnake(placedGear, connections).has(item.instanceId)) {
+      issues.push('Stage Monitor must be patched to a Stage Snake Aux output (MON 1 or MON 2) via XLR cable, or daisy-chained from a monitor that is');
     }
   }
 

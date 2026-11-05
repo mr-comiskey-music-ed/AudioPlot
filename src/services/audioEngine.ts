@@ -34,8 +34,9 @@ interface ActiveTrackNode {
   pannerNode: StereoPannerNode | null;
 }
 
-// Uniform loop duration across all 17 tracks (10.0 seconds) for sample-accurate sync
-export const LOOP_DURATION_SECONDS = 10.0;
+// Every soundcheck stem is the same 4 bars at 90 BPM (511998 samples at 48 kHz, ~10.67 s).
+// The loop must use this full length; looping early cuts the last part of the bar off.
+export const LOOP_DURATION_SECONDS = 511998 / 48000;
 
 class StudioAudioEngine {
   private ctx: AudioContext | null = null;
@@ -352,7 +353,8 @@ class StudioAudioEngine {
     source.buffer = buffer;
     source.loop = true;
     source.loopStart = 0;
-    source.loopEnd = LOOP_DURATION_SECONDS;
+    // Loop the whole trimmed recording, so the seam lands exactly on the bar line.
+    source.loopEnd = buffer.duration;
 
     const gainNode = this.ctx.createGain();
     gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
@@ -680,7 +682,11 @@ class StudioAudioEngine {
       }
     }
     const TARGET_PEAK = 0.25; // -12 dBFS
-    const factor = peak > 0.0001 ? TARGET_PEAK / peak : 1;
+    // Peak matching leaves very short, low hits (the kick) sounding quieter than the rest,
+    // and laptop/Chromebook speakers barely play its lows. A small lift puts it back in the mix.
+    const STEM_LIFT_DB: Record<string, number> = { inst_kick_drum: 5 };
+    const lift = Math.pow(10, (STEM_LIFT_DB[gearId] ?? 0) / 20);
+    const factor = (peak > 0.0001 ? TARGET_PEAK / peak : 1) * lift;
     this.normFactors.set(gearId, factor);
     return factor;
   }
