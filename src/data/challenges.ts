@@ -171,6 +171,39 @@ export function getTaskById(id?: string | null): ChallengeDefinition | null {
   return ALL_TASKS.find((t) => t.id === id) ?? null;
 }
 
+/** How many of each instrument a challenge gives the student (gearId -> count). Open tasks give none. */
+export function givenInstrumentCounts(task: ChallengeDefinition | null | undefined): Map<string, number> {
+  const counts = new Map<string, number>();
+  if (!task || task.openEnded) return counts;
+  for (const inst of task.instruments) counts.set(inst.gearId, (counts.get(inst.gearId) ?? 0) + 1);
+  return counts;
+}
+
+/**
+ * Of the items a student is trying to delete, the ones that must stay because the challenge gave them.
+ * Counted by instrument type, so an extra copy the student added can still go.
+ */
+export function lockedGivenInstruments(
+  task: ChallengeDefinition | null | undefined,
+  placedGear: { instanceId: string; gearId: string }[],
+  idsToDelete: string[]
+): string[] {
+  const given = givenInstrumentCounts(task);
+  if (given.size === 0) return [];
+  const locked: string[] = [];
+  for (const [gearId, need] of given) {
+    const present = placedGear.filter((g) => g.gearId === gearId).length;
+    let spare = Math.max(0, present - need);
+    for (const id of idsToDelete) {
+      const item = placedGear.find((g) => g.instanceId === id);
+      if (item?.gearId !== gearId) continue;
+      if (spare > 0) spare--;
+      else locked.push(id);
+    }
+  }
+  return locked;
+}
+
 /** Written into submissions made from the open sandbox. */
 export const SANDBOX_ID = 'sandbox';
 

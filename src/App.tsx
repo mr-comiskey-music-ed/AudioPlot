@@ -36,7 +36,7 @@ import { VerifiedGradeModal } from './components/VerifiedGradeModal';
 import { BatchGradeModal } from './components/BatchGradeModal';
 import { BatchReviewBar } from './components/BatchReviewBar';
 import { parseBatch, BatchParseResult } from './services/batchGrading';
-import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES, getTaskById, resolveTaskId, SANDBOX_ID } from './data/challenges';
+import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES, getTaskById, resolveTaskId, SANDBOX_ID, lockedGivenInstruments } from './data/challenges';
 import { useUndoRedo, DEFAULT_MASTER_BUS } from './hooks/useUndoRedo';
 import { StageSize, getWorld } from './components/canvas/stageGeometry';
 import { encodeSubmission, decodeSubmission } from './services/submissionCodec';
@@ -872,6 +872,7 @@ export default function App() {
             onDiBoxHighlightChange={setIsDiBoxHighlighted}
             stageSize={stageSize}
             onStageSizeChange={handleStageSizeChange}
+            getLockedIds={review ? undefined : (ids) => lockedGivenInstruments(currentChallenge, placedGear, ids)}
           />
         </div>
 

@@ -7,7 +7,7 @@ import {
   RubricCategoryScore,
 } from '../types';
 import { getGearById } from '../data/gearCatalog';
-import { getTaskById } from '../data/challenges';
+import { getTaskById, givenInstrumentCounts } from '../data/challenges';
 import { getWorld, getPaZone, getItemCenter, StageSize } from '../components/canvas/stageGeometry';
 
 export interface SignalChainCheckResult {
@@ -611,10 +611,28 @@ export function evaluateStudioSetup(
     minInputsScore.passed = true;
     minInputsScore.feedback = `Sandbox: use as many or as few instruments as you like (${instrumentCount} placed). Pick a task to be graded.`;
   } else if (task && !task.openEnded) {
-    minInputsScore.score = 20;
-    minInputsScore.passed = true;
-    minInputsScore.status = 'perfect';
-    minInputsScore.feedback = `Challenge mode active: Instruments are pre-assigned (${instrumentCount} input sources).`;
+    // The challenge gives these instruments; every one must still be on the plot.
+    let needed = 0;
+    let present = 0;
+    const missing: string[] = [];
+    for (const [gearId, need] of givenInstrumentCounts(task)) {
+      const have = Math.min(need, placedGear.filter((g) => g.gearId === gearId).length);
+      needed += need;
+      present += have;
+      if (have < need) missing.push(`${getGearById(gearId)?.name || gearId}${need - have > 1 ? ` (x${need - have})` : ''}`);
+    }
+    if (missing.length === 0) {
+      minInputsScore.score = 20;
+      minInputsScore.passed = true;
+      minInputsScore.status = 'perfect';
+      minInputsScore.feedback = `Challenge mode active: Instruments are pre-assigned (${instrumentCount} input sources).`;
+    } else {
+      minInputsScore.score = needed > 0 ? Math.round((present / needed) * 20) : 0;
+      minInputsScore.passed = false;
+      minInputsScore.status = 'error';
+      minInputsScore.feedback = `This challenge's instruments are missing: ${missing.join(', ')}. Clear the plot to bring them back.`;
+      criticalIssues.push(`Missing challenge instruments: ${missing.join(', ')}. Every instrument the challenge gives must stay on the plot.`);
+    }
   } else if (instrumentCount >= minRequired) {
     minInputsScore.score = 20;
     minInputsScore.passed = true;

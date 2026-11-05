@@ -63,6 +63,8 @@ interface StudioCanvasProps {
   onDiBoxHighlightChange?: (highlighted: boolean) => void;
   stageSize?: StageSize;
   onStageSizeChange?: (size: StageSize) => void;
+  /** Of these items, the ones that can't be deleted (instruments a challenge gave the student). */
+  getLockedIds?: (ids: string[]) => string[];
 }
 
 interface MarqueeBoxState {
@@ -98,6 +100,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   onDiBoxHighlightChange,
   stageSize = 'standard' as StageSize,
   onStageSizeChange,
+  getLockedIds,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -132,7 +135,22 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
     }
   }, [selectedItemId]);
 
-  const openDeleteConfirm = (idsToDelete: string[]) => {
+  /** Drops instruments the challenge gave the student, with a note saying why. Returns what can go. */
+  const withoutLocked = (ids: string[]): string[] => {
+    const locked = getLockedIds ? getLockedIds(ids) : [];
+    if (locked.length === 0) return ids;
+    const names = Array.from(
+      new Set(locked.map((id) => getGearById(placedGear.find((g) => g.instanceId === id)?.gearId || '')?.name || 'instrument'))
+    );
+    showErrorToast(
+      'Part of this challenge',
+      `The ${names.join(', ')} came with this challenge and can't be removed. Mic, cable and monitor them instead.`
+    );
+    return ids.filter((id) => !locked.includes(id));
+  };
+
+  const openDeleteConfirm = (requestedIds: string[]) => {
+    const idsToDelete = withoutLocked(requestedIds);
     if (idsToDelete.length === 0) return;
     if (idsToDelete.length === 1) {
       const item = placedGear.find((g) => g.instanceId === idsToDelete[0]);
@@ -914,6 +932,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
           (targetDef?.category === 'di_box' && newDef.category === 'di_box');
 
         if (isSameCategory) {
+          if (data.gearId !== targetItem.gearId && withoutLocked([targetItem.instanceId]).length === 0) return;
           onUpdateGear(
             placedGear.map((g) =>
               g.instanceId === targetItem.instanceId
@@ -1373,6 +1392,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   };
 
   const deleteItem = (instanceId: string) => {
+    if (withoutLocked([instanceId]).length === 0) return;
     if (onBatchUpdate) {
       onBatchUpdate(
         {
