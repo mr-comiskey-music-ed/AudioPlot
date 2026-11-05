@@ -814,6 +814,15 @@ export default function App() {
   const showLearnMixer = (stepIndex: number) => setIsMixerCollapsed(!LEARN_STEPS[stepIndex]?.openMixer);
   const learnPartOf = (stepIndex: number) => (LEARN_STEPS[stepIndex]?.part ?? 'live');
   const currentLearnPlot = (): LearnPlot => ({ environment, placedGear, connections, mixerChannels, masterBus });
+  /** A ready-made plot for a part the student has no plot for yet (e.g. after a reload): as far
+   *  along as they have already got in that part, so going back never shows undone work. */
+  const learnPartFallback = (index: number): LearnPlot => {
+    const inPart = LEARN_STEPS.map((_, i) => i).filter((i) => learnPartOf(i) === learnPartOf(index));
+    const last = inPart[inPart.length - 1];
+    const reached = learnProgress.done ? LEARN_STEPS.length : learnProgress.reached;
+    if (reached > last) return LEARN_STEPS[last].solve(learnStartPlot(last));
+    return learnStartPlot(Math.max(index, Math.min(reached, last)));
+  };
 
   const handleEnterLearn = () => {
     setIsLearnOpen(false);
@@ -837,7 +846,7 @@ export default function App() {
       showLearnMixer(index);
     } else {
       learnPartPlotsRef.current[fromPart] = currentLearnPlot();
-      loadLearnPlot(learnPartPlotsRef.current[toPart] ?? learnStartPlot(index), index);
+      loadLearnPlot(learnPartPlotsRef.current[toPart] ?? learnPartFallback(index), index);
     }
     setLearn({ step: index });
   };
