@@ -13,7 +13,6 @@ import {
   User,
   ShieldCheck,
   AlertTriangle,
-  ListChecks,
 } from 'lucide-react';
 import { StudioProjectState, RubricEvaluation } from '../types';
 import {
@@ -31,8 +30,8 @@ interface ShareSubmitModalProps {
   evaluation: RubricEvaluation;
   studentName: string;
   onUpdateStudentName: (name: string) => void;
-  onVerifyProject?: (project: StudioProjectState) => void;
-  onOpenBatchGrade?: () => void;
+  /** Grade pasted codes (one or a whole class). Returns false if no codes were found. */
+  onGradeCodes?: (text: string) => boolean;
 }
 
 export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
@@ -42,8 +41,7 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
   evaluation,
   studentName,
   onUpdateStudentName,
-  onVerifyProject,
-  onOpenBatchGrade,
+  onGradeCodes,
 }) => {
   const [codeCopied, setCodeCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -110,16 +108,12 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
   const handleVerifyGrade = () => {
     setVerificationError(null);
     if (!teacherCodeInput.trim()) {
-      setVerificationError('Please paste a student submission code.');
+      setVerificationError('Paste one or more student codes first.');
       return;
     }
-    const result = cC(teacherCodeInput);
-    if (!result || typeof result !== 'object' || !result.project) {
-      setVerificationError('Invalid or tampered student code. Please check the code and try again.');
+    if (onGradeCodes && !onGradeCodes(teacherCodeInput)) {
+      setVerificationError('No readable student codes found. Check that each whole code was copied.');
       return;
-    }
-    if (onVerifyProject) {
-      onVerifyProject(result.project);
     }
     setTeacherCodeInput('');
     onClose();
@@ -295,19 +289,19 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-stone-300">
-              Paste student code below to instantly verify their assignment grade and inspect their stage plot.
+              Paste student codes below: one student or a whole class (a copied Classroom page works too). See every grade and open each student&apos;s plot.
             </p>
 
             <div className="space-y-2">
               <textarea
                 id="textarea-teacher-code-input"
-                rows={2}
+                rows={3}
                 value={teacherCodeInput}
                 onChange={(e) => {
                   setTeacherCodeInput(e.target.value);
                   if (verificationError) setVerificationError(null);
                 }}
-                placeholder="Paste Student Code..."
+                placeholder="Paste Student Codes..."
                 className="w-full bg-stone-900/90 border border-white/25 focus:border-orange-400 rounded-xl p-2.5 text-[11px] text-orange-300 font-mono outline-none resize-none backdrop-blur-xs placeholder:text-stone-500"
               />
               {verificationError && (
@@ -322,21 +316,8 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
                 className="w-full py-2.5 px-4 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 font-black text-xs shadow-lg shadow-orange-950/40 transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span>Verify Grade</span>
+                <span>Verify Grades</span>
               </button>
-              {onOpenBatchGrade && (
-                <button
-                  id="btn-open-batch-grade"
-                  onClick={() => {
-                    onOpenBatchGrade();
-                    onClose();
-                  }}
-                  className="w-full py-2 px-4 rounded-full bg-white/5 hover:bg-white/10 border border-orange-500/40 text-orange-300 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <ListChecks className="w-4 h-4" />
-                  <span>Batch Grade a Whole Class</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
