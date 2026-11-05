@@ -80,8 +80,9 @@ export const SnakeBox: React.FC<SnakeBoxProps> = ({
     >
       {displayedError && (
         <div
-          className={`absolute inset-0 z-40 bg-stone-950/95 backdrop-blur-xl border-2 border-rose-500/90 rounded-2xl p-4 flex flex-col justify-center shadow-2xl transition-opacity duration-1000 ${
-            isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          // Shown just below the snake and never catches clicks, so the sockets stay usable.
+          className={`absolute left-0 right-0 top-full mt-2 z-40 pointer-events-none bg-stone-950/95 backdrop-blur-xl border-2 border-rose-500/90 rounded-2xl p-3 flex flex-col justify-center shadow-2xl transition-opacity duration-1000 ${
+            isFadingOut ? 'opacity-0' : 'opacity-100'
           }`}
         >
           <div className="flex items-start gap-3">
