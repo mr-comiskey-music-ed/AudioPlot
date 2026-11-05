@@ -38,7 +38,7 @@ export interface StageZone {
 }
 
 const ZONE_W = 210;
-const ZONE_H = 208;
+const ZONE_H = 177; // 15% shorter than the original 208: the zones only need room for one PA speaker
 const ZONE_MARGIN = 24;
 
 /**
