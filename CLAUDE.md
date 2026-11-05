@@ -39,7 +39,9 @@ the goal is students designing real setups with understanding.
   report were first built; SynthLab and MixerLab follow its approach.
   Keep the code format stable. Old student codes should keep working.
 - Teacher side: paste a whole class's codes, see grading results, and
-  pull up each student's work one at a time.
+  pull up each student's work one at a time. The Teacher Code Check box
+  in Share & Submit takes one code or many and always opens the batch
+  view; there is no separate single-code check.
 
 ## Signal flow simulation
 Signal path: source → mic/DI/amp → snake input → mixer channel →

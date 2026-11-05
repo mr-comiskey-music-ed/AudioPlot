@@ -32,7 +32,6 @@ import { LearnModal } from './components/LearnModal';
 import { PerfectionModal } from './components/PerfectionModal';
 import { GuidedTourModal } from './components/GuidedTourModal';
 import { MobileDeviceNotice } from './components/MobileDeviceNotice';
-import { VerifiedGradeModal } from './components/VerifiedGradeModal';
 import { BatchGradeModal } from './components/BatchGradeModal';
 import { BatchReviewBar } from './components/BatchReviewBar';
 import { parseBatch, BatchParseResult } from './services/batchGrading';
@@ -109,8 +108,6 @@ export default function App() {
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
   const [isPerfectionModalOpen, setIsPerfectionModalOpen] = useState(false);
-  const [verifiedProject, setVerifiedProject] = useState<StudioProjectState | null>(null);
-  const [isVerifiedModalOpen, setIsVerifiedModalOpen] = useState(false);
   const [hasCelebratedA, setHasCelebratedA] = useState(false);
 
   // Batch grading (kept in memory only; nothing is stored)
@@ -952,11 +949,14 @@ export default function App() {
         evaluation={evaluation}
         studentName={studentName}
         onUpdateStudentName={setStudentName}
-        onVerifyProject={(project) => {
-          setVerifiedProject(project);
-          setIsVerifiedModalOpen(true);
+        onGradeCodes={(text) => {
+          const result = parseBatch(text);
+          if (result.entries.length === 0) return false;
+          setBatchText(text);
+          setBatchResult(result);
+          setIsBatchOpen(true);
+          return true;
         }}
-        onOpenBatchGrade={() => setIsBatchOpen(true)}
       />
 
       {/* Batch Grading */}
@@ -985,16 +985,6 @@ export default function App() {
           onExit={handleExitReview}
         />
       )}
-
-      {/* Verified Grade Report Modal */}
-      <VerifiedGradeModal
-        isOpen={isVerifiedModalOpen}
-        onClose={() => setIsVerifiedModalOpen(false)}
-        studentName={verifiedProject?.studentName || ''}
-        project={verifiedProject || currentProjectState}
-        evaluation={verifiedProject ? evaluateStudioSetup(verifiedProject.environment || 'recording_studio', verifiedProject.placedGear || [], verifiedProject.connections || [], verifiedProject.mixerChannels || [], resolveTaskId(verifiedProject.activeChallengeId, verifiedProject.environment), verifiedProject.stageSize) : evaluation}
-        onLoadProject={handleLoadProject}
-      />
 
       {/* Mode Switch Project Confirmation Modal */}
       <ModeSwitchModal
