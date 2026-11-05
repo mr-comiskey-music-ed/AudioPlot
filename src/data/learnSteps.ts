@@ -446,7 +446,7 @@ export const LEARN_STEPS: LearnStep[] = [
       question: 'Where should the mic go to capture the electric guitar?',
       options: [
         { text: 'Pointed at the guitar', explain: 'Unplugged, an electric guitar is nearly silent. Its sound comes out of the amp.' },
-        { text: 'In front of the amp\'s speaker', correct: true, explain: 'Mic the speaker: that is where the guitar\'s sound actually comes from. An SM57 close to the grille is the classic choice.' },
+        { text: 'In front of the amp\'s speaker', correct: true, explain: 'Mic the speaker: that is where the guitar\'s sound actually comes from.' },
         { text: 'Skip the mic: cable the guitar straight to the snake', explain: 'A guitar\'s 1/4" signal cannot plug straight into the snake. It needs an amp (then a mic) or a DI first.' },
       ],
     },
