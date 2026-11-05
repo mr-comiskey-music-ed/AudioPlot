@@ -58,6 +58,8 @@ export interface LearnStep {
   doneNote?: string;
   /** Open the mixer when the step starts. */
   openMixer?: boolean;
+  /** Open the mixer once the step is done (to soundcheck what was just built). */
+  openMixerWhenDone?: boolean;
   enter?: (p: LearnPlot) => LearnPlot;
   solve: (p: LearnPlot) => LearnPlot;
 }
@@ -188,8 +190,8 @@ const need = (g: PlacedGear | undefined | null): PlacedGear => {
 const POS = {
   voice: { x: 600, y: 330 },
   acoustic: { x: 400, y: 330 },
-  eguitar: { x: 90, y: 200 },
-  amp: { x: 220, y: 250 },
+  eguitar: { x: 150, y: 340 },
+  amp: { x: 150, y: 190 },
   kick: { x: 860, y: 240 },
   wedge: { x: 520, y: 450 },
 };
@@ -268,7 +270,6 @@ export const LEARN_STEPS: LearnStep[] = [
     title: 'Cable it, then power it',
     what:
       'A mic sends its signal down an XLR cable to the snake. Each snake input feeds one channel on the mixer.',
-    openMixer: true,
     think: {
       afterMissions: 1,
       question: 'The condenser is cabled and patched, but its channel is silent. Why?',
@@ -284,7 +285,7 @@ export const LEARN_STEPS: LearnStep[] = [
         check: (p) => { const m = vocalCondenser(p); return !!m && !!channelOf(p, m); },
       },
       {
-        text: 'Turn on +48V on that channel in the mixer.',
+        text: 'Turn on +48V: click the vocal mic and press its +48V button.',
         check: (p) => { const m = vocalCondenser(p); return !!m && hasSignal(p, m); },
       },
     ],
@@ -373,7 +374,8 @@ export const LEARN_STEPS: LearnStep[] = [
           ),
       },
     ],
-    hear: 'That is a complete studio session: every source captured, powered, patched, and every musician can hear.',
+    openMixerWhenDone: true,
+    hear: 'That is a complete studio session: every source captured, powered, patched, and every musician can hear. The mixer is open below: press Soundcheck and watch each channel\'s meter.',
     solve: (p) => {
       let q = p;
       for (const inst of [need(voice(q)), need(acoustic(q))]) {
@@ -476,7 +478,7 @@ export const LEARN_STEPS: LearnStep[] = [
       if (!cabled(q, eguitar(q), amp(q), 'quarter_inch')) q = cable(q, need(eguitar(q)).instanceId, need(amp(q)).instanceId, 'quarter_inch');
       let mic = micsOn(q, 'gear_guitar_amp').find((m) => transducer(m) === 'dynamic' && m.gearId !== 'mic_beta52a');
       if (!mic) {
-        q = add(q, { instanceId: 'learn_amp_mic', gearId: 'mic_sm57', x: POS.amp.x + 90, y: POS.amp.y, latchedSourceInstanceId: need(amp(q)).instanceId });
+        q = add(q, { instanceId: 'learn_amp_mic', gearId: 'mic_sm57', x: POS.amp.x + 130, y: POS.amp.y, latchedSourceInstanceId: need(amp(q)).instanceId });
         mic = need(first(q, 'mic_sm57'));
       }
       q = update(q, mic.instanceId, { standHeight: 'amp_low' });

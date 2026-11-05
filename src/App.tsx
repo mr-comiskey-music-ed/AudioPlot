@@ -30,7 +30,7 @@ import { ModeSwitchModal } from './components/ModeSwitchModal';
 import { ChallengeModal } from './components/ChallengeModal';
 import { LearnModal } from './components/LearnModal';
 import { LearnPanel } from './components/LearnPanel';
-import { LEARN_STEPS, LearnPlot, learnStartPlot } from './data/learnSteps';
+import { LEARN_STEPS, LearnPlot, learnStartPlot, stepDone } from './data/learnSteps';
 import { LearnProgress, loadLearnProgress, saveLearnProgress } from './utils/learnProgress';
 import { PerfectionModal } from './components/PerfectionModal';
 import { GuidedTourModal } from './components/GuidedTourModal';
@@ -806,6 +806,13 @@ export default function App() {
     });
     showLearnMixer(stepIndex);
   };
+
+  // When a step that ends in a soundcheck is finished (the end of the studio part), open the mixer.
+  const learnStepFinished =
+    !!learn && !!LEARN_STEPS[learn.step] && stepDone(LEARN_STEPS[learn.step], { environment, placedGear, connections, mixerChannels, masterBus });
+  useEffect(() => {
+    if (learn && LEARN_STEPS[learn.step]?.openMixerWhenDone && learnStepFinished) setIsMixerCollapsed(false);
+  }, [learn?.step, learnStepFinished]);
 
   // The mixer pops up on steps that use it and tucks away again on steps about the plot.
   const showLearnMixer = (stepIndex: number) => setIsMixerCollapsed(!LEARN_STEPS[stepIndex]?.openMixer);
