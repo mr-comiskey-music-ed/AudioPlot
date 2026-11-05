@@ -1652,6 +1652,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
               getPortOrGearCenter={getPortOrGearCenter}
               highlightedPath={highlightedSignalPath}
               isHighlightPathActive={isHighlightSignalPathEnabled}
+              selectedItemId={selectedItemId}
             />
 
             {/* Placed Gear Nodes */}

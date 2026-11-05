@@ -8,6 +8,13 @@ import {
   getSnakeOutputPosition,
 } from './canvasMath';
 import { HighlightedSignalPath } from './signalPath';
+import { routeXlrCables, RoutedCable } from './cableRouting';
+import { GaffTape } from './GaffTape';
+
+/** A routed XLR run in the shape the drawing code below expects (tape is drawn per bundle, not per run). */
+const asRoute = (r?: RoutedCable) => (r ? { d: r.d, midPoint: r.midPoint, gaffPoints: [] as Array<{ x: number; y: number; angle: number }> } : undefined);
+/** Unpatch buttons stay out of the way: shown on hover, or while the gear on that cable is selected. */
+const badgeClass = (show: boolean) => `transition-opacity duration-150 ${show ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`;
 
 interface CableLayerProps {
   environment: EnvironmentMode;
@@ -25,6 +32,7 @@ interface CableLayerProps {
   getPortOrGearCenter: (id: string) => { x: number; y: number };
   highlightedPath?: HighlightedSignalPath | null;
   isHighlightPathActive?: boolean;
+  selectedItemId?: string | null;
 }
 
 export const CableLayer: React.FC<CableLayerProps> = ({
@@ -43,8 +51,14 @@ export const CableLayer: React.FC<CableLayerProps> = ({
   getPortOrGearCenter,
   highlightedPath = null,
   isHighlightPathActive = false,
+  selectedItemId = null,
 }) => {
   const hasActiveHighlight = isHighlightPathActive && highlightedPath !== null;
+  // Every XLR run laid out together, so runs can share bundles and gaff tape.
+  const routing = React.useMemo(
+    () => routeXlrCables({ environment, placedGear, connections, mixerChannels, world: canvasSize, getGearCenter }),
+    [environment, placedGear, connections, mixerChannels, canvasSize, getGearCenter]
+  );
 
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
@@ -294,13 +308,9 @@ export const CableLayer: React.FC<CableLayerProps> = ({
 
           const gearCenter = getGearCenter(targetGear);
           const snakeSocket = getPortOrGearCenter(socketId);
-          const route = getOrganizedSnakeCablePath(
-            gearCenter,
-            snakeSocket,
-            environment,
-            connIdx + 4,
-            canvasSize.width
-          );
+          const route =
+            asRoute(routing.cables.get(`conn:${conn.id}`)) ??
+            getOrganizedSnakeCablePath(gearCenter, snakeSocket, environment, connIdx + 4, canvasSize.width);
 
           return (
             <g
@@ -375,25 +385,27 @@ export const CableLayer: React.FC<CableLayerProps> = ({
               </g>
 
               {/* Unpatch 'X' node sitting directly ON the cable run */}
-              <circle
-                cx={route.midPoint.x}
-                cy={route.midPoint.y}
-                r="8.5"
-                fill="#18181B"
-                stroke={conn.color}
-                strokeWidth="1.5"
-                className="group-hover:fill-rose-600 group-hover:stroke-rose-300 transition-colors shadow-lg"
-              />
-              <text
-                x={route.midPoint.x}
-                y={route.midPoint.y + 3.5}
-                fill="#FFF"
-                fontSize="9"
-                textAnchor="middle"
-                fontWeight="bold"
-              >
-                ✕
-              </text>
+              <g className={badgeClass(selectedItemId === gearInstanceId)}>
+                <circle
+                  cx={route.midPoint.x}
+                  cy={route.midPoint.y}
+                  r="8.5"
+                  fill="#18181B"
+                  stroke={conn.color}
+                  strokeWidth="1.5"
+                  className="group-hover:fill-rose-600 group-hover:stroke-rose-300 transition-colors shadow-lg"
+                />
+                <text
+                  x={route.midPoint.x}
+                  y={route.midPoint.y + 3.5}
+                  fill="#FFF"
+                  fontSize="9"
+                  textAnchor="middle"
+                  fontWeight="bold"
+                >
+                  ✕
+                </text>
+              </g>
             </g>
           );
         }
@@ -405,7 +417,8 @@ export const CableLayer: React.FC<CableLayerProps> = ({
 
         const isXlr = conn.cableType === 'xlr';
         const route = isXlr
-          ? getOrganizedSnakeCablePath(fromCenter, toCenter, environment, connIdx + 10, canvasSize.width)
+          ? asRoute(routing.cables.get(`conn:${conn.id}`)) ??
+            getOrganizedSnakeCablePath(fromCenter, toCenter, environment, connIdx + 10, canvasSize.width)
           : (() => {
               const midX = (fromCenter.x + toCenter.x) / 2;
               const midY = (fromCenter.y + toCenter.y) / 2 + 25;
@@ -496,18 +509,20 @@ export const CableLayer: React.FC<CableLayerProps> = ({
             </g>
 
             {/* Unpatch 'X' node sitting directly ON the cable run */}
-            <circle
-              cx={route.midPoint.x}
-              cy={route.midPoint.y}
-              r="8.5"
-              fill="#18181B"
-              stroke={conn.color}
-              strokeWidth="1.5"
-              className="group-hover:fill-rose-600 group-hover:stroke-rose-300 transition-colors shadow-lg"
-            />
-            <text x={route.midPoint.x} y={route.midPoint.y + 3.5} fill="#FFF" fontSize="9" textAnchor="middle" fontWeight="bold">
-              ✕
-            </text>
+            <g className={badgeClass(selectedItemId === conn.fromInstanceId || selectedItemId === conn.toInstanceId)}>
+              <circle
+                cx={route.midPoint.x}
+                cy={route.midPoint.y}
+                r="8.5"
+                fill="#18181B"
+                stroke={conn.color}
+                strokeWidth="1.5"
+                className="group-hover:fill-rose-600 group-hover:stroke-rose-300 transition-colors shadow-lg"
+              />
+              <text x={route.midPoint.x} y={route.midPoint.y + 3.5} fill="#FFF" fontSize="9" textAnchor="middle" fontWeight="bold">
+                ✕
+              </text>
+            </g>
           </g>
         );
       })}
@@ -526,13 +541,9 @@ export const CableLayer: React.FC<CableLayerProps> = ({
 
         const gearCenter = getGearCenter(assignedGear);
         const snakeSocket = getSnakeChannelPosition(ch.channelNumber, environment, canvasSize.width, canvasSize.height);
-        const route = getOrganizedSnakeCablePath(
-          gearCenter,
-          snakeSocket,
-          environment,
-          ch.channelNumber - 1,
-          canvasSize.width
-        );
+        const route =
+          asRoute(routing.cables.get(`in:${ch.channelNumber}`)) ??
+          getOrganizedSnakeCablePath(gearCenter, snakeSocket, environment, ch.channelNumber - 1, canvasSize.width);
 
         return (
           <g
@@ -607,29 +618,34 @@ export const CableLayer: React.FC<CableLayerProps> = ({
             </g>
 
             {/* Interactive Unpatch Badge */}
-            <circle
-              cx={route.midPoint.x}
-              cy={route.midPoint.y}
-              r={isSnakeHighlighted ? '10' : '8.5'}
-              fill={isSnakeHighlighted ? '#7C2D12' : '#18181B'}
-              stroke="#F97316"
-              strokeWidth={isSnakeHighlighted ? '2' : '1.5'}
-              className="group-hover:fill-rose-600 group-hover:stroke-rose-300 transition-colors shadow-lg"
-              filter={isSnakeHighlighted ? 'url(#signal-glow-amber)' : undefined}
-            />
-            <text
-              x={route.midPoint.x}
-              y={route.midPoint.y + 3.5}
-              fill="#FFF"
-              fontSize={isSnakeHighlighted ? '10' : '9'}
-              textAnchor="middle"
-              fontWeight="bold"
-            >
-              ✕
-            </text>
+            <g className={badgeClass(selectedItemId === assignedGear.instanceId)}>
+              <circle
+                cx={route.midPoint.x}
+                cy={route.midPoint.y}
+                r={isSnakeHighlighted ? '10' : '8.5'}
+                fill={isSnakeHighlighted ? '#7C2D12' : '#18181B'}
+                stroke="#F97316"
+                strokeWidth={isSnakeHighlighted ? '2' : '1.5'}
+                className="group-hover:fill-rose-600 group-hover:stroke-rose-300 transition-colors shadow-lg"
+                filter={isSnakeHighlighted ? 'url(#signal-glow-amber)' : undefined}
+              />
+              <text
+                x={route.midPoint.x}
+                y={route.midPoint.y + 3.5}
+                fill="#FFF"
+                fontSize={isSnakeHighlighted ? '10' : '9'}
+                textAnchor="middle"
+                fontWeight="bold"
+              >
+                ✕
+              </text>
+            </g>
           </g>
         );
       })}
+
+      {/* Gaff tape across the XLR bundles */}
+      <GaffTape strips={routing.tape} />
     </svg>
   );
 };

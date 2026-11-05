@@ -78,6 +78,17 @@ master bus → snake outputs (MAIN L/R, MON 1/2) → PA / monitors.
   pan, mute/solo, and master trim/fader/dim/mono, with a limiter.
   Channels with fader ≤ 5 or muted are silent. Students hear their
   mistakes.
+- XLR cable drawing (`src/components/canvas/cableRouting.ts`): all XLR
+  runs are laid out together. Inputs rise straight from their gear to a
+  shared trunk just downstage of the snake and ride it in a tight bundle
+  (lanes ordered so bundled runs don't cross; out-of-order patching
+  still crosses near the snake, which is realistic). Outputs leave the
+  side of the snake: MAIN L down the left wall, MAIN R the right, MON
+  runs down the nearer wall and along the downstage edge to wedges.
+  Gaff tape (`GaffTape.tsx`: light gray, torn ends, slight tilt) goes
+  across bundles and never covers an unpatch ✕. The ✕ shows only on
+  hover or while that cable's gear is selected. 1/4" runs keep their
+  drooping curve.
 - `traceSignalPath` (`src/components/canvas/signalPath.ts`) highlights
   the whole up/downstream chain for selected gear (the HUD view).
 
