@@ -80,24 +80,16 @@ export const SnakeBox: React.FC<SnakeBoxProps> = ({
     >
       {displayedError && (
         <div
-          // Shown just below the snake and never catches clicks, so the sockets stay usable.
-          className={`absolute left-0 right-0 top-full mt-2 z-40 pointer-events-none bg-stone-950/95 backdrop-blur-xl border-2 border-rose-500/90 rounded-2xl p-3 flex flex-col justify-center shadow-2xl transition-opacity duration-1000 ${
+          // A compact strip just below the snake that never catches clicks, so the sockets stay usable.
+          className={`absolute left-0 right-0 top-full mt-1 z-40 pointer-events-none bg-stone-950/95 border border-rose-500/80 rounded-lg px-2 py-1 flex items-start gap-1.5 text-[10px] leading-snug shadow-lg transition-opacity duration-1000 ${
             isFadingOut ? 'opacity-0' : 'opacity-100'
           }`}
         >
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 mt-0.5 shadow-[0_0_12px_rgba(244,63,94,0.4)]">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-            <div className="flex-1">
-              <div className="font-black text-xs uppercase tracking-wide text-rose-200">
-                {displayedError.title}
-              </div>
-              <div className="text-[11px] text-stone-300 mt-1 leading-relaxed">
-                {displayedError.message}
-              </div>
-            </div>
-          </div>
+          <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0 mt-px" />
+          <span>
+            <span className="font-black text-rose-200">{displayedError.title}:</span>{' '}
+            <span className="text-stone-300">{displayedError.message}</span>
+          </span>
         </div>
       )}
       <div className={`flex items-center justify-between border-b border-white/10 ${environment === 'live_stage' ? 'pb-1.5 mb-2' : 'pb-1 mb-1.5'}`}>
