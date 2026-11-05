@@ -18,6 +18,10 @@ the goal is students designing real setups with understanding.
   off until they answer. Not used for shared-plot (`?plot=`) links or
   while the teacher steps through batch review or while in Learn. The
   leave-page warning appears only if the browser can't save.
+- Share & Submit has "Restore progress from a code": paste the last
+  code and it replaces the plot (asks first if the plot has work). For a
+  different computer or a cleared browser. It reads the code with the
+  same forgiving parser as batch grading.
 - Learn progress is also kept in the browser (`audioplot:v1:learn`,
   `src/utils/learnProgress.ts`): furthest step, Think First picks, and
   whether Learn is done. No name.
