@@ -22,8 +22,8 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           {/* Offset double-cutaway solid body */}
           <path
             d="M27 37C25 32 20 28 17.5 30.5C15.5 32.5 18.5 38 18.5 42C18.5 45 15.5 48 16.5 53C17.5 58 23.5 61 32 61C40.5 61 46.5 58 47.5 53C48.5 48 45.5 45 45.5 42C45.5 39 48 35.5 46.5 33.5C45 31.5 41 33 37.5 37Z"
-            fill="#d9604a"
-            stroke="#4a1f12"
+            fill="#3f7f9a"
+            stroke="#1a3647"
             strokeWidth="1.3"
             strokeLinejoin="round"
           />
@@ -609,13 +609,17 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
     case 'Mic':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
-          {/* Singer / Vocalist Profile with Sound Radiance */}
-          <circle cx="26" cy="22" r="10" fill="#d9604a" opacity="0.8" />
-          <path d="M12 50C12 40 20 36 26 36C32 36 40 40 40 50" fill="#b5472a" />
-          {/* Vocal Waves */}
-          <path d="M42 20C46 22 46 28 42 30" stroke="#f0a090" strokeWidth="2" strokeLinecap="round" />
-          <path d="M47 16C53 19 53 31 47 34" stroke="#f0a090" strokeWidth="2" strokeLinecap="round" />
-          <path d="M52 12C60 16 60 34 52 38" stroke="#f0a090" strokeWidth="2" strokeLinecap="round" />
+          {/* A singer: head and shoulders, eyes closed, mouth open, sound rolling out to both sides */}
+          <path d="M9 58C9 46 19 39.5 32 39.5C45 39.5 55 46 55 58Z" fill="#b5472a" stroke="#4a1f12" strokeWidth="1.3" strokeLinejoin="round" />
+          <rect x="27.6" y="29" width="8.8" height="12" rx="3" fill="#d9604a" stroke="#4a1f12" strokeWidth="1.1" />
+          <circle cx="32" cy="22" r="11" fill="#e8806f" stroke="#4a1f12" strokeWidth="1.3" />
+          <path d="M26 20.2Q28.2 17.8 30.4 20.2M33.6 20.2Q35.8 17.8 38 20.2" stroke="#4a1f12" strokeWidth="1.3" strokeLinecap="round" />
+          <ellipse cx="32" cy="26.6" rx="3.1" ry="3.5" fill="#4a1f12" />
+          {/* Sound waves */}
+          <path d="M15.5 12.5Q11 22 15.5 31.5" stroke="#f0a090" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M9.5 8.5Q3.5 22 9.5 35.5" stroke="#f0a090" strokeWidth="2.5" strokeLinecap="round" opacity="0.65" />
+          <path d="M48.5 12.5Q53 22 48.5 31.5" stroke="#f0a090" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M54.5 8.5Q60.5 22 54.5 35.5" stroke="#f0a090" strokeWidth="2.5" strokeLinecap="round" opacity="0.65" />
         </svg>
       );
 

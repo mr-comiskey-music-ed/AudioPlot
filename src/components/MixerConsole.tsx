@@ -137,7 +137,7 @@ const GainTrimKnob: React.FC<GainTrimKnobProps> = ({ value = 50, onChange }) => 
     >
       <div className="w-full flex justify-center items-center h-3 text-[8px] font-bold uppercase mb-0.5">
         {isInteracting ? (
-          <span className={`font-mono text-[8px] font-black ${isHot ? 'text-rose-400' : 'text-orange-400'}`}>
+          <span className={`font-mono text-[8px] font-black ${isHot ? 'text-rose-400' : 'text-emerald-400'}`}>
             {dbText}
           </span>
         ) : (
@@ -150,16 +150,16 @@ const GainTrimKnob: React.FC<GainTrimKnobProps> = ({ value = 50, onChange }) => 
         onDoubleClick={handleDoubleClick}
         className={`w-7 h-7 rounded-full bg-stone-900 border-2 flex items-center justify-center cursor-ns-resize shadow-md transition-all relative ${
           isDragging
-            ? 'border-orange-400 ring-2 ring-orange-400/40 shadow-orange-950/80 scale-105'
+            ? 'border-emerald-400 ring-2 ring-emerald-400/40 shadow-emerald-950/80 scale-105'
             : isHot
             ? 'border-rose-500 hover:border-rose-400'
-            : 'border-stone-600 hover:border-orange-400/80'
+            : 'border-stone-600 hover:border-emerald-400/80'
         }`}
       >
         {/* Notch pointer line */}
         <div
           className={`absolute w-0.5 h-2.5 rounded-full top-0.5 ${
-            isHot ? 'bg-rose-400 shadow-[0_0_4px_#fb7185]' : 'bg-orange-400 shadow-[0_0_4px_#e3b04e]'
+            isHot ? 'bg-rose-400 shadow-[0_0_4px_#fb7185]' : 'bg-emerald-400 shadow-[0_0_4px_#aab35f]'
           }`}
           style={{
             transformOrigin: '50% 11px',
@@ -437,7 +437,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#aab35f]" />
           <span className="font-extrabold uppercase tracking-wider text-stone-200 flex items-center gap-1.5 group-hover:text-white transition-colors">
-            <Sliders className="w-3.5 h-3.5 text-orange-400" />
+            <Sliders className="w-3.5 h-3.5 text-emerald-400" />
             Console / Mixer
           </span>
         </div>
@@ -464,7 +464,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
           >
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
             <span className="hidden sm:inline">Meter & Gear List</span>
-            <ClipboardList className="w-3.5 h-3.5 text-orange-400 ml-0.5" />
+            <ClipboardList className="w-3.5 h-3.5 text-emerald-400 ml-0.5" />
           </button>
 
           {/* Soundcheck Playback Button */}
@@ -492,7 +492,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
             className="p-1.5 rounded-full bg-white/5 hover:bg-white/10 text-stone-400 hover:text-stone-200 border border-white/10 transition-all group-hover:border-white/20 cursor-pointer"
             title={isCollapsed ? 'Expand Mixer' : 'Collapse Mixer'}
           >
-            {isCollapsed ? <ChevronUp className="w-3.5 h-3.5 text-orange-400" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            {isCollapsed ? <ChevronUp className="w-3.5 h-3.5 text-emerald-400" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
@@ -605,7 +605,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                       onClick={(e) => e.stopPropagation()}
                       onChange={(e) => onUpdateChannel(ch.channelNumber, { label: e.target.value })}
                       placeholder={`Ch ${ch.channelNumber}`}
-                      className="w-full bg-white/5 hover:bg-white/10 focus:bg-white/10 border border-white/10 focus:border-orange-400/80 rounded-lg px-1.5 py-0.5 text-[10px] font-bold text-center text-orange-300 outline-none backdrop-blur-md truncate transition-all mb-1"
+                      className="w-full bg-white/5 hover:bg-white/10 focus:bg-white/10 border border-white/10 focus:border-emerald-400/80 rounded-lg px-1.5 py-0.5 text-[10px] font-bold text-center text-emerald-300 outline-none backdrop-blur-md truncate transition-all mb-1"
                     />
 
 
@@ -739,16 +739,16 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                 onClick={() => setSelectedChannelNumber('master')}
                 className={`w-40 bg-black/60 backdrop-blur-xl border rounded-2xl p-3 flex flex-col items-center justify-between shadow-xl cursor-pointer transition-all ${
                   selectedChannelNumber === 'master'
-                    ? 'ring-2 ring-orange-400 border-orange-400 bg-orange-500/[0.08] shadow-[0_0_16px_rgba(249,115,22,0.3)]'
-                    : 'border-orange-500/30 hover:border-orange-500/60'
+                    ? 'ring-2 ring-emerald-400 border-emerald-400 bg-emerald-500/[0.08] shadow-[0_0_16px_rgba(143,154,71,0.3)]'
+                    : 'border-emerald-500/30 hover:border-emerald-500/60'
                 }`}
               >
                 {/* Master Header */}
                 <div className="w-full text-center border-b border-white/10 pb-1.5 mb-2">
                   <div className="flex items-center justify-center gap-1">
-                    <span className="text-[12px] font-black text-orange-400 tracking-wider">MASTER</span>
+                    <span className="text-[12px] font-black text-emerald-400 tracking-wider">MASTER</span>
                     {selectedChannelNumber === 'master' && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-ping" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                     )}
                   </div>
                   <div className="text-[8.5px] text-stone-400 mt-0.5">Main Outs (L/R)</div>
@@ -759,7 +759,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                   <div className="flex items-center justify-between gap-2 w-full px-1 mb-1.5">
                     {/* Fader level label centered above fader column */}
                     <div className="flex-1 flex justify-center">
-                      <span className="text-[9px] font-mono font-bold text-orange-400">
+                      <span className="text-[9px] font-mono font-bold text-emerald-400">
                         {faderToDb(localMasterFader !== null ? localMasterFader : effectiveMaster.fader)}
                       </span>
                     </div>

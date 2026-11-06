@@ -16,7 +16,7 @@ export function getFloorStyle(): FloorStyle {
   } catch {
     /* ignore */
   }
-  return 'wood';
+  return 'graph';
 }
 
 interface Props {

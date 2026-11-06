@@ -106,7 +106,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               onClick={() => onEnvironmentChange('recording_studio')}
               className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                 environment === 'recording_studio'
-                  ? 'bg-orange-500 text-stone-950 shadow-md font-bold'
+                  ? 'bg-emerald-500 text-stone-950 shadow-md font-bold'
                   : 'text-stone-400 hover:text-stone-200'
               }`}
               title="Switch to Recording Studio Floor Plan"
@@ -204,7 +204,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           <button
             id="btn-learn"
             onClick={onOpenLearn || onOpenGuideModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 border border-purple-500/40 backdrop-blur-md transition-all text-xs font-bold"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-500/40 backdrop-blur-md transition-all text-xs font-bold"
             title="Learn: how to choose mics, DIs, gear and routing for any setup"
           >
             <GraduationCap className="w-3.5 h-3.5" />
