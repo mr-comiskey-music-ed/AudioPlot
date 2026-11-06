@@ -244,23 +244,17 @@ export const formatShortGearName = (name?: string, gearId?: string): string => {
 };
 
 // Calculate coordinates and bounds of Snake Box
+// The stage snake box as it is actually drawn (SnakeBox.tsx), in world units. These numbers were measured
+// from the rendered box and socket centers: if SnakeBox's size or padding changes, measure them again.
 export const getSnakeBoxBounds = (environment: EnvironmentMode, canvasWidth: number = 1000, canvasHeight: number = 650) => {
-  if (environment === 'live_stage') {
-    const snakeBoxW = 490;
-    const snakeBoxH = 144;
-    const snakeX = Math.max(10, (canvasWidth - snakeBoxW) / 2);
-    const snakeY = 16;
-    return { x: snakeX, y: snakeY, w: snakeBoxW, h: snakeBoxH };
-  } else {
-    const snakeBoxW = 320;
-    const snakeBoxH = 144;
-    const snakeX = Math.max(10, (canvasWidth - snakeBoxW) / 2);
-    const snakeY = 16;
-    return { x: snakeX, y: snakeY, w: snakeBoxW, h: snakeBoxH };
-  }
+  const snakeBoxW = environment === 'live_stage' ? 500 : 336;
+  const snakeBoxH = environment === 'live_stage' ? 175 : 165;
+  const snakeX = Math.max(10, (canvasWidth - snakeBoxW) / 2);
+  const snakeY = 16;
+  return { x: snakeX, y: snakeY, w: snakeBoxW, h: snakeBoxH };
 };
 
-// Calculate coordinates of Snake Box Channel Socket (Inputs 1-8)
+// Center of a Snake Box input socket (channels 1-8, two rows of four)
 export const getSnakeChannelPosition = (
   chNum: number,
   environment: EnvironmentMode,
@@ -268,32 +262,15 @@ export const getSnakeChannelPosition = (
   canvasHeight: number = 650
 ) => {
   const box = getSnakeBoxBounds(environment, canvasWidth, canvasHeight);
+  const col = (chNum - 1) % 4;
+  const row = Math.floor((chNum - 1) / 4);
   if (environment === 'live_stage') {
-    const gridX = box.x + 12;
-    const gridY = box.y + 36;
-    const colIndex = (chNum - 1) % 4;
-    const rowIndex = Math.floor((chNum - 1) / 4);
-    const colWidth = 66;
-    const rowHeight = 44;
-    return {
-      x: gridX + colIndex * (colWidth + 4) + colWidth / 2,
-      y: gridY + rowIndex * (rowHeight + 6) + 14,
-    };
-  } else {
-    const gridX = box.x + 12;
-    const gridY = box.y + 36;
-    const colIndex = (chNum - 1) % 4;
-    const rowIndex = Math.floor((chNum - 1) / 4);
-    const colWidth = (box.w - 24 - 18) / 4;
-    const rowHeight = 44;
-    return {
-      x: gridX + colIndex * (colWidth + 6) + colWidth / 2,
-      y: gridY + rowIndex * (rowHeight + 6) + 14,
-    };
+    return { x: box.x + 46.5 + col * 69, y: box.y + 86.2 + row * 51.4 };
   }
+  return { x: box.x + 48.8 + col * 79.5, y: box.y + 66.4 + row * 59.9 };
 };
 
-// Calculate coordinates of Snake Output Sockets (Live Stage: MON 1, MON 2, MAIN L, MAIN R)
+// Center of a Snake Box output socket (live stage only: MON 1, MON 2, MAIN L, MAIN R)
 export const getSnakeOutputPosition = (
   outputPort: 'mon1' | 'mon2' | 'main_l' | 'main_r',
   environment: EnvironmentMode,
@@ -301,20 +278,9 @@ export const getSnakeOutputPosition = (
   canvasHeight: number = 650
 ) => {
   const box = getSnakeBoxBounds(environment, canvasWidth, canvasHeight);
-  const outGridX = box.x + 308;
-  const outGridY = box.y + 36;
-  const colWidth = 78;
-  const rowHeight = 44;
-
-  if (outputPort === 'mon1') {
-    return { x: outGridX + colWidth / 2, y: outGridY + 14 };
-  } else if (outputPort === 'mon2') {
-    return { x: outGridX + (colWidth + 6) + colWidth / 2, y: outGridY + 14 };
-  } else if (outputPort === 'main_l') {
-    return { x: outGridX + colWidth / 2, y: outGridY + (rowHeight + 6) + 14 };
-  } else {
-    return { x: outGridX + (colWidth + 6) + colWidth / 2, y: outGridY + (rowHeight + 6) + 14 };
-  }
+  const col = outputPort === 'mon1' || outputPort === 'main_l' ? 0 : 1;
+  const row = outputPort === 'mon1' || outputPort === 'mon2' ? 0 : 1;
+  return { x: box.x + 347.8 + col * 93.5, y: box.y + 85.6 + row * 50.3 };
 };
 
 // Calculate gear box dimensions

@@ -123,7 +123,7 @@ export function routeXlrCables(opts: {
   };
 
   // ---------- Inputs: up to a shared trunk under the snake ----------
-  const trunkBase = box.y + box.h + 20;
+  const trunkBase = box.y + box.h + 10; // just barely in front of the snake
   type In = { ch: number; g: Pt; s: Pt };
   const inputs: In[] = [];
   for (const ch of mixerChannels) {
@@ -187,7 +187,7 @@ export function routeXlrCables(opts: {
     const ordered = [...fronts, ...others];
     ordered.forEach((o, k) => {
       const wallX = side === 'left' ? WALL + k * GAP : W - WALL - k * GAP;
-      const exitY = box.y + 40 + k * GAP; // inside the snake box, so the start is hidden under it
+      const exitY = box.y + 62 + k * GAP; // inside the box's height: the cable shows up at the box's side edge
       const head: Pt[] = [o.s, { x: o.s.x, y: exitY }, { x: wallX, y: exitY }];
       const headKinds: Kind[] = ['hidden', 'exit'];
       const headBundles = ['', `exit-${side}`];

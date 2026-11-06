@@ -2,10 +2,19 @@ import React from 'react';
 import { GaffStrip } from './cableRouting';
 
 /**
- * Gaffer tape strips laid across cable bundles. Light gray cloth tape: straight factory edges along
- * its length, hand-torn ragged ends, a faint weave, and each strip a few degrees off square, the way
- * it ends up when someone tapes cables down in a hurry.
+ * Gaffer tape strips laid across cable bundles. Cloth tape: straight factory edges along its length,
+ * ends torn nearly straight across (a little rough, not ragged), a faint weave, and each strip a hair off
+ * square, the way a pro leaves it.
  */
+
+export type TapeTone = 'white' | 'black';
+/** Color of the tape on the plot: black, what venues use most (white also works: set TAPE_TONE to 'white'). */
+export const TAPE_TONE: TapeTone = 'black';
+
+const PALETTE: Record<TapeTone, { base: string; weaveA: string; weaveB: string; edge: string; shadow: number }> = {
+  white: { base: '#f4f4f5', weaveA: '#d4d4d8', weaveB: '#e4e4e7', edge: '#b4b4bb', shadow: 0.45 },
+  black: { base: '#17171a', weaveA: '#2c2c32', weaveB: '#222227', edge: '#6b6b75', shadow: 0.6 },
+};
 
 const TAPE_WIDTH = 11; // along the cables
 
@@ -25,16 +34,16 @@ function stripPoints(strip: GaffStrip): string {
   // u: across the bundle (the strip's length); v: along the cables (the strip's width)
   const pts: Array<[number, number]> = [];
   const tornEnd = (u: number, dir: 1 | -1) => {
-    const steps = 5;
+    const steps = 3;
     for (let i = 0; i <= steps; i++) {
       const v = dir === 1 ? -hw + (2 * hw * i) / steps : hw - (2 * hw * i) / steps;
-      const bite = (r() - 0.35) * 2.6; // ragged tear, mostly outward
+      const bite = (r() - 0.5) * 0.9; // a slightly rough edge
       pts.push([u + dir * bite, v]);
     }
   };
   tornEnd(half, 1); // one torn end
   tornEnd(-half, -1); // the other
-  const angle = ((r() - 0.5) * 9 * Math.PI) / 180; // a few degrees off square
+  const angle = ((r() - 0.5) * 3 * Math.PI) / 180; // a hair off square
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   return pts
@@ -49,16 +58,17 @@ function stripPoints(strip: GaffStrip): string {
     .join(' ');
 }
 
-export const GaffTape: React.FC<{ strips: GaffStrip[] }> = ({ strips }) => {
+export const GaffTape: React.FC<{ strips: GaffStrip[]; tone?: TapeTone }> = ({ strips, tone = TAPE_TONE }) => {
   if (strips.length === 0) return null;
+  const c = PALETTE[tone];
   return (
     <g pointerEvents="none">
       <defs>
         {/* Faint cloth weave */}
         <pattern id="gaff-weave" width="3" height="3" patternUnits="userSpaceOnUse">
-          <rect width="3" height="3" fill="#cfcfd4" />
-          <path d="M0 0.5H3M0 2H3" stroke="#a8a8ae" strokeWidth="0.45" />
-          <path d="M1 0V3M2.5 0V3" stroke="#b9b9bf" strokeWidth="0.3" />
+          <rect width="3" height="3" fill={c.base} />
+          <path d="M0 0.5H3M0 2H3" stroke={c.weaveA} strokeWidth="0.45" />
+          <path d="M1 0V3M2.5 0V3" stroke={c.weaveB} strokeWidth="0.3" />
         </pattern>
       </defs>
       {strips.map((strip, i) => {
@@ -66,8 +76,8 @@ export const GaffTape: React.FC<{ strips: GaffStrip[] }> = ({ strips }) => {
         return (
           <g key={i}>
             {/* soft shadow so the tape sits on top of the cables */}
-            <polygon points={pts} fill="#000" fillOpacity="0.35" transform="translate(0.8 1)" />
-            <polygon points={pts} fill="url(#gaff-weave)" stroke="#8d8d94" strokeWidth="0.5" strokeLinejoin="round" opacity="0.94" />
+            <polygon points={pts} fill="#000" fillOpacity={c.shadow} transform="translate(0.8 1)" />
+            <polygon points={pts} fill="url(#gaff-weave)" stroke={c.edge} strokeWidth="0.5" strokeLinejoin="round" />
           </g>
         );
       })}

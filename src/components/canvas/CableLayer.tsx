@@ -4,6 +4,7 @@ import {
   getGearBoxDimensions,
   getOrganizedSnakeCablePath,
   getQuadBezierPointAndAngle,
+  getSnakeBoxBounds,
   getSnakeChannelPosition,
   getSnakeOutputPosition,
 } from './canvasMath';
@@ -54,6 +55,10 @@ export const CableLayer: React.FC<CableLayerProps> = ({
   selectedItemId = null,
 }) => {
   const hasActiveHighlight = isHighlightPathActive && highlightedPath !== null;
+  // XLR runs are cut off at the edge of the snake box (they plug in from outside it), so nothing shows through
+  // the box. This is the whole stage minus the box.
+  const snakeBox = getSnakeBoxBounds(environment, canvasSize.width, canvasSize.height);
+  const outsideSnake = `M0 0H${canvasSize.width}V${canvasSize.height}H0Z M${snakeBox.x} ${snakeBox.y}h${snakeBox.w}v${snakeBox.h}h-${snakeBox.w}Z`;
   // Every XLR run laid out together, so runs can share bundles and gaff tape.
   const routing = React.useMemo(
     () => routeXlrCables({ environment, placedGear, connections, mixerChannels, world: canvasSize, getGearCenter }),
@@ -63,6 +68,9 @@ export const CableLayer: React.FC<CableLayerProps> = ({
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
       <defs>
+        <clipPath id="outside-snake">
+          <path d={outsideSnake} clipRule="evenodd" />
+        </clipPath>
         {/* Glowing Neon Drop Shadow Filters */}
         <filter id="signal-glow-cyan" x="-30%" y="-30%" width="160%" height="160%">
           <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#38BDF8" floodOpacity="0.9" />
@@ -315,6 +323,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
           return (
             <g
               key={conn.id}
+              clipPath="url(#outside-snake)"
               className="cursor-pointer pointer-events-auto group transition-opacity duration-300"
               onClick={() => onDeleteConnection(conn.id)}
               title="Click to unpatch snake output cable"
@@ -440,6 +449,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
         return (
           <g
             key={conn.id}
+            clipPath={isXlr ? 'url(#outside-snake)' : undefined}
             className="cursor-pointer pointer-events-auto group transition-opacity duration-300"
             onClick={() => onDeleteConnection(conn.id)}
             opacity={hasActiveHighlight ? (isHighlighted ? 1 : 0.22) : 1}
@@ -548,6 +558,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
         return (
           <g
             key={`snake-cable-${ch.channelNumber}`}
+            clipPath="url(#outside-snake)"
             className="cursor-pointer pointer-events-auto group transition-opacity duration-300"
             onClick={() => onPatchToMixer(assignedGear.instanceId, ch.channelNumber)}
             title={`Click to unpatch Channel ${ch.channelNumber}`}
