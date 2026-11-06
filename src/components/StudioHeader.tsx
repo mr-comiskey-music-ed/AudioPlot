@@ -168,8 +168,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             </button>
           )}
 
-          {statusSlot}
-
           {/* Clear Plot Button */}
           <button
             id="btn-clear-plot"
@@ -216,10 +214,10 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             <button
               id="btn-open-tour"
               onClick={onOpenTour}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-600/20 hover:bg-sky-600/35 text-sky-200 border border-sky-500/40 backdrop-blur-md transition-all text-xs font-bold"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-600/20 hover:bg-orange-600/35 text-orange-200 border border-orange-500/40 backdrop-blur-md transition-all text-xs font-bold"
               title="Open step-by-step How-To Tour"
             >
-              <Sparkles className="w-3.5 h-3.5 text-sky-300" />
+              <Sparkles className="w-3.5 h-3.5 text-orange-300" />
               <span>How-To</span>
             </button>
           )}
@@ -227,6 +225,9 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
 
 
+
+          {/* Autosave status: sits next to Share & Submit; the room is reserved so nothing shifts when it appears */}
+          <div className="hidden lg:flex w-[92px] justify-end shrink-0">{statusSlot}</div>
 
           {/* Share / Export Modal */}
           <button

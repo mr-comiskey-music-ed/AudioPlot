@@ -435,7 +435,6 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
         title={isCollapsed ? 'Click anywhere to expand Mixer & Audio Interface' : 'Click anywhere to collapse Mixer'}
       >
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#81a171]" />
           <span className="font-extrabold uppercase tracking-wider text-stone-200 flex items-center gap-1.5 group-hover:text-white transition-colors">
             <Sliders className="w-3.5 h-3.5 text-emerald-400" />
             Console / Mixer
@@ -561,9 +560,6 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                       <span className={isSelected ? 'text-emerald-400 font-extrabold' : ''}>
                         CH {ch.channelNumber}
                       </span>
-                      {isSelected && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" title="Selected on Oscilloscope" />
-                      )}
                       {hasChainError && (
                         <span
                           className="text-amber-400 flex items-center gap-0.5 cursor-help"
@@ -747,9 +743,6 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                 <div className="w-full text-center border-b border-white/10 pb-1.5 mb-2">
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-[12px] font-black text-emerald-400 tracking-wider">MASTER</span>
-                    {selectedChannelNumber === 'master' && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    )}
                   </div>
                   <div className="text-[8.5px] text-stone-400 mt-0.5">Main Outs (L/R)</div>
                 </div>

@@ -1,3 +1,4 @@
+import { getGearBoxDimensions } from './canvas/canvasMath';
 import React, { useState } from 'react';
 import {
   Info,
@@ -261,6 +262,28 @@ export const GearPalette: React.FC<GearPaletteProps> = ({
                     })
                   );
                   e.dataTransfer.effectAllowed = 'copy';
+                  // Drag just the box that will land on the plot (icon and name), not the whole locker card
+                  const dims = getGearBoxDimensions(item.id);
+                  const ghost = document.createElement('div');
+                  ghost.style.cssText = `position:fixed;left:-2000px;top:-2000px;width:${dims.width}px;height:${dims.height}px;box-sizing:border-box;padding:8px;border-radius:16px;background:rgba(20,15,10,0.92);border:1px solid rgba(255,255,255,0.25);box-shadow:0 10px 24px rgba(0,0,0,0.35);display:flex;flex-direction:column;align-items:center;justify-content:space-between;color:#efe6d8;font-weight:900;text-align:center;overflow:hidden`;
+                  const icon = e.currentTarget.querySelector('svg:not(.lucide)');
+                  const iconBox = document.createElement('div');
+                  iconBox.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;min-height:0';
+                  if (icon) {
+                    const clone = icon.cloneNode(true) as SVGElement;
+                    const px = Math.max(22, Math.min(dims.height - 44, dims.width - 22, 140));
+                    clone.setAttribute('width', String(px));
+                    clone.setAttribute('height', String(px));
+                    iconBox.appendChild(clone);
+                  }
+                  const label = document.createElement('div');
+                  label.textContent = item.name;
+                  label.style.cssText = `font-size:${Math.max(8, Math.min(13, dims.width / 11))}px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%`;
+                  ghost.appendChild(iconBox);
+                  ghost.appendChild(label);
+                  document.body.appendChild(ghost);
+                  e.dataTransfer.setDragImage(ghost, dims.width / 2, dims.height / 2);
+                  setTimeout(() => ghost.remove(), 0);
                 }}
                 className={`group relative rounded-2xl p-2.5 transition-all shadow-sm backdrop-blur-md flex items-start gap-2.5 cursor-grab active:cursor-grabbing hover:shadow-lg active:scale-95 ${
                   isDiBox && isDiBoxHighlighted

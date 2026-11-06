@@ -38,7 +38,7 @@ export const RestorePrompt: React.FC<{ savedAt: number; onRestore: () => void; o
   const when = new Date(savedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
-      <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#14141b] p-5 shadow-xl">
+      <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-stone-900 p-5 shadow-xl">
         <h2 className="text-base font-bold text-stone-100">Restore your last session?</h2>
         <p className="mt-2 text-sm text-stone-300">
           Your plot from {when} is saved in this browser. Restore it to pick up where you left off, or start over.
