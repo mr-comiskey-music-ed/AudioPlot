@@ -181,7 +181,7 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
       }
       const live = hasData && (isMaster ? isPlayingAudio && isAudible : isSignalActive);
       const clipping = live && peak > 0.98;
-      const color = clipping ? '#ef4444' : displayMode === 'waveform' ? '#22c55e' : '#38bdf8';
+      const color = clipping ? '#d9604a' : displayMode === 'waveform' ? '#8f9a47' : '#8ec5d6';
 
       if (displayMode === 'waveform') {
         // Faint center line
@@ -264,12 +264,12 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
           const x = gap + b * (barW + gap);
           const grad = ctx.createLinearGradient(0, floorY, 0, floorY - h);
           grad.addColorStop(0, 'rgba(56,189,248,0.35)');
-          grad.addColorStop(1, clipping ? '#ef4444' : '#38bdf8');
+          grad.addColorStop(1, clipping ? '#d9604a' : '#8ec5d6');
           ctx.fillStyle = grad;
           ctx.fillRect(x, floorY - h, barW, h);
         }
         // Hz labels along the bottom
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = '#b0a08a';
         ctx.font = 'bold 9px system-ui, sans-serif';
         ctx.textBaseline = 'bottom';
         ctx.textAlign = 'center';
@@ -371,7 +371,7 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
                     const name = item.label || def.name;
                     const key = `gear-${item.gearId}-${item.label || ''}`;
                     if (!map.has(key)) {
-                      map.set(key, { name, category: def.category, color: def.color || '#f97316', count: 0 });
+                      map.set(key, { name, category: def.category, color: def.color || '#d9a441', count: 0 });
                     }
                     map.get(key)!.count += 1;
                   }
@@ -379,11 +379,11 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
                   // 2. Aggregate cables from connections & snake connections
                   const xlrCount = calculateXlrCablesCount(connections, channels, placedGear);
                   if (xlrCount > 0) {
-                    map.set('cable-xlr', { name: 'XLR Cable', category: 'Cable', color: '#f97316', count: xlrCount });
+                    map.set('cable-xlr', { name: 'XLR Cable', category: 'Cable', color: '#d9a441', count: xlrCount });
                   }
                   const tsCount = connections.filter(c => c.cableType === 'quarter_inch').length;
                   if (tsCount > 0) {
-                    map.set('cable-ts', { name: '1/4" TRS Cable', category: 'Cable', color: '#38bdf8', count: tsCount });
+                    map.set('cable-ts', { name: '1/4" TRS Cable', category: 'Cable', color: '#8ec5d6', count: tsCount });
                   }
                   const spkCount = connections.filter(c => c.cableType === 'speaker').length;
                   if (spkCount > 0) {

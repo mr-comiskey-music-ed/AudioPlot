@@ -159,7 +159,7 @@ const GainTrimKnob: React.FC<GainTrimKnobProps> = ({ value = 50, onChange }) => 
         {/* Notch pointer line */}
         <div
           className={`absolute w-0.5 h-2.5 rounded-full top-0.5 ${
-            isHot ? 'bg-rose-400 shadow-[0_0_4px_#fb7185]' : 'bg-orange-400 shadow-[0_0_4px_#fb923c]'
+            isHot ? 'bg-rose-400 shadow-[0_0_4px_#fb7185]' : 'bg-orange-400 shadow-[0_0_4px_#e3b04e]'
           }`}
           style={{
             transformOrigin: '50% 11px',
@@ -272,7 +272,7 @@ const PanKnob: React.FC<PanKnobProps> = ({ value, onChange }) => {
       >
         {/* Notch pointer line */}
         <div
-          className="absolute w-0.5 h-2.5 bg-sky-400 rounded-full top-0.5 shadow-[0_0_4px_#38bdf8]"
+          className="absolute w-0.5 h-2.5 bg-sky-400 rounded-full top-0.5 shadow-[0_0_4px_#8ec5d6]"
           style={{
             transformOrigin: '50% 11px',
             transform: `rotate(${angle}deg)`,
@@ -435,7 +435,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
         title={isCollapsed ? 'Click anywhere to expand Mixer & Audio Interface' : 'Click anywhere to collapse Mixer'}
       >
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#aab35f]" />
           <span className="font-extrabold uppercase tracking-wider text-stone-200 flex items-center gap-1.5 group-hover:text-white transition-colors">
             <Sliders className="w-3.5 h-3.5 text-orange-400" />
             Console / Mixer
@@ -714,14 +714,14 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                             const isYellow = idx >= meterSegments - 3 && idx < meterSegments - 1;
                             const colorClass = isRed
                               ? isLit
-                                ? 'bg-red-500 shadow-[0_0_4px_#ef4444]'
+                                ? 'bg-red-500 shadow-[0_0_4px_#d9604a]'
                                 : 'bg-red-950/40'
                               : isYellow
                               ? isLit
                                 ? 'bg-yellow-400 shadow-[0_0_4px_#facc15]'
                                 : 'bg-yellow-950/40'
                               : isLit
-                              ? 'bg-emerald-400 shadow-[0_0_4px_#34d399]'
+                              ? 'bg-emerald-400 shadow-[0_0_4px_#aab35f]'
                               : 'bg-emerald-950/40';
 
                             return <div key={idx} className={`w-full flex-1 rounded-xs ${colorClass}`} />;

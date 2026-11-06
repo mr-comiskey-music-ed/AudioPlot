@@ -153,7 +153,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
           <select
             value={selectedItem.latchedSourceInstanceId || ''}
             onChange={(e) => onSetLatchedSource(selectedItem.instanceId, e.target.value || undefined)}
-            className="bg-stone-900 border border-white/10 focus:border-orange-400 rounded-lg px-1.5 py-0.5 text-xs text-stone-200 outline-none cursor-pointer flex-1 truncate"
+            className="bg-stone-900 border border-white/10 focus:border-orange-400 rounded-lg px-1.5 py-0.5 text-xs text-stone-200 outline-none cursor-pointer flex-1 min-w-0 truncate"
           >
             <option value="">(none)</option>
             {selectedDef.category === 'microphone' && <option value="room">Room Ambience</option>}
@@ -192,7 +192,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
           <select
             value={selectedItem.micPlacement || placementOptions[0]?.id || ''}
             onChange={(e) => onSetMicPlacement(selectedItem.instanceId, e.target.value)}
-            className="bg-stone-900 border border-white/10 focus:border-sky-400 rounded-lg px-1.5 py-0.5 text-xs text-sky-300 font-bold outline-none cursor-pointer flex-1 truncate"
+            className="bg-stone-900 border border-white/10 focus:border-sky-400 rounded-lg px-1.5 py-0.5 text-xs text-sky-300 font-bold outline-none cursor-pointer flex-1 min-w-0 truncate"
           >
             {placementOptions.map((opt) => (
               <option key={opt.id} value={opt.id} className="bg-stone-900 text-stone-100">

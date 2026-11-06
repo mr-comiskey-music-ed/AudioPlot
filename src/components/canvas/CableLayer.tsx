@@ -73,16 +73,16 @@ export const CableLayer: React.FC<CableLayerProps> = ({
         </clipPath>
         {/* Glowing Neon Drop Shadow Filters */}
         <filter id="signal-glow-cyan" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#38BDF8" floodOpacity="0.9" />
-          <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#0284C7" floodOpacity="0.6" />
+          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#2f5f7a" floodOpacity="0.9" />
+          <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#254b61" floodOpacity="0.6" />
         </filter>
         <filter id="signal-glow-amber" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#FB923C" floodOpacity="0.9" />
-          <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#EA580C" floodOpacity="0.6" />
+          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#b5502f" floodOpacity="0.9" />
+          <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#8f3f25" floodOpacity="0.6" />
         </filter>
         <filter id="signal-glow-emerald" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#34D399" floodOpacity="0.9" />
-          <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#059669" floodOpacity="0.6" />
+          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#aab35f" floodOpacity="0.9" />
+          <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#727c37" floodOpacity="0.6" />
         </filter>
 
         {/* Directional Signal Flow Arrow Markers */}
@@ -95,7 +95,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
           markerHeight="5"
           orient="auto"
         >
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38BDF8" />
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2f5f7a" />
         </marker>
         <marker
           id="signal-arrow-amber"
@@ -106,7 +106,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
           markerHeight="5"
           orient="auto"
         >
-          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#FB923C" />
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#b5502f" />
         </marker>
       </defs>
 
@@ -149,7 +149,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
               y1={micCenter.y}
               x2={srcCenter.x}
               y2={srcCenter.y}
-              stroke={isAcousticHighlighted ? '#38BDF8' : '#3B82F6'}
+              stroke={isAcousticHighlighted ? '#2f5f7a' : '#2f5f7a'}
               strokeWidth={isAcousticHighlighted ? '2.5' : '1.8'}
               strokeDasharray={isAcousticHighlighted ? '5 3' : '4 3'}
               className={isAcousticHighlighted ? 'animate-signal-flow' : undefined}
@@ -165,7 +165,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                 M ${source.x + srcDims.width - bSize} ${source.y + srcDims.height} L ${source.x + srcDims.width} ${source.y + srcDims.height} L ${source.x + srcDims.width} ${source.y + srcDims.height - bSize}
               `}
               fill="none"
-              stroke={isAcousticHighlighted ? '#38BDF8' : '#3B82F6'}
+              stroke={isAcousticHighlighted ? '#2f5f7a' : '#2f5f7a'}
               strokeWidth={isAcousticHighlighted ? '2.8' : '2.2'}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -181,7 +181,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                 M ${micOrDi.x + micDims.width - bSize} ${micOrDi.y + micDims.height} L ${micOrDi.x + micDims.width} ${micOrDi.y + micDims.height} L ${micOrDi.x + micDims.width} ${micOrDi.y + micDims.height - bSize}
               `}
               fill="none"
-              stroke={isAcousticHighlighted ? '#38BDF8' : '#3B82F6'}
+              stroke={isAcousticHighlighted ? '#2f5f7a' : '#2f5f7a'}
               strokeWidth={isAcousticHighlighted ? '2.8' : '2.2'}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -196,15 +196,15 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                 width="72"
                 height="20"
                 rx="10"
-                fill="#18181B"
-                stroke={isAcousticHighlighted ? '#38BDF8' : '#3B82F6'}
+                fill="#1e1710"
+                stroke={isAcousticHighlighted ? '#2f5f7a' : '#2f5f7a'}
                 strokeWidth={isAcousticHighlighted ? '1.8' : '1.4'}
                 filter={isAcousticHighlighted ? 'url(#signal-glow-cyan)' : undefined}
               />
               <text
                 x="0"
                 y="3.5"
-                fill={isAcousticHighlighted ? '#E0F2FE' : '#93C5FD'}
+                fill={isAcousticHighlighted ? '#d9ebf1' : '#8ec5d6'}
                 fontSize="8.5"
                 fontWeight="bold"
                 textAnchor="middle"
@@ -250,7 +250,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                   y1={txCenter.y}
                   x2={rxCenter.x}
                   y2={rxCenter.y}
-                  stroke="#22C55E"
+                  stroke="#8f9a47"
                   strokeWidth={isRfHighlighted ? '3.5' : '2.5'}
                   strokeDasharray="6 4"
                   className={isRfHighlighted ? 'animate-signal-flow' : 'animate-pulse'}
@@ -264,15 +264,15 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                     width="76"
                     height="20"
                     rx="10"
-                    fill="#052E16"
-                    stroke="#22C55E"
+                    fill="#1b1e0d"
+                    stroke="#8f9a47"
                     strokeWidth={isRfHighlighted ? '2' : '1.5'}
                     filter={isRfHighlighted ? 'url(#signal-glow-emerald)' : undefined}
                   />
                   <text
                     x="0"
                     y="3.5"
-                    fill="#86EFAC"
+                    fill="#bfc67a"
                     fontSize="8.5"
                     fontWeight="900"
                     textAnchor="middle"
@@ -295,7 +295,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
               : `${mousePos.x} ${mousePos.y}`
           } Q ${mousePos.x} ${mousePos.y + 40} ${mousePos.x} ${mousePos.y}`}
           fill="none"
-          stroke={cableTypeToConnect === 'quarter_inch' ? '#38BDF8' : '#F97316'}
+          stroke={cableTypeToConnect === 'quarter_inch' ? '#2f5f7a' : '#a4501f'}
           strokeWidth="3.5"
           strokeDasharray="6 4"
           className="animate-pulse"
@@ -369,7 +369,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                     className="animate-signal-flow-fast"
                   />
                   {/* Flow Direction Pulse Bead */}
-                  <circle r="4.5" fill="#38BDF8" filter="url(#signal-glow-cyan)">
+                  <circle r="4.5" fill="#2f5f7a" filter="url(#signal-glow-cyan)">
                     <animateMotion path={route.d} dur="1.4s" repeatCount="indefinite" />
                   </circle>
                 </>
@@ -399,7 +399,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                   cx={route.midPoint.x}
                   cy={route.midPoint.y}
                   r="8.5"
-                  fill="#18181B"
+                  fill="#1e1710"
                   stroke={conn.color}
                   strokeWidth="1.5"
                   className="group-hover:fill-rose-600 group-hover:stroke-rose-300 transition-colors shadow-lg"
@@ -494,7 +494,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                   className="animate-signal-flow-fast"
                 />
                 {/* Moving Pulse Particle */}
-                <circle r="4.5" fill="#38BDF8" filter="url(#signal-glow-cyan)">
+                <circle r="4.5" fill="#2f5f7a" filter="url(#signal-glow-cyan)">
                   <animateMotion path={pathD} dur="1.2s" repeatCount="indefinite" />
                 </circle>
               </>
@@ -524,7 +524,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                 cx={route.midPoint.x}
                 cy={route.midPoint.y}
                 r="8.5"
-                fill="#18181B"
+                fill="#1e1710"
                 stroke={conn.color}
                 strokeWidth="1.5"
                 className="group-hover:fill-rose-600 group-hover:stroke-rose-300 transition-colors shadow-lg"
@@ -585,7 +585,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
             <path
               d={route.d}
               fill="none"
-              stroke="#F97316"
+              stroke="#a4501f"
               strokeWidth={isSnakeHighlighted ? '4.5' : '3'}
               className="group-hover:stroke-rose-400 transition-colors"
               filter={isSnakeHighlighted ? 'url(#signal-glow-amber)' : undefined}
@@ -604,7 +604,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                   className="animate-signal-flow-fast"
                 />
                 {/* Moving Signal Energy Bead */}
-                <circle r="4.5" fill="#FB923C" filter="url(#signal-glow-amber)">
+                <circle r="4.5" fill="#b5502f" filter="url(#signal-glow-amber)">
                   <animateMotion path={route.d} dur="1.3s" repeatCount="indefinite" />
                 </circle>
               </>
@@ -634,8 +634,8 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                 cx={route.midPoint.x}
                 cy={route.midPoint.y}
                 r={isSnakeHighlighted ? '10' : '8.5'}
-                fill={isSnakeHighlighted ? '#7C2D12' : '#18181B'}
-                stroke="#F97316"
+                fill={isSnakeHighlighted ? '#4a2113' : '#1e1710'}
+                stroke="#a4501f"
                 strokeWidth={isSnakeHighlighted ? '2' : '1.5'}
                 className="group-hover:fill-rose-600 group-hover:stroke-rose-300 transition-colors shadow-lg"
                 filter={isSnakeHighlighted ? 'url(#signal-glow-amber)' : undefined}

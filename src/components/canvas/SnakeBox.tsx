@@ -94,7 +94,7 @@ export const SnakeBox: React.FC<SnakeBoxProps> = ({
       )}
       <div className={`flex items-center justify-between border-b border-white/10 ${environment === 'live_stage' ? 'pb-1.5 mb-2' : 'pb-1 mb-1.5'}`}>
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shadow-[0_0_8px_#f97316]" />
+          <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shadow-[0_0_8px_#a4501f]" />
           <span className={`font-black uppercase tracking-wider text-orange-300 ${environment === 'live_stage' ? 'text-xs' : 'text-[11px]'}`}>
             {environment === 'recording_studio' ? 'Studio Snake' : 'Stage Snake'}
           </span>
@@ -143,8 +143,8 @@ export const SnakeBox: React.FC<SnakeBoxProps> = ({
                   >
                     {/* 3-pin XLR Female Socket Graphic */}
                     <svg width="18" height="18" viewBox="0 0 24 24" className="mb-0.5">
-                      <circle cx="12" cy="12" r="10.5" fill="#18181B" stroke="currentColor" strokeWidth="1.5" />
-                      <circle cx="12" cy="12" r="8.5" fill="#09090B" stroke="#3F3F46" strokeWidth="0.8" />
+                      <circle cx="12" cy="12" r="10.5" fill="#1e1710" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="12" cy="12" r="8.5" fill="#140f0a" stroke="#4d3f31" strokeWidth="0.8" />
                       <rect x="10.5" y="2" width="3" height="2.5" rx="0.5" fill="currentColor" opacity="0.8" />
                       <circle cx="8" cy="9.5" r="1.4" fill="currentColor" />
                       <circle cx="16" cy="9.5" r="1.4" fill="currentColor" />
@@ -210,11 +210,11 @@ export const SnakeBox: React.FC<SnakeBoxProps> = ({
                   >
                     {/* 3-pin XLR Male Socket Graphic (with pins) */}
                     <svg width="18" height="18" viewBox="0 0 24 24" className="mb-0.5">
-                      <circle cx="12" cy="12" r="10.5" fill="#18181B" stroke="currentColor" strokeWidth="1.5" />
-                      <circle cx="12" cy="12" r="8.5" fill="#09090B" stroke="#3F3F46" strokeWidth="0.8" />
-                      <circle cx="8" cy="9.5" r="1.8" fill="#F59E0B" stroke="#000" strokeWidth="0.5" />
-                      <circle cx="16" cy="9.5" r="1.8" fill="#F59E0B" stroke="#000" strokeWidth="0.5" />
-                      <circle cx="12" cy="15.5" r="1.8" fill="#F59E0B" stroke="#000" strokeWidth="0.5" />
+                      <circle cx="12" cy="12" r="10.5" fill="#1e1710" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="12" cy="12" r="8.5" fill="#140f0a" stroke="#4d3f31" strokeWidth="0.8" />
+                      <circle cx="8" cy="9.5" r="1.8" fill="#e6b52a" stroke="#000" strokeWidth="0.5" />
+                      <circle cx="16" cy="9.5" r="1.8" fill="#e6b52a" stroke="#000" strokeWidth="0.5" />
+                      <circle cx="12" cy="15.5" r="1.8" fill="#e6b52a" stroke="#000" strokeWidth="0.5" />
                     </svg>
                     <div className="text-[7.5px] font-black leading-none">{out.id.toUpperCase()}</div>
                     <div className="text-[7px] truncate max-w-full font-mono text-stone-400 leading-tight">
@@ -259,8 +259,8 @@ export const SnakeBox: React.FC<SnakeBoxProps> = ({
                 }
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" className="mb-0.5">
-                  <circle cx="12" cy="12" r="10.5" fill="#18181B" stroke="currentColor" strokeWidth="1.5" />
-                  <circle cx="12" cy="12" r="8.5" fill="#09090B" stroke="#3F3F46" strokeWidth="0.8" />
+                  <circle cx="12" cy="12" r="10.5" fill="#1e1710" stroke="currentColor" strokeWidth="1.5" />
+                  <circle cx="12" cy="12" r="8.5" fill="#140f0a" stroke="#4d3f31" strokeWidth="0.8" />
                   <rect x="10.5" y="2" width="3" height="2.5" rx="0.5" fill="currentColor" opacity="0.8" />
                   <circle cx="8" cy="9.5" r="1.4" fill="currentColor" />
                   <circle cx="16" cy="9.5" r="1.4" fill="currentColor" />

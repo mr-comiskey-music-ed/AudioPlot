@@ -163,7 +163,7 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #1e293b;
+      color: #3a2f24;
       line-height: 1.5;
       padding: 36px;
       max-width: 880px;
@@ -174,21 +174,21 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 2px solid #0f172a;
+      border-bottom: 2px solid #2a2118;
       padding-bottom: 14px;
       margin-bottom: 20px;
     }
     .title {
       font-size: 22px;
       font-weight: 800;
-      color: #0f172a;
+      color: #2a2118;
     }
     .subtitle {
       font-size: 13px;
-      color: #64748b;
+      color: #8a7a65;
     }
     .grade-badge {
-      background: #0f172a;
+      background: #2a2118;
       color: #fff;
       padding: 10px 20px;
       border-radius: 8px;
@@ -202,17 +202,17 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
-      background: #f8fafc;
+      background: #f7f1e6;
       padding: 14px;
       border-radius: 8px;
       margin-bottom: 20px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #ddd0bc;
     }
     .meta-item strong {
       display: block;
       font-size: 10px;
       text-transform: uppercase;
-      color: #64748b;
+      color: #8a7a65;
     }
     .meta-item span {
       font-size: 14px;
@@ -223,8 +223,8 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
       font-weight: 700;
       margin-top: 22px;
       margin-bottom: 10px;
-      color: #0f172a;
-      border-bottom: 1px solid #e2e8f0;
+      color: #2a2118;
+      border-bottom: 1px solid #ddd0bc;
       padding-bottom: 5px;
       display: flex;
       align-items: center;
@@ -237,14 +237,14 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
       font-size: 12px;
     }
     th, td {
-      border: 1px solid #e2e8f0;
+      border: 1px solid #ddd0bc;
       padding: 7px 10px;
       text-align: left;
     }
     th {
-      background: #f1f5f9;
+      background: #efe6d8;
       font-weight: 600;
-      color: #334155;
+      color: #4d3f31;
     }
     .status-tag {
       display: inline-block;
@@ -256,7 +256,7 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
     .status-perfect { background: #dcfce7; color: #166534; }
     .status-warning { background: #fef9c3; color: #854d0e; }
     .status-error { background: #fee2e2; color: #991b1b; }
-    .status-not_applicable { background: #f1f5f9; color: #64748b; }
+    .status-not_applicable { background: #efe6d8; color: #8a7a65; }
     .packing-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -264,8 +264,8 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
       margin-bottom: 18px;
     }
     .packing-card {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: #f7f1e6;
+      border: 1px solid #ddd0bc;
       border-radius: 6px;
       padding: 10px;
       text-align: center;
@@ -273,11 +273,11 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
     .packing-qty {
       font-size: 20px;
       font-weight: 900;
-      color: #0f172a;
+      color: #2a2118;
     }
     .packing-label {
       font-size: 11px;
-      color: #64748b;
+      color: #8a7a65;
       font-weight: 600;
       text-transform: uppercase;
     }
@@ -286,13 +286,13 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
       justify-content: space-between;
       margin-top: 36px;
       padding-top: 20px;
-      border-top: 1px dashed #cbd5e1;
+      border-top: 1px dashed #c4b49b;
     }
     .signature-box {
       width: 45%;
     }
     .signature-line {
-      border-bottom: 1px solid #0f172a;
+      border-bottom: 1px solid #2a2118;
       margin-top: 32px;
       margin-bottom: 4px;
     }
@@ -380,7 +380,7 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
               .map(
                 (m) => `
         <tr>
-          <td><strong>${m.name}</strong> ${m.model ? `<span style="color:#64748b; font-size:11px;">(${m.model})</span>` : ''}</td>
+          <td><strong>${m.name}</strong> ${m.model ? `<span style="color:#8a7a65; font-size:11px;">(${m.model})</span>` : ''}</td>
           <td style="text-transform: capitalize;">${m.transducer}</td>
           <td>${m.polarPattern}</td>
           <td>${m.requiresPhantom ? '<strong style="color:#b91c1c;">+48V Required</strong>' : 'No'}</td>
@@ -390,7 +390,7 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
       `
               )
               .join('')
-          : '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">No microphones placed on floor.</td></tr>'
+          : '<tr><td colspan="6" style="text-align:center; color:#b0a08a;">No microphones placed on floor.</td></tr>'
       }
       ${
         diBoxes.length > 0
@@ -398,7 +398,7 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
               .map(
                 (d) => `
         <tr>
-          <td><strong>${d.name}</strong> ${d.model ? `<span style="color:#64748b; font-size:11px;">(${d.model})</span>` : ''}</td>
+          <td><strong>${d.name}</strong> ${d.model ? `<span style="color:#8a7a65; font-size:11px;">(${d.model})</span>` : ''}</td>
           <td>Direct Box</td>
           <td>Direct In</td>
           <td>${d.requiresPhantom ? '<strong style="color:#b91c1c;">+48V Required</strong>' : 'Passive'}</td>
@@ -416,12 +416,12 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
               .map(
                 (inst) => `
         <tr>
-          <td><strong>${inst.name}</strong> ${inst.model ? `<span style="color:#64748b; font-size:11px;">(${inst.model})</span>` : ''}</td>
+          <td><strong>${inst.name}</strong> ${inst.model ? `<span style="color:#8a7a65; font-size:11px;">(${inst.model})</span>` : ''}</td>
           <td>${inst.category}</td>
           <td>—</td>
           <td>—</td>
           <td>Stage Position</td>
-          <td style="color:#64748b;">Sound Source</td>
+          <td style="color:#8a7a65;">Sound Source</td>
         </tr>
       `
               )
@@ -448,7 +448,7 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
           (ch) => `
         <tr>
           <td><strong>Channel ${ch.channelNumber}</strong></td>
-          <td>${ch.label || '<span style="color:#94a3b8">Unpatched</span>'}</td>
+          <td>${ch.label || '<span style="color:#b0a08a">Unpatched</span>'}</td>
           <td>${ch.phantomPower ? '<strong style="color:#dc2626;">ACTIVE (+48V)</strong>' : 'OFF'}</td>
           <td>${ch.pan === 0 ? 'Center (C)' : ch.pan < 0 ? `L ${Math.abs(ch.pan)}%` : `R ${ch.pan}%`}</td>
           <td>${formatFaderDb(ch.fader)}</td>
@@ -490,11 +490,11 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
   <div class="signatures">
     <div class="signature-box">
       <div class="signature-line"></div>
-      <div style="font-size:11px; color:#64748b;">Instructor Signature & Verification</div>
+      <div style="font-size:11px; color:#8a7a65;">Instructor Signature & Verification</div>
     </div>
     <div class="signature-box">
       <div class="signature-line"></div>
-      <div style="font-size:11px; color:#64748b;">Student Audio Engineer Signature</div>
+      <div style="font-size:11px; color:#8a7a65;">Student Audio Engineer Signature</div>
     </div>
   </div>
 

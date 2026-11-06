@@ -1,9 +1,89 @@
+@import "@fontsource/atkinson-hyperlegible/400.css";
+@import "@fontsource/atkinson-hyperlegible/700.css";
+@import "@fontsource/atkinson-hyperlegible-mono/400.css";
+@import "@fontsource/atkinson-hyperlegible-mono/700.css";
 @import "tailwindcss";
+
+/*
+ * AudioPlot palette (warm studio): the whole app reads its colors through Tailwind's color variables,
+ * so re-mapping them here re-skins everything at once.
+ *   stone  -> walnut browns (all neutrals)        orange -> brass (the main accent)
+ *   amber  -> bright yellow ("needs attention")   rose   -> brick red (errors, delete)
+ *   sky/blue/cyan/indigo -> slate blue (values, 1/4" cables, Share)
+ *   purple/fuchsia/violet -> rust (Stage, Learn)  emerald/teal/green/lime -> olive (working / passed)
+ */
+@theme {
+  --font-sans: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --color-stone-50: #f7f1e6;
+  --color-stone-100: #efe6d8;
+  --color-stone-200: #ddd0bc;
+  --color-stone-300: #c4b49b;
+  --color-stone-400: #b0a08a;
+  --color-stone-500: #8a7a65;
+  --color-stone-600: #66584a;
+  --color-stone-700: #4d3f31;
+  --color-stone-800: #3a2f24;
+  --color-stone-900: #2a2118;
+  --color-stone-950: #140f0a;
+  --color-slate-50: #f7f1e6; --color-slate-100: #efe6d8; --color-slate-200: #ddd0bc; --color-slate-300: #c4b49b;
+  --color-slate-400: #b0a08a; --color-slate-500: #8a7a65; --color-slate-600: #66584a; --color-slate-700: #4d3f31;
+  --color-slate-800: #3a2f24; --color-slate-900: #2a2118; --color-slate-950: #140f0a;
+  --color-zinc-50: #f7f1e6; --color-zinc-100: #efe6d8; --color-zinc-200: #ddd0bc; --color-zinc-300: #c4b49b;
+  --color-zinc-400: #b0a08a; --color-zinc-500: #8a7a65; --color-zinc-600: #66584a; --color-zinc-700: #4d3f31;
+  --color-zinc-800: #3a2f24; --color-zinc-900: #2a2118; --color-zinc-950: #140f0a;
+  --color-gray-50: #f7f1e6; --color-gray-100: #efe6d8; --color-gray-200: #ddd0bc; --color-gray-300: #c4b49b;
+  --color-gray-400: #b0a08a; --color-gray-500: #8a7a65; --color-gray-600: #66584a; --color-gray-700: #4d3f31;
+  --color-gray-800: #3a2f24; --color-gray-900: #2a2118; --color-gray-950: #140f0a;
+  --color-neutral-50: #f7f1e6; --color-neutral-100: #efe6d8; --color-neutral-200: #ddd0bc; --color-neutral-300: #c4b49b;
+  --color-neutral-400: #b0a08a; --color-neutral-500: #8a7a65; --color-neutral-600: #66584a; --color-neutral-700: #4d3f31;
+  --color-neutral-800: #3a2f24; --color-neutral-900: #2a2118; --color-neutral-950: #140f0a;
+
+  --color-orange-50: #fbf4e3; --color-orange-100: #f7ebcf; --color-orange-200: #f1d9a3; --color-orange-300: #ecc67a;
+  --color-orange-400: #e3b04e; --color-orange-500: #d9a441; --color-orange-600: #b8862c; --color-orange-700: #8f6620;
+  --color-orange-800: #6b4c18; --color-orange-900: #4a3410; --color-orange-950: #2a1e08;
+
+  --color-amber-50: #fffbe6; --color-amber-100: #fdf1b8; --color-amber-200: #fbe58a; --color-amber-300: #f6d95e;
+  --color-amber-400: #f2c94c; --color-amber-500: #e6b52a; --color-amber-600: #c2931a; --color-amber-700: #94700f;
+  --color-amber-800: #6e520c; --color-amber-900: #4a3809; --color-amber-950: #2b2105;
+  --color-yellow-300: #f6d95e; --color-yellow-400: #f2c94c; --color-yellow-500: #e6b52a;
+
+  --color-rose-50: #fdf0ec; --color-rose-100: #fbdcd4; --color-rose-200: #f6bfb2; --color-rose-300: #f0a090;
+  --color-rose-400: #e8806f; --color-rose-500: #d9604a; --color-rose-600: #b5472a; --color-rose-700: #8f3820;
+  --color-rose-800: #6b2b19; --color-rose-900: #4a1f12; --color-rose-950: #2b110a;
+  --color-red-300: #f0a090; --color-red-400: #e8806f; --color-red-500: #d9604a; --color-red-600: #b5472a;
+
+  --color-sky-50: #eef6f9; --color-sky-100: #d9ebf1; --color-sky-200: #bfdce6; --color-sky-300: #a4cddb;
+  --color-sky-400: #8ec5d6; --color-sky-500: #5f9fb8; --color-sky-600: #3f7f9a; --color-sky-700: #2f5f7a;
+  --color-sky-800: #254b61; --color-sky-900: #1a3647; --color-sky-950: #0f2230;
+  --color-blue-50: #eef6f9; --color-blue-100: #d9ebf1; --color-blue-200: #bfdce6; --color-blue-300: #a4cddb;
+  --color-blue-400: #8ec5d6; --color-blue-500: #5f9fb8; --color-blue-600: #3f7f9a; --color-blue-700: #2f5f7a;
+  --color-blue-800: #254b61; --color-blue-900: #1a3647; --color-blue-950: #0f2230;
+  --color-cyan-50: #eef6f9; --color-cyan-100: #d9ebf1; --color-cyan-200: #bfdce6; --color-cyan-300: #a4cddb;
+  --color-cyan-400: #8ec5d6; --color-cyan-500: #5f9fb8; --color-cyan-600: #3f7f9a; --color-cyan-700: #2f5f7a;
+  --color-cyan-800: #254b61; --color-cyan-900: #1a3647; --color-cyan-950: #0f2230;
+  --color-indigo-300: #a4cddb; --color-indigo-400: #8ec5d6; --color-indigo-500: #5f9fb8; --color-indigo-600: #3f7f9a;
+  --color-indigo-700: #2f5f7a; --color-indigo-800: #254b61; --color-indigo-900: #1a3647; --color-indigo-950: #0f2230;
+
+  --color-purple-50: #fcf1ec; --color-purple-100: #f8ddd2; --color-purple-200: #f1c0ab; --color-purple-300: #ea9f80;
+  --color-purple-400: #e47f57; --color-purple-500: #cf6240; --color-purple-600: #b5502f; --color-purple-700: #8f3f25;
+  --color-purple-800: #6b2f1c; --color-purple-900: #4a2113; --color-purple-950: #2b130b;
+  --color-violet-300: #ea9f80; --color-violet-400: #e47f57; --color-violet-500: #cf6240; --color-violet-600: #b5502f; --color-violet-700: #8f3f25;
+  --color-fuchsia-300: #ea9f80; --color-fuchsia-400: #e47f57; --color-fuchsia-500: #cf6240; --color-fuchsia-600: #b5502f;
+
+  --color-emerald-50: #f4f5e6; --color-emerald-100: #e6e9c6; --color-emerald-200: #d3d9a0; --color-emerald-300: #bfc67a;
+  --color-emerald-400: #aab35f; --color-emerald-500: #8f9a47; --color-emerald-600: #727c37; --color-emerald-700: #59622b;
+  --color-emerald-800: #434a21; --color-emerald-900: #2f3418; --color-emerald-950: #1b1e0d;
+  --color-green-300: #bfc67a; --color-green-400: #aab35f; --color-green-500: #8f9a47; --color-green-600: #727c37;
+  --color-teal-300: #bfc67a; --color-teal-400: #aab35f; --color-teal-500: #8f9a47; --color-teal-600: #727c37;
+  --color-lime-300: #bfc67a; --color-lime-400: #aab35f; --color-lime-500: #8f9a47;
+}
 
 @layer base {
   body {
-    @apply bg-[#0d0d12] text-stone-100 antialiased overflow-hidden select-none;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply bg-stone-950 text-stone-100 antialiased overflow-hidden select-none;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Custom subtle frosted scrollbar */

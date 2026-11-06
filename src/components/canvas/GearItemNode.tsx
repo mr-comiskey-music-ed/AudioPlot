@@ -189,7 +189,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
         width: `${dims.width}px`,
         height: `${dims.height}px`,
         transform: `rotate(${item.rotation}deg)`,
-        borderColor: item.hasPopFilter ? '#10B981' : isHighlightedInSignalPath ? '#22D3EE' : undefined,
+        borderColor: item.hasPopFilter ? '#8f9a47' : isHighlightedInSignalPath ? '#22D3EE' : undefined,
       }}
     >
       {/* Active Signal Path Role Tag Badge */}
@@ -310,7 +310,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
         <span
           className={`absolute -top-2 left-1/2 -translate-x-1/2 z-30 px-1.5 rounded-full text-[8px] leading-[14px] font-black border whitespace-nowrap pointer-events-none ${
             assignedChannel?.phantomPower
-              ? 'bg-rose-500 text-white border-rose-300 shadow-[0_0_6px_#f43f5e]'
+              ? 'bg-rose-500 text-white border-rose-300 shadow-[0_0_6px_#d9604a]'
               : 'bg-stone-800 text-stone-300 border-white/20'
           }`}
           title={assignedChannel?.phantomPower ? '+48V Phantom Power Active' : '+48V Needed'}
@@ -333,7 +333,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
               ? Math.max(18, Math.min(dims.height - 46, dims.width - 30))
               : Math.max(22, Math.min(dims.height - 44, dims.width - 22, 140))
           }
-          color={isHighlightedInSignalPath ? '#38BDF8' : def.color}
+          color={isHighlightedInSignalPath ? '#8ec5d6' : def.color}
         />
       </div>
 
@@ -351,7 +351,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
           <span
             className={`px-1.5 py-0.2 rounded-full text-[8px] font-bold border transition-colors ${
               assignedChannel?.phantomPower
-                ? 'bg-rose-500/30 text-rose-300 border-rose-400 shadow-[0_0_6px_#f43f5e]'
+                ? 'bg-rose-500/30 text-rose-300 border-rose-400 shadow-[0_0_6px_#d9604a]'
                 : 'bg-white/10 text-stone-400 border-white/15'
             }`}
             title={assignedChannel?.phantomPower ? '+48V Phantom Power Active' : '+48V Needed'}

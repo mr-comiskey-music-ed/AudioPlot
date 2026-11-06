@@ -27,7 +27,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Resonant acoustic instrument with rich harmonic transients.',
     specs: '80Hz - 15kHz acoustic range.',
     iconType: 'GuitarAcoustic',
-    color: '#D97706',
+    color: '#c2931a',
     size: { width: 64, height: 64 },
   },
   {
@@ -41,7 +41,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'High-impedance instrument signal. Connects via 1/4" cable to Guitar Amp.',
     specs: 'High-Z 1/4" TS instrument output.',
     iconType: 'GuitarElectric',
-    color: '#EF4444',
+    color: '#d9604a',
     size: { width: 64, height: 64 },
   },
   {
@@ -69,7 +69,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Electronic synthesizer, digital stage piano, or electric piano.',
     specs: 'Unbalanced 1/4" line/instrument signal.',
     iconType: 'Piano',
-    color: '#10B981',
+    color: '#8f9a47',
     size: { width: 68, height: 56 },
   },
   {
@@ -83,7 +83,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Low-frequency instrument (41Hz - 4kHz). Connects via 1/4" cable to Bass Amp or DI Box.',
     specs: 'High-Z 1/4" output.',
     iconType: 'GuitarBass',
-    color: '#8B5CF6',
+    color: '#cf6240',
     size: { width: 64, height: 64 },
   },
   {
@@ -97,7 +97,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Complete 5-piece acoustic drum kit. Dragging onto the plot automatically drops and arranges a kick drum, snare drum, 3 toms, and 2 overhead cymbals.',
     specs: 'Full kit bundle: Kick, Snare, 3 Toms, 2 Cymbals.',
     iconType: 'DrumKit',
-    color: '#2563EB',
+    color: '#3f7f9a',
     size: { width: 68, height: 68 },
   },
   {
@@ -111,7 +111,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Low-end acoustic bass drum. Best mic’d with low-frequency dynamic mic like Shure Beta 52A.',
     specs: '20Hz - 150Hz heavy punch transient.',
     iconType: 'KickDrum',
-    color: '#3B82F6',
+    color: '#5f9fb8',
     size: { width: 60, height: 60 },
   },
   {
@@ -139,7 +139,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Resonant acoustic tom (rack or floor tom) with punchy mid-low fundamentals.',
     specs: '80Hz - 500Hz resonant acoustic drum shell.',
     iconType: 'TomDrum',
-    color: '#1D4ED8',
+    color: '#2f5f7a',
     size: { width: 46, height: 46 },
   },
   {
@@ -167,7 +167,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'High-frequency acoustic brass/bronze cymbals (hi-hat, crash, ride) with fast shimmer transients.',
     specs: '5kHz - 20kHz acoustic shimmer & attack.',
     iconType: 'DrumCymbals',
-    color: '#F59E0B',
+    color: '#e6b52a',
     size: { width: 50, height: 48 },
   },
   // --- Strings ---
@@ -182,7 +182,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Acoustic bowed string instrument with high harmonic detail and expressive bow dynamics.',
     specs: '196Hz - 10kHz fundamental & harmonics.',
     iconType: 'Violin',
-    color: '#F59E0B',
+    color: '#e6b52a',
     size: { width: 56, height: 56 },
   },
   {
@@ -196,7 +196,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Warm, resonant acoustic bowed cello with deep wooden body resonance and rich expressive harmonics.',
     specs: '65Hz - 8kHz acoustic spectrum.',
     iconType: 'Cello',
-    color: '#B45309',
+    color: '#8f6620',
     size: { width: 60, height: 60 },
   },
   {
@@ -210,7 +210,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Large acoustic upright double bass. Can be miked acoustically or plugged via 1/4" pickup output into a Bass Amp or DI Box.',
     specs: '41Hz - 4kHz acoustic or 1/4" pickup out.',
     iconType: 'DoubleBass',
-    color: '#78350F',
+    color: '#6b4c18',
     size: { width: 64, height: 64 },
   },
   // --- Horns & Woodwinds ---
@@ -225,7 +225,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'High-SPL directional brass instrument with bright harmonic projection.',
     specs: 'High SPL (up to 130dB), 165Hz - 10kHz.',
     iconType: 'Trumpet',
-    color: '#F97316',
+    color: '#d9a441',
     size: { width: 56, height: 56 },
   },
   {
@@ -239,7 +239,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Acoustic reed woodwind instrument with complex bell radiation and warm body tone.',
     specs: 'Rich harmonic acoustic range ~100Hz - 10kHz.',
     iconType: 'Saxophone',
-    color: '#EA580C',
+    color: '#b8862c',
     size: { width: 56, height: 56 },
   },
   {
@@ -253,7 +253,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Acoustic transverse woodwind instrument. Best miked across the embouchure hole with a condenser microphone on a boom stand.',
     specs: '261Hz - 12kHz airy acoustic transient spectrum.',
     iconType: 'Flute',
-    color: '#0284C7',
+    color: '#3f7f9a',
     size: { width: 56, height: 56 },
   },
   // --- Choral / Ensemble ---
@@ -268,7 +268,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Acoustic vocal choir ensemble spread across stage risers. Takes up significant acoustic space in the room and is best captured using stereo or spaced condenser microphones on tall stands.',
     specs: 'Full-range acoustic vocal choir (Soprano, Alto, Tenor, Bass), ~80Hz - 12kHz.',
     iconType: 'Choir',
-    color: '#8B5CF6',
+    color: '#cf6240',
     size: { width: 170, height: 56 },
   },
 
@@ -285,7 +285,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Industry-standard vocal mic with built-in steel mesh spherical grille. Rejects feedback in live venues and handles immense SPL without +48V phantom power.',
     specs: '50Hz - 15kHz, Moving Coil, Cardioid. Requires NO +48V Phantom Power.',
     iconType: 'MicSM58',
-    color: '#4B5563',
+    color: '#66584a',
     size: { width: 48, height: 48 },
   },
   {
@@ -300,7 +300,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'The standard instrument microphone for electric guitar amplifiers, snare drums, and loud brass instruments. Handles extreme sound pressure levels.',
     specs: '40Hz - 15kHz, Moving Coil, Cardioid. Requires NO +48V Phantom Power.',
     iconType: 'MicSM57',
-    color: '#374151',
+    color: '#4d3f31',
     size: { width: 48, height: 48 },
   },
   {
@@ -315,7 +315,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'High-output microphone with tailored low-frequency frequency response designed specifically for kick drums and bass instrument cabinets.',
     specs: '20Hz - 10kHz, Supercardioid, 174dB Max SPL. Requires NO +48V Phantom Power.',
     iconType: 'MicBeta52',
-    color: '#1E293B',
+    color: '#3a2f24',
     size: { width: 50, height: 50 },
   },
 
@@ -333,7 +333,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Large-diaphragm studio condenser microphone with 1-inch capsule. Delivers pristine acoustic nuance and airy highs. REQUIRES +48V Phantom Power and a pop filter for studio vocals.',
     specs: '20Hz - 20kHz, 1" Large Capsule Condenser. REQUIRES +48V PHANTOM POWER.',
     iconType: 'MicC214',
-    color: '#2563EB',
+    color: '#3f7f9a',
     size: { width: 48, height: 48 },
   },
   {
@@ -348,7 +348,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Large-diaphragm studio condenser microphone with wide dynamic range, custom 80Hz high-pass filter, and 10dB pad. REQUIRES +48V Phantom Power.',
     specs: '20Hz - 20kHz, Large Diaphragm Condenser. REQUIRES +48V PHANTOM POWER.',
     iconType: 'MicAT2035',
-    color: '#1D4ED8',
+    color: '#2f5f7a',
     size: { width: 48, height: 48 },
   },
   {
@@ -363,7 +363,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Linear flat-response small diaphragm pencil condenser microphone. Exceptional transient detail for acoustic string instruments, pianos, and drum cymbals.',
     specs: '20Hz - 20kHz, Small Diaphragm Pencil Condenser. REQUIRES +48V PHANTOM POWER.',
     iconType: 'MicSM81',
-    color: '#0284C7',
+    color: '#3f7f9a',
     size: { width: 46, height: 46 },
   },
   {
@@ -393,7 +393,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Tom & Percussion Microphone with integrated quick-mount rim clip, high SPL handling (>160dB), and fast transient response. Requires NO +48V Phantom Power.',
     specs: '40Hz - 18kHz, Dynamic, Cardioid, 160dB Max SPL. Clip-on rim mount. Requires NO +48V Phantom Power.',
     iconType: 'MicE604',
-    color: '#334155',
+    color: '#4d3f31',
     size: { width: 48, height: 48 },
   },
 
@@ -410,7 +410,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Direct Injection box. Converts high-impedance unbalanced 1/4" instrument signals into balanced low-impedance mic-level XLR signals for the snake or mixer.',
     specs: '1/4" TS In -> Balanced XLR Out. Ground Lift switch eliminates 60Hz hum.',
     iconType: 'DIBox',
-    color: '#059669',
+    color: '#727c37',
     size: { width: 48, height: 42 },
   },
   {
@@ -424,7 +424,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Tube guitar amplifier and speaker cabinet. Plug electric guitar in with 1/4" cable, then place dynamic mic (SM57) in front of the speaker grille.',
     specs: '1/4" TS Guitar Input. Acoustic speaker output requires dynamic mic.',
     iconType: 'GuitarAmp',
-    color: '#B45309',
+    color: '#8f6620',
     size: { width: 62, height: 52 },
   },
   {
@@ -438,7 +438,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Bass amplifier and speaker cabinet. Plug bass in with 1/4" cable, mic with Beta 52A or patch DI.',
     specs: '1/4" TS Bass Input.',
     iconType: 'BassAmp',
-    color: '#4338CA',
+    color: '#2f5f7a',
     size: { width: 64, height: 54 },
   },
 
@@ -454,7 +454,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Heavy-duty adjustable tripod boom stand with height modes: Floor/Amp Low, Seated Instrument, Standing Vocal, and Drum Overhead.',
     specs: 'Adjustable boom height.',
     iconType: 'MicStand',
-    color: '#64748B',
+    color: '#8a7a65',
     size: { width: 42, height: 42 },
   },
   {
@@ -468,7 +468,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Acoustic nylon/mesh shield placed between vocalist and condenser microphone to stop plosive air blasts (P and B sounds).',
     specs: 'Acoustic plosive shield.',
     iconType: 'PopFilter',
-    color: '#10B981',
+    color: '#8f9a47',
     size: { width: 38, height: 38 },
   },
 
@@ -484,7 +484,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Floor wedge monitor speaker angled up at live performers. Connects to Snake Mon 1/2 via XLR and can daisy chain to another wedge.',
     specs: 'Live foldback wedge speaker. XLR In & Thru.',
     iconType: 'StageMonitor',
-    color: '#334155',
+    color: '#4d3f31',
     size: { width: 54, height: 46 },
   },
   {
@@ -498,7 +498,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Wireless In-Ear Monitor rackmount base transmitter unit. Connects to Snake Monitor 1 or 2 output via XLR and transmits RF stereo audio to performer bodypack receivers.',
     specs: 'XLR Line Input -> RF Wireless Rack Transmitter.',
     iconType: 'IEMTransmitter',
-    color: '#6366F1',
+    color: '#5f9fb8',
     size: { width: 56, height: 44 },
   },
   {
@@ -512,7 +512,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Personal wireless in-ear monitor bodypack receiver worn by performer. Assign to a musician to receive their personal monitor mix.',
     specs: 'RF Wireless Bodypack Receiver & In-Ear Earpieces.',
     iconType: 'IEMBodypack',
-    color: '#8B5CF6',
+    color: '#cf6240',
     size: { width: 46, height: 44 },
   },
   {
@@ -526,7 +526,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Wired IEM pack: a belt-pack headphone amp the performer wears for their in-ear monitor mix. Connects to Monitor sends (MON 1/2) via XLR and assigns to a musician.',
     specs: 'XLR In -> Wired Personal Stage Foldback.',
     iconType: 'IEMWiredPack',
-    color: '#7C3AED',
+    color: '#b5502f',
     size: { width: 46, height: 44 },
   },
   {
@@ -540,7 +540,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Closed-back tracking headphones for studio recording. Assign/snap to every musician to provide zero-latency direct foldback without mic bleed.',
     specs: 'Studio Foldback Headphones.',
     iconType: 'StudioHeadphones',
-    color: '#0284C7',
+    color: '#3f7f9a',
     size: { width: 34, height: 34 },
   },
   {
@@ -554,7 +554,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Main audience-facing Front of House (FOH) loudspeaker. Placed downstage left and right in the bottom 15% corners and connected to Snake Main L / Main R via XLR.',
     specs: 'Audience sound reinforcement speaker. XLR In.',
     iconType: 'PASpeaker',
-    color: '#0F172A',
+    color: '#2a2118',
     size: { width: 56, height: 58 },
   },
 ];

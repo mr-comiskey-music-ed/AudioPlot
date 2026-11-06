@@ -138,15 +138,15 @@ export const MasterMixMeter: React.FC<MasterMixMeterProps> = ({
             let colorClass = '';
             if (isRed) {
               colorClass = isLit || isPeakHold
-                ? 'bg-rose-500 shadow-[0_0_6px_#f43f5e]'
+                ? 'bg-rose-500 shadow-[0_0_6px_#d9604a]'
                 : 'bg-rose-950/40';
             } else if (isYellow) {
               colorClass = isLit || isPeakHold
-                ? 'bg-amber-400 shadow-[0_0_5px_#f59e0b]'
+                ? 'bg-amber-400 shadow-[0_0_5px_#e6b52a]'
                 : 'bg-amber-950/40';
             } else {
               colorClass = isLit || isPeakHold
-                ? 'bg-emerald-400 shadow-[0_0_5px_#10b981]'
+                ? 'bg-emerald-400 shadow-[0_0_5px_#8f9a47]'
                 : 'bg-emerald-950/40';
             }
 
@@ -174,7 +174,7 @@ export const MasterMixMeter: React.FC<MasterMixMeterProps> = ({
         <div
           className={`px-1.5 py-0.5 rounded text-[7px] font-mono font-black border transition-all ${
             meterLevels.isClipping
-              ? 'bg-rose-600 border-rose-400 text-white shadow-[0_0_8px_#e11d48] animate-pulse'
+              ? 'bg-rose-600 border-rose-400 text-white shadow-[0_0_8px_#b5472a] animate-pulse'
               : 'bg-rose-950/20 border-white/5 text-stone-600'
           }`}
           title="Digital Output Clip Warning (Exceeds 0 dBFS)"

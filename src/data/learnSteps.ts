@@ -66,7 +66,7 @@ export interface LearnStep {
 
 // ---------- Plot helpers ----------
 
-const COLORS: Record<CableType, string> = { xlr: '#F97316', quarter_inch: '#38BDF8', speaker: '#22C55E' };
+const COLORS: Record<CableType, string> = { xlr: '#d9a441', quarter_inch: '#8ec5d6', speaker: '#8f9a47' };
 const MASTER: MasterBusState = { fader: 75, gain: 50, pan: 0, muted: false, dim: false, mono: false };
 
 const freshChannels = (): MixerChannelState[] =>

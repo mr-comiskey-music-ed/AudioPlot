@@ -204,7 +204,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           <button
             id="btn-learn"
             onClick={onOpenLearn || onOpenGuideModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-stone-300 border border-white/10 backdrop-blur-md transition-all text-xs font-semibold"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 border border-purple-500/40 backdrop-blur-md transition-all text-xs font-bold"
             title="Learn: how to choose mics, DIs, gear and routing for any setup"
           >
             <GraduationCap className="w-3.5 h-3.5" />
@@ -216,10 +216,10 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             <button
               id="btn-open-tour"
               onClick={onOpenTour}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-orange-500/20 text-stone-300 hover:text-orange-300 border border-white/10 hover:border-orange-500/30 backdrop-blur-md transition-all text-xs font-semibold"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-600/20 hover:bg-sky-600/35 text-sky-200 border border-sky-500/40 backdrop-blur-md transition-all text-xs font-bold"
               title="Open step-by-step How-To Tour"
             >
-              <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+              <Sparkles className="w-3.5 h-3.5 text-sky-300" />
               <span>How-To</span>
             </button>
           )}
@@ -232,7 +232,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           <button
             id="btn-share-submit"
             onClick={onOpenShareModal}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-sky-700 hover:bg-sky-600 text-white shadow-lg shadow-black/30 transition-all cursor-pointer"
             title="Copy your submission code & export PDF report"
           >
             <Share2 className="w-3.5 h-3.5" />

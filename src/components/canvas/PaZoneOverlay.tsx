@@ -33,16 +33,16 @@ export const PaZoneOverlay: React.FC<PaZoneOverlayProps> = ({ placedGear, select
             data-pa-zone={side}
             className={`absolute pointer-events-none rounded-2xl border-2 border-dashed transition-colors duration-200 ${
               isFilled
-                ? 'border-emerald-400/70 bg-emerald-500/[0.07]'
+                ? 'border-emerald-700/70 bg-emerald-700/[0.10]'
                 : isTarget
-                ? 'border-amber-300 bg-amber-400/[0.12] animate-pulse'
-                : 'border-indigo-400/60 bg-indigo-500/[0.06]'
+                ? 'border-amber-600 bg-amber-500/[0.18] animate-pulse'
+                : 'border-sky-700/60 bg-sky-700/[0.07]'
             }`}
             style={{ left: zone.x, top: zone.y, width: zone.w, height: zone.h }}
           >
             <div
               className={`absolute top-2 ${side === 'left' ? 'left-3' : 'right-3'} flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider ${
-                isFilled ? 'text-emerald-300/90' : isTarget ? 'text-amber-200' : 'text-indigo-300/80'
+                isFilled ? 'text-emerald-800' : isTarget ? 'text-amber-800' : 'text-sky-800'
               }`}
             >
               {isFilled ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Speaker className="w-3.5 h-3.5" />}

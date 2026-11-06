@@ -12,7 +12,7 @@ export type TapeTone = 'white' | 'black';
 export const TAPE_TONE: TapeTone = 'black';
 
 const PALETTE: Record<TapeTone, { base: string; weaveA: string; weaveB: string; edge: string; shadow: number }> = {
-  white: { base: '#f4f4f5', weaveA: '#d4d4d8', weaveB: '#e4e4e7', edge: '#b4b4bb', shadow: 0.45 },
+  white: { base: '#f4f4f5', weaveA: '#ddd0bc', weaveB: '#e4e4e7', edge: '#b4b4bb', shadow: 0.45 },
   black: { base: '#17171a', weaveA: '#2c2c32', weaveB: '#222227', edge: '#6b6b75', shadow: 0.6 },
 };
 

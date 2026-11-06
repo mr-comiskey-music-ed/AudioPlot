@@ -1,3 +1,4 @@
+import { CanvasFloor, getFloorStyle } from './canvas/CanvasFloor';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   EnvironmentMode,
@@ -202,6 +203,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   // window. A bigger room size gives more floor; gear then shows smaller on screen.
   const WORLD = getWorld(stageSize as StageSize);
   const canvasSize = WORLD;
+  const floorStyle = React.useMemo(() => getFloorStyle(), []);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 1000, height: 600 });
   const scale = Math.min(viewport.width / WORLD.width, viewport.height / WORLD.height);
@@ -1083,7 +1085,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
             fromInstanceId: fromId,
             toInstanceId: toId,
             cableType: type,
-            color: '#F97316',
+            color: '#d9a441',
           };
           onUpdateConnections([...connections, newConnection], {
             action: `Connect ${type === 'quarter_inch' ? '1/4" TS' : type.toUpperCase()} Cable`,
@@ -1116,7 +1118,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       fromInstanceId: fromId,
       toInstanceId: toId,
       cableType: type,
-      color: type === 'quarter_inch' ? '#38BDF8' : type === 'xlr' ? '#F97316' : '#22C55E',
+      color: type === 'quarter_inch' ? '#8ec5d6' : type === 'xlr' ? '#d9a441' : '#8f9a47',
     };
 
     onUpdateConnections([...connections, newConnection], {
@@ -1155,7 +1157,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
             fromInstanceId: portInstanceId,
             toInstanceId: fromItem.instanceId,
             cableType: 'xlr',
-            color: '#F97316',
+            color: '#d9a441',
           };
           onUpdateConnections([...connections, newConnection], {
             action: 'Connect Snake Output Cable',
@@ -1447,7 +1449,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   return (
     <div
       id="studio-canvas-container"
-      className="relative flex-1 h-full w-full bg-stone-950 overflow-hidden select-none cursor-default"
+      className="relative flex-1 h-full w-full bg-[#e6dcc7] overflow-hidden select-none cursor-default"
     >
       {/* Viewport: the stage world is scaled to fit the window */}
       <div
@@ -1485,7 +1487,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
           >
             {/* Background Floor Plan Blueprint SVG */}
             <svg viewBox={`0 0 ${WORLD.width} ${WORLD.height}`} className="absolute inset-0 w-full h-full pointer-events-none">
-              <defs>
+              <CanvasFloor width={WORLD.width} height={WORLD.height} environment={environment} style={floorStyle} />
+              <defs hidden>
                 <pattern id="studio-hardwood-pattern" width="160" height="48" patternUnits="userSpaceOnUse">
                   <rect width="160" height="48" fill="#171310" />
                   <rect x="0" y="0" width="80" height="24" fill="#1b1713" fillOpacity="0.75" />
@@ -1503,8 +1506,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
                 </pattern>
 
                 <radialGradient id="studio-ambient-lighting" cx="50%" cy="45%" r="65%">
-                  <stop offset="0%" stopColor="#f97316" stopOpacity="0.04" />
-                  <stop offset="60%" stopColor="#78350f" stopOpacity="0.02" />
+                  <stop offset="0%" stopColor="#d9a441" stopOpacity="0.04" />
+                  <stop offset="60%" stopColor="#6b4c18" stopOpacity="0.02" />
                   <stop offset="100%" stopColor="#000000" stopOpacity="0.12" />
                 </radialGradient>
 
@@ -1520,89 +1523,12 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
                 </pattern>
 
                 <radialGradient id="stage-spotlight" cx="50%" cy="40%" r="55%">
-                  <stop offset="0%" stopColor="#818CF8" stopOpacity="0.08" />
+                  <stop offset="0%" stopColor="#8ec5d6" stopOpacity="0.08" />
                   <stop offset="60%" stopColor="#4F46E5" stopOpacity="0.03" />
                   <stop offset="100%" stopColor="#000000" stopOpacity="0.0" />
                 </radialGradient>
               </defs>
 
-              <rect
-                width="100%"
-                height="100%"
-                fill={environment === 'recording_studio' ? 'url(#studio-hardwood-pattern)' : 'url(#stage-planks-pattern)'}
-              />
-
-              {environment === 'recording_studio' ? (
-                <>
-                  <rect width="100%" height="100%" fill="url(#studio-ambient-lighting)" />
-                  <rect
-                    x="16"
-                    y="16"
-                    width={WORLD.width - 32}
-                    height={WORLD.height - 32}
-                    rx="16"
-                    fill="none"
-                    stroke="#D97706"
-                    strokeWidth="1.5"
-                    strokeDasharray="8 6"
-                    strokeOpacity="0.4"
-                  />
-                  <text
-                    x={WORLD.width / 2}
-                    y={WORLD.height - 30}
-                    textAnchor="middle"
-                    fill="#38BDF8"
-                    fontSize="10"
-                    fontWeight="bold"
-                    letterSpacing="1.5"
-                  >
-                    CONTROL ROOM WINDOW
-                  </text>
-                  <rect
-                    x={WORLD.width / 2 - 150}
-                    y={WORLD.height - 20}
-                    width="300"
-                    height="12"
-                    rx="3"
-                    fill="#0284C7"
-                    fillOpacity="0.3"
-                    stroke="#38BDF8"
-                    strokeWidth="1.5"
-                  />
-                </>
-              ) : (
-                <>
-                  <rect width="100%" height="100%" fill="url(#stage-spotlight)" />
-                  <rect
-                    x="16"
-                    y="16"
-                    width={WORLD.width - 32}
-                    height={WORLD.height - 32}
-                    rx="12"
-                    fill="none"
-                    stroke="#6366F1"
-                    strokeWidth="1.5"
-                    strokeDasharray="8 6"
-                    strokeOpacity="0.35"
-                  />
-                  <text x={WORLD.width / 2} y="28" textAnchor="middle" fill="#71717A" fontSize="9" fontWeight="bold" letterSpacing="1.5">
-                    UPSTAGE BACKDROP
-                  </text>
-                  <line
-                    x1="20"
-                    y1={WORLD.height - 18}
-                    x2={WORLD.width - 20}
-                    y2={WORLD.height - 18}
-                    stroke="#818CF8"
-                    strokeWidth="2"
-                    strokeDasharray="6 4"
-                    strokeOpacity="0.6"
-                  />
-                  <text x={WORLD.width / 2} y={WORLD.height - 24} textAnchor="middle" fill="#A5B4FC" fontSize="9" fontWeight="bold" letterSpacing="1">
-                    AUDIENCE / FRONT-OF-HOUSE
-                  </text>
-                </>
-              )}
             </svg>
 
             {/* Live Stage: where the main PA speakers belong */}
@@ -1765,14 +1691,14 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
       {/* Empty Canvas State Indicator */}
       {placedGear.length === 0 && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-stone-500 z-10 px-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-3 text-stone-400 shadow-lg">
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-stone-600 z-10 px-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-stone-900/10 border border-stone-900/20 flex items-center justify-center mb-3 text-stone-700">
             <Cable className="w-8 h-8 opacity-60" />
           </div>
-          <h2 className="text-base font-extrabold text-stone-300 mb-1">
+          <h2 className="text-base font-extrabold text-stone-800 mb-1">
             {environment === 'recording_studio' ? 'Studio Floor is Empty' : 'Live Stage is Empty'}
           </h2>
-          <p className="text-xs text-stone-400 max-w-lg leading-relaxed">
+          <p className="text-xs text-stone-700 max-w-lg leading-relaxed">
             {environment === 'recording_studio'
               ? 'Drag instruments, microphones, and studio headphones from the Equipment Locker onto the floor to build your tracking session signal chain.'
               : 'Drag instruments, microphones, Front of House (FOH) PA speakers, and stage/IEM monitors onto the stage.'}

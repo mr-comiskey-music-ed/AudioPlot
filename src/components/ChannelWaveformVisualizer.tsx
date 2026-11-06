@@ -70,7 +70,7 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
       const centerY = height / 2;
 
       // 1. Clear background & draw oscilloscope screen
-      ctx.fillStyle = '#09090b';
+      ctx.fillStyle = '#140f0a';
       ctx.fillRect(0, 0, width, height);
 
       // Subtle oscilloscope grid
@@ -129,10 +129,10 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
       // 3. Render Waveform Trace
       if (isMaster ? isPlayingAudio : isSignalActive) {
         const primaryColor = isMaster
-          ? '#f97316' // Orange for master
+          ? '#d9a441' // Orange for master
           : channel.solo
           ? '#facc15' // Amber for solo
-          : '#38bdf8'; // Sky blue for live active input
+          : '#8ec5d6'; // Sky blue for live active input
 
         const glowColor = isMaster ? 'rgba(249, 115, 22, 0.4)' : 'rgba(56, 189, 248, 0.4)';
 
@@ -200,9 +200,9 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
         ctx.moveTo(0, centerY);
 
         const statusColor = hasChainError
-          ? '#f59e0b' // Amber for signal chain error
+          ? '#e6b52a' // Amber for signal chain error
           : channel.muted
-          ? '#f43f5e' // Rose for muted
+          ? '#d9604a' // Rose for muted
           : assignedGear
           ? '#78716c' // Stone for patched but standby
           : '#44403c'; // Dark stone for unpatched
@@ -225,7 +225,7 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
 
       if (isMaster ? isPlayingAudio : isSignalActive) {
         // Live glowing status indicator dot
-        const dotColor = currentPeak > 0.9 ? '#ef4444' : isMaster ? '#f97316' : '#34d399';
+        const dotColor = currentPeak > 0.9 ? '#d9604a' : isMaster ? '#d9a441' : '#aab35f';
         ctx.fillStyle = dotColor;
         ctx.beginPath();
         ctx.arc(6, 6, 2.5, 0, Math.PI * 2);
@@ -233,18 +233,18 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
 
         // Live amplitude percentage or dB label
         const ampPercent = Math.min(100, Math.round(currentPeak * 100));
-        ctx.fillStyle = currentPeak > 0.9 ? '#fca5a5' : '#e2e8f0';
+        ctx.fillStyle = currentPeak > 0.9 ? '#fca5a5' : '#ddd0bc';
         ctx.fillText(`${ampPercent}%`, 12, 3);
 
         // Right corner: Status tag
         const tagText = isMaster ? 'MASTER' : channel.solo ? 'SOLO' : 'LIVE';
-        ctx.fillStyle = isMaster ? '#fed7aa' : channel.solo ? '#fef08a' : '#86efac';
+        ctx.fillStyle = isMaster ? '#fed7aa' : channel.solo ? '#fbe58a' : '#bfc67a';
         const tagWidth = ctx.measureText(tagText).width;
         ctx.fillText(tagText, width - tagWidth - 4, 3);
       } else if (hasChainError) {
-        ctx.fillStyle = '#fbbf24';
+        ctx.fillStyle = '#f2c94c';
         ctx.fillText('NO SIGNAL', 4, 3);
-        ctx.fillStyle = '#fde68a';
+        ctx.fillStyle = '#fbe58a';
         const errText = 'CHAIN ERR';
         const errWidth = ctx.measureText(errText).width;
         ctx.fillText(errText, width - errWidth - 4, 3);
@@ -262,7 +262,7 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
       // Bottom Right: Instrument Type or Channel Source Name
       if (assignedDef && !isMaster) {
         ctx.font = '7px system-ui, -apple-system, sans-serif';
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = '#b0a08a';
         const srcName = assignedDef.name.length > 13 ? `${assignedDef.name.substring(0, 12)}…` : assignedDef.name;
         const nameWidth = ctx.measureText(srcName).width;
         ctx.fillText(srcName, width - nameWidth - 4, height - 9);
