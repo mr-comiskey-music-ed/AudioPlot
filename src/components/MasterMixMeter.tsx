@@ -146,7 +146,7 @@ export const MasterMixMeter: React.FC<MasterMixMeterProps> = ({
                 : 'bg-amber-950/40';
             } else {
               colorClass = isLit || isPeakHold
-                ? 'bg-emerald-400 shadow-[0_0_5px_#8f9a47]'
+                ? 'bg-emerald-400 shadow-[0_0_5px_#698859]'
                 : 'bg-emerald-950/40';
             }
 

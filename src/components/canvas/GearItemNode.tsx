@@ -166,7 +166,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
       onClick={(e) => {
         e.stopPropagation();
       }}
-      className={`absolute rounded-2xl transition-all select-none flex flex-col items-center justify-between p-2 backdrop-blur-md cursor-grab active:cursor-grabbing group shadow-xl ${
+      className={`absolute rounded-2xl transition-[background-color,border-color,box-shadow,opacity,scale,rotate] select-none flex flex-col items-center justify-between p-2 cursor-grab active:cursor-grabbing group shadow-xl ${
         showDeleteConfirm || isSelected ? 'z-50' : isHighlightedInSignalPath ? 'z-30' : 'z-20'
       } ${
         isDimmed ? 'opacity-35 hover:opacity-100' : 'opacity-100'
@@ -189,7 +189,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
         width: `${dims.width}px`,
         height: `${dims.height}px`,
         transform: `rotate(${item.rotation}deg)`,
-        borderColor: item.hasPopFilter ? '#8f9a47' : isHighlightedInSignalPath ? '#22D3EE' : undefined,
+        borderColor: item.hasPopFilter ? '#698859' : isHighlightedInSignalPath ? '#22D3EE' : undefined,
       }}
     >
       {/* Active Signal Path Role Tag Badge */}

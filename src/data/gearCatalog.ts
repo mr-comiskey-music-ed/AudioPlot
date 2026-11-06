@@ -69,7 +69,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Electronic synthesizer, digital stage piano, or electric piano.',
     specs: 'Unbalanced 1/4" line/instrument signal.',
     iconType: 'Piano',
-    color: '#8f9a47',
+    color: '#698859',
     size: { width: 68, height: 56 },
   },
   {
@@ -410,7 +410,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Direct Injection box. Converts high-impedance unbalanced 1/4" instrument signals into balanced low-impedance mic-level XLR signals for the snake or mixer.',
     specs: '1/4" TS In -> Balanced XLR Out. Ground Lift switch eliminates 60Hz hum.',
     iconType: 'DIBox',
-    color: '#727c37',
+    color: '#536d46',
     size: { width: 48, height: 42 },
   },
   {
@@ -468,7 +468,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Acoustic nylon/mesh shield placed between vocalist and condenser microphone to stop plosive air blasts (P and B sounds).',
     specs: 'Acoustic plosive shield.',
     iconType: 'PopFilter',
-    color: '#8f9a47',
+    color: '#698859',
     size: { width: 38, height: 38 },
   },
 

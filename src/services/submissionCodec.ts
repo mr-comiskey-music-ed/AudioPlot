@@ -26,7 +26,7 @@ import {
 const DEFAULT_CHANNEL_COUNT = 8;
 const CH_DEFAULTS = { phantomPower: false, gain: 72, fader: 75, pan: 0, solo: false, muted: false };
 const MASTER_DEFAULTS: MasterBusState = { fader: 75, gain: 50, pan: 0, muted: false, dim: false, mono: false };
-const CABLE_COLORS: Record<CableType, string> = { xlr: '#d9a441', quarter_inch: '#8ec5d6', speaker: '#8f9a47' };
+const CABLE_COLORS: Record<CableType, string> = { xlr: '#d9a441', quarter_inch: '#8ec5d6', speaker: '#698859' };
 const defaultLabel = (n: number) => `CH ${n}`;
 
 // ---------- Short keys ----------

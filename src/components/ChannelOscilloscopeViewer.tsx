@@ -181,7 +181,7 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
       }
       const live = hasData && (isMaster ? isPlayingAudio && isAudible : isSignalActive);
       const clipping = live && peak > 0.98;
-      const color = clipping ? '#d9604a' : displayMode === 'waveform' ? '#8f9a47' : '#8ec5d6';
+      const color = clipping ? '#d9604a' : displayMode === 'waveform' ? '#698859' : '#8ec5d6';
 
       if (displayMode === 'waveform') {
         // Faint center line

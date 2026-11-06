@@ -1118,7 +1118,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       fromInstanceId: fromId,
       toInstanceId: toId,
       cableType: type,
-      color: type === 'quarter_inch' ? '#8ec5d6' : type === 'xlr' ? '#d9a441' : '#8f9a47',
+      color: type === 'quarter_inch' ? '#8ec5d6' : type === 'xlr' ? '#d9a441' : '#698859',
     };
 
     onUpdateConnections([...connections, newConnection], {
@@ -1486,48 +1486,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
             }}
           >
             {/* Background Floor Plan Blueprint SVG */}
-            <svg viewBox={`0 0 ${WORLD.width} ${WORLD.height}`} className="absolute inset-0 w-full h-full pointer-events-none">
+            <svg viewBox={`0 0 ${WORLD.width} ${WORLD.height}`} className="absolute inset-0 w-full h-full pointer-events-none" style={{ willChange: 'transform' }}>
               <CanvasFloor width={WORLD.width} height={WORLD.height} environment={environment} style={floorStyle} />
-              <defs hidden>
-                <pattern id="studio-hardwood-pattern" width="160" height="48" patternUnits="userSpaceOnUse">
-                  <rect width="160" height="48" fill="#171310" />
-                  <rect x="0" y="0" width="80" height="24" fill="#1b1713" fillOpacity="0.75" />
-                  <rect x="80" y="0" width="80" height="24" fill="#14110e" fillOpacity="0.6" />
-                  <rect x="0" y="24" width="80" height="24" fill="#13100d" fillOpacity="0.6" />
-                  <rect x="80" y="24" width="80" height="24" fill="#1b1713" fillOpacity="0.75" />
-                  <line x1="0" y1="0" x2="160" y2="0" stroke="#0e0b09" strokeWidth="1.2" />
-                  <line x1="0" y1="1" x2="160" y2="1" stroke="#2c221a" strokeWidth="0.5" strokeOpacity="0.4" />
-                  <line x1="0" y1="24" x2="160" y2="24" stroke="#0e0b09" strokeWidth="1.2" />
-                  <line x1="0" y1="25" x2="160" y2="25" stroke="#2c221a" strokeWidth="0.5" strokeOpacity="0.4" />
-                  <line x1="0" y1="48" x2="160" y2="48" stroke="#0e0b09" strokeWidth="1.2" />
-                  <line x1="80" y1="0" x2="80" y2="24" stroke="#0e0b09" strokeWidth="1.2" />
-                  <line x1="0" y1="24" x2="0" y2="48" stroke="#0e0b09" strokeWidth="1.2" />
-                  <line x1="160" y1="24" x2="160" y2="48" stroke="#0e0b09" strokeWidth="1.2" />
-                </pattern>
-
-                <radialGradient id="studio-ambient-lighting" cx="50%" cy="45%" r="65%">
-                  <stop offset="0%" stopColor="#d9a441" stopOpacity="0.04" />
-                  <stop offset="60%" stopColor="#6b4c18" stopOpacity="0.02" />
-                  <stop offset="100%" stopColor="#000000" stopOpacity="0.12" />
-                </radialGradient>
-
-                <pattern id="stage-planks-pattern" width="160" height="40" patternUnits="userSpaceOnUse">
-                  <rect width="160" height="40" fill="#0d0c0b" />
-                  <rect x="0" y="0" width="80" height="20" fill="#12100e" fillOpacity="0.5" />
-                  <rect x="80" y="20" width="80" height="20" fill="#12100e" fillOpacity="0.5" />
-                  <line x1="0" y1="0" x2="160" y2="0" stroke="#1f1c19" strokeWidth="1" />
-                  <line x1="0" y1="20" x2="160" y2="20" stroke="#1f1c19" strokeWidth="1" />
-                  <line x1="80" y1="0" x2="80" y2="20" stroke="#1f1c19" strokeWidth="1" />
-                  <line x1="0" y1="20" x2="0" y2="40" stroke="#1f1c19" strokeWidth="1" />
-                  <line x1="160" y1="20" x2="160" y2="40" stroke="#1f1c19" strokeWidth="1" />
-                </pattern>
-
-                <radialGradient id="stage-spotlight" cx="50%" cy="40%" r="55%">
-                  <stop offset="0%" stopColor="#8ec5d6" stopOpacity="0.08" />
-                  <stop offset="60%" stopColor="#4F46E5" stopOpacity="0.03" />
-                  <stop offset="100%" stopColor="#000000" stopOpacity="0.0" />
-                </radialGradient>
-              </defs>
 
             </svg>
 

@@ -225,7 +225,7 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
 
       if (isMaster ? isPlayingAudio : isSignalActive) {
         // Live glowing status indicator dot
-        const dotColor = currentPeak > 0.9 ? '#d9604a' : isMaster ? '#d9a441' : '#aab35f';
+        const dotColor = currentPeak > 0.9 ? '#d9604a' : isMaster ? '#d9a441' : '#81a171';
         ctx.fillStyle = dotColor;
         ctx.beginPath();
         ctx.arc(6, 6, 2.5, 0, Math.PI * 2);
@@ -238,7 +238,7 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
 
         // Right corner: Status tag
         const tagText = isMaster ? 'MASTER' : channel.solo ? 'SOLO' : 'LIVE';
-        ctx.fillStyle = isMaster ? '#fed7aa' : channel.solo ? '#fbe58a' : '#bfc67a';
+        ctx.fillStyle = isMaster ? '#fed7aa' : channel.solo ? '#fbe58a' : '#99b68a';
         const tagWidth = ctx.measureText(tagText).width;
         ctx.fillText(tagText, width - tagWidth - 4, 3);
       } else if (hasChainError) {

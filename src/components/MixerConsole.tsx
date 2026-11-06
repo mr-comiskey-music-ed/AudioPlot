@@ -159,7 +159,7 @@ const GainTrimKnob: React.FC<GainTrimKnobProps> = ({ value = 50, onChange }) => 
         {/* Notch pointer line */}
         <div
           className={`absolute w-0.5 h-2.5 rounded-full top-0.5 ${
-            isHot ? 'bg-rose-400 shadow-[0_0_4px_#fb7185]' : 'bg-emerald-400 shadow-[0_0_4px_#aab35f]'
+            isHot ? 'bg-rose-400 shadow-[0_0_4px_#fb7185]' : 'bg-emerald-400 shadow-[0_0_4px_#81a171]'
           }`}
           style={{
             transformOrigin: '50% 11px',
@@ -435,7 +435,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
         title={isCollapsed ? 'Click anywhere to expand Mixer & Audio Interface' : 'Click anywhere to collapse Mixer'}
       >
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#aab35f]" />
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#81a171]" />
           <span className="font-extrabold uppercase tracking-wider text-stone-200 flex items-center gap-1.5 group-hover:text-white transition-colors">
             <Sliders className="w-3.5 h-3.5 text-emerald-400" />
             Console / Mixer
@@ -721,7 +721,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                                 ? 'bg-yellow-400 shadow-[0_0_4px_#facc15]'
                                 : 'bg-yellow-950/40'
                               : isLit
-                              ? 'bg-emerald-400 shadow-[0_0_4px_#aab35f]'
+                              ? 'bg-emerald-400 shadow-[0_0_4px_#81a171]'
                               : 'bg-emerald-950/40';
 
                             return <div key={idx} className={`w-full flex-1 rounded-xs ${colorClass}`} />;
@@ -739,7 +739,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                 onClick={() => setSelectedChannelNumber('master')}
                 className={`w-40 bg-black/60 backdrop-blur-xl border rounded-2xl p-3 flex flex-col items-center justify-between shadow-xl cursor-pointer transition-all ${
                   selectedChannelNumber === 'master'
-                    ? 'ring-2 ring-emerald-400 border-emerald-400 bg-emerald-500/[0.08] shadow-[0_0_16px_rgba(143,154,71,0.3)]'
+                    ? 'ring-2 ring-emerald-400 border-emerald-400 bg-emerald-500/[0.08] shadow-[0_0_16px_rgba(105,136,89,0.3)]'
                     : 'border-emerald-500/30 hover:border-emerald-500/60'
                 }`}
               >

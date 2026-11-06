@@ -81,8 +81,8 @@ export const CableLayer: React.FC<CableLayerProps> = ({
           <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#8f3f25" floodOpacity="0.6" />
         </filter>
         <filter id="signal-glow-emerald" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#aab35f" floodOpacity="0.9" />
-          <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#727c37" floodOpacity="0.6" />
+          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#81a171" floodOpacity="0.9" />
+          <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#536d46" floodOpacity="0.6" />
         </filter>
 
         {/* Directional Signal Flow Arrow Markers */}
@@ -250,7 +250,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                   y1={txCenter.y}
                   x2={rxCenter.x}
                   y2={rxCenter.y}
-                  stroke="#8f9a47"
+                  stroke="#698859"
                   strokeWidth={isRfHighlighted ? '3.5' : '2.5'}
                   strokeDasharray="6 4"
                   className={isRfHighlighted ? 'animate-signal-flow' : 'animate-pulse'}
@@ -264,15 +264,15 @@ export const CableLayer: React.FC<CableLayerProps> = ({
                     width="76"
                     height="20"
                     rx="10"
-                    fill="#1b1e0d"
-                    stroke="#8f9a47"
+                    fill="#141b10"
+                    stroke="#698859"
                     strokeWidth={isRfHighlighted ? '2' : '1.5'}
                     filter={isRfHighlighted ? 'url(#signal-glow-emerald)' : undefined}
                   />
                   <text
                     x="0"
                     y="3.5"
-                    fill="#bfc67a"
+                    fill="#99b68a"
                     fontSize="8.5"
                     fontWeight="900"
                     textAnchor="middle"

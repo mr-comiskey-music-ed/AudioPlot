@@ -242,11 +242,6 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <ellipse cx="48" cy="18" rx="14" ry="4.5" fill="#c2931a" stroke="#8f6620" strokeWidth="1" />
           <ellipse cx="48" cy="17.2" rx="5" ry="2" fill="#f2c94c" stroke="#6b4c18" strokeWidth="0.8" />
           <rect x="47" y="14" width="2" height="3" fill="#66584a" />
-
-          {/* Overhead Stereo Bracket Guide Line */}
-          <path d="M12 6 H52" stroke="#a3bcc6" strokeWidth="0.8" strokeDasharray="2 1.5" opacity="0.7" />
-          <circle cx="12" cy="6" r="1.5" fill="#a3bcc6" />
-          <circle cx="52" cy="6" r="1.5" fill="#a3bcc6" />
         </svg>
       );
 
@@ -560,12 +555,20 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
         </svg>
       );
 
-    case 'Choir':
+    case 'Choir': {
+      const renderSheet = (cx: number, y: number, w: number) => (
+            <g>
+              {/* An open choral folder, seen from the front: the pages dip toward the spine, music lines run across */}
+              <path d={`M${cx - w} ${y} L${cx} ${y + 1.6} L${cx + w} ${y} L${cx + w - 1} ${y + 6.5} L${cx} ${y + 8} L${cx - w + 1} ${y + 6.5} Z`} fill="#f8ddd2" stroke="#8f3f25" strokeWidth="0.6" strokeLinejoin="round" />
+              <line x1={cx} y1={y + 1.6} x2={cx} y2={y + 8} stroke="#8f3f25" strokeWidth="0.5" />
+              <path d={`M${cx - w + 1.2} ${y + 2.6} L${cx - 0.8} ${y + 3.6} M${cx - w + 1.2} ${y + 4.6} L${cx - 0.8} ${y + 5.6} M${cx + 0.8} ${y + 3.6} L${cx + w - 1.2} ${y + 2.6} M${cx + 0.8} ${y + 5.6} L${cx + w - 1.2} ${y + 4.6}`} stroke="#b5502f" strokeWidth="0.45" opacity="0.8" />
+            </g>
+          );
       return (
         <svg width={size * 1.8} height={size} viewBox="0 0 115 64" fill="none" className={className}>
           {/* Tiered Choral Risers */}
           <rect x="6" y="28" width="103" height="8" rx="2" fill="#365060" opacity="0.6" stroke="#4a6878" strokeWidth="0.8" />
-          <rect x="12" y="44" width="91" height="8" rx="2" fill="#0f2230" opacity="0.8" stroke="#3730A3" strokeWidth="0.8" />
+          <rect x="12" y="44" width="91" height="8" rx="2" fill="#0f2230" opacity="0.8" stroke="#4a6878" strokeWidth="0.8" />
 
           {/* BACK ROW SINGERS (Higher Riser, 5 vocalists) */}
           {[16, 36, 57, 78, 98].map((cx, i) => (
@@ -579,6 +582,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
                 stroke="#8f3f25"
                 strokeWidth="0.8"
               />
+              {renderSheet(cx, 23.5, 4.6)}
             </g>
           ))}
 
@@ -594,28 +598,23 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
                 stroke="#b5502f"
                 strokeWidth="1"
               />
-              {/* Choral Octavo Sheet Music Folder */}
-              <polygon points={`${cx - 5},45 ${cx},43 ${cx + 5},45 ${cx + 4},51 ${cx},49 ${cx - 4},51`} fill="#f8ddd2" stroke="#8f3f25" strokeWidth="0.6" />
+              {renderSheet(cx, 43, 5.5)}
             </g>
           ))}
-
-          {/* Harmonized Vocal Acoustic Waves overhead */}
-          <path d="M14 6 C24 2 34 2 44 6" stroke="#f1c0ab" strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
-          <path d="M48 5 C58 1 68 1 78 5" stroke="#f1c0ab" strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
-          <path d="M82 6 C92 2 102 2 108 6" stroke="#f1c0ab" strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
         </svg>
       );
+    }
 
     case 'Mic':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
           {/* A singer: head and shoulders with sound rolling out to the right */}
-          <circle cx="26" cy="22" r="10" fill="#aab35f" opacity="0.85" />
-          <path d="M12 50C12 40 20 36 26 36C32 36 40 40 40 50" fill="#727c37" />
+          <circle cx="26" cy="22" r="10" fill="#81a171" opacity="0.85" />
+          <path d="M12 50C12 40 20 36 26 36C32 36 40 40 40 50" fill="#536d46" />
           {/* Vocal Waves */}
-          <path d="M42 20C46 22 46 28 42 30" stroke="#bfc67a" strokeWidth="2" strokeLinecap="round" />
-          <path d="M47 16C53 19 53 31 47 34" stroke="#bfc67a" strokeWidth="2" strokeLinecap="round" />
-          <path d="M52 12C60 16 60 34 52 38" stroke="#bfc67a" strokeWidth="2" strokeLinecap="round" />
+          <path d="M42 20C46 22 46 28 42 30" stroke="#99b68a" strokeWidth="2" strokeLinecap="round" />
+          <path d="M47 16C53 19 53 31 47 34" stroke="#99b68a" strokeWidth="2" strokeLinecap="round" />
+          <path d="M52 12C60 16 60 34 52 38" stroke="#99b68a" strokeWidth="2" strokeLinecap="round" />
         </svg>
       );
 
@@ -678,7 +677,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
           {/* Metal Stompbox Chassis */}
-          <rect x="8" y="14" width="48" height="36" rx="4" fill="#727c37" stroke="#047857" strokeWidth="2" />
+          <rect x="8" y="14" width="48" height="36" rx="4" fill="#536d46" stroke="#047857" strokeWidth="2" />
           {/* 1/4" Instrument Input Jack (Left) */}
           <circle cx="16" cy="32" r="4.5" fill="#3a2f24" stroke="#a3bcc6" strokeWidth="1.5" />
           <circle cx="16" cy="32" r="2" fill="#587d8e" />
@@ -937,8 +936,8 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
           {/* Dual Mesh Ring Pop Shield */}
-          <circle cx="32" cy="24" r="16" fill="#8f9a47" opacity="0.2" stroke="#8f9a47" strokeWidth="2" />
-          <circle cx="32" cy="24" r="13" fill="none" stroke="#aab35f" strokeWidth="1" strokeDasharray="2 2" />
+          <circle cx="32" cy="24" r="16" fill="#698859" opacity="0.2" stroke="#698859" strokeWidth="2" />
+          <circle cx="32" cy="24" r="13" fill="none" stroke="#81a171" strokeWidth="1" strokeDasharray="2 2" />
           {/* Flexible Gooseneck */}
           <path d="M32 40C32 46 22 46 22 52V60" fill="none" stroke="#8a7a65" strokeWidth="3" strokeLinecap="round" />
           {/* Stand Clamp */}
@@ -971,15 +970,15 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <circle cx="55" cy="44" r="1.5" fill="#8a7a65" />
           {/* Front LCD Frequency / Audio Display */}
           <rect x="14" y="22" width="22" height="14" rx="1.5" fill="#0369A1" stroke="#587d8e" strokeWidth="1" />
-          <rect x="16" y="32" width="4" height="2" fill="#8f9a47" />
-          <rect x="21" y="32" width="4" height="2" fill="#8f9a47" />
+          <rect x="16" y="32" width="4" height="2" fill="#698859" />
+          <rect x="21" y="32" width="4" height="2" fill="#698859" />
           <rect x="26" y="32" width="4" height="2" fill="#e6b52a" />
           <rect x="31" y="32" width="3" height="2" fill="#d9604a" />
           {/* Rotary Level Knob */}
           <circle cx="42" cy="28" r="4.5" fill="#2a2118" stroke="#a3bcc6" strokeWidth="1.2" />
           <line x1="42" y1="28" x2="42" y2="25" stroke="#FFFFFF" strokeWidth="1" strokeLinecap="round" />
           {/* Power Button / Status LED */}
-          <circle cx="42" cy="40" r="2" fill="#8f9a47" />
+          <circle cx="42" cy="40" r="2" fill="#698859" />
           {/* Rear / Top Antenna (Angled) */}
           <line x1="50" y1="16" x2="56" y2="4" stroke="#a3bcc6" strokeWidth="2" strokeLinecap="round" />
           <circle cx="56" cy="4" r="1.5" fill="#a3bcc6" />
@@ -1003,7 +1002,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <line x1="34.5" y1="6" x2="34.5" y2="10" stroke="#f7f1e6" strokeWidth="0.9" strokeLinecap="round" />
           {/* Status LEDs and headphone jack */}
           <circle cx="41" cy="16" r="1" fill="#d9604a" />
-          <circle cx="41" cy="19.5" r="1" fill="#8f9a47" />
+          <circle cx="41" cy="19.5" r="1" fill="#698859" />
           <circle cx="45.5" cy="17.5" r="2" fill="#140f0a" stroke="#b0a08a" strokeWidth="0.8" />
           {/* Mode switch */}
           <rect x="17.5" y="15" width="2.5" height="5" rx="0.6" fill="#4d3f31" />
@@ -1030,7 +1029,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <rect x="21" y="24" width="22" height="10" rx="1.5" fill="#587d8e" stroke="#a3bcc6" strokeWidth="0.8" />
           {/* Battery Status Indicator & LEDs */}
           <rect x="22" y="38" width="10" height="4" rx="1" fill="#065F46" />
-          <circle cx="40" cy="40" r="2" fill="#8f9a47" />
+          <circle cx="40" cy="40" r="2" fill="#698859" />
           {/* Belt Clip Outline */}
           <path d="M20 54H44" stroke="#66584a" strokeWidth="1.5" strokeLinecap="round" />
           {/* High-Fi In-Ear Molded Earpieces */}

@@ -26,7 +26,7 @@ interface Props {
   style: FloorStyle;
 }
 
-export const CanvasFloor: React.FC<Props> = ({ width, height, environment, style }) => {
+const CanvasFloorBase: React.FC<Props> = ({ width, height, environment, style }) => {
   const studio = environment === 'recording_studio';
   const base = studio ? '#e6dcc7' : '#d4ccbc';
   return (
@@ -108,3 +108,6 @@ export const CanvasFloor: React.FC<Props> = ({ width, height, environment, style
     </>
   );
 };
+
+/** The floor never changes while gear is dragged, so it is drawn once (the texture filters are costly to repaint). */
+export const CanvasFloor = React.memo(CanvasFloorBase);

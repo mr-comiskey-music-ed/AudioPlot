@@ -72,12 +72,12 @@
   --color-violet-300: #ea9f80; --color-violet-400: #e47f57; --color-violet-500: #cf6240; --color-violet-600: #b5502f; --color-violet-700: #8f3f25;
   --color-fuchsia-300: #ea9f80; --color-fuchsia-400: #e47f57; --color-fuchsia-500: #cf6240; --color-fuchsia-600: #b5502f;
 
-  --color-emerald-50: #f4f5e6; --color-emerald-100: #e6e9c6; --color-emerald-200: #d3d9a0; --color-emerald-300: #bfc67a;
-  --color-emerald-400: #aab35f; --color-emerald-500: #8f9a47; --color-emerald-600: #727c37; --color-emerald-700: #59622b;
-  --color-emerald-800: #434a21; --color-emerald-900: #2f3418; --color-emerald-950: #1b1e0d;
-  --color-green-300: #bfc67a; --color-green-400: #aab35f; --color-green-500: #8f9a47; --color-green-600: #727c37;
-  --color-teal-300: #bfc67a; --color-teal-400: #aab35f; --color-teal-500: #8f9a47; --color-teal-600: #727c37;
-  --color-lime-300: #bfc67a; --color-lime-400: #aab35f; --color-lime-500: #8f9a47;
+  --color-emerald-50: #ecf2e9; --color-emerald-100: #d4e1ce; --color-emerald-200: #b7cdac; --color-emerald-300: #99b68a;
+  --color-emerald-400: #81a171; --color-emerald-500: #698859; --color-emerald-600: #536d46; --color-emerald-700: #415637;
+  --color-emerald-800: #32412a; --color-emerald-900: #232e1e; --color-emerald-950: #141b10;
+  --color-green-300: #99b68a; --color-green-400: #81a171; --color-green-500: #698859; --color-green-600: #536d46;
+  --color-teal-300: #99b68a; --color-teal-400: #81a171; --color-teal-500: #698859; --color-teal-600: #536d46;
+  --color-lime-300: #99b68a; --color-lime-400: #81a171; --color-lime-500: #698859;
 }
 
 @layer base {
