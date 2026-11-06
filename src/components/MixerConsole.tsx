@@ -159,7 +159,7 @@ const GainTrimKnob: React.FC<GainTrimKnobProps> = ({ value = 50, onChange }) => 
         {/* Notch pointer line */}
         <div
           className={`absolute w-0.5 h-2.5 rounded-full top-0.5 ${
-            isHot ? 'bg-rose-400 shadow-[0_0_4px_#fb7185]' : 'bg-emerald-400 shadow-[0_0_4px_#81a171]'
+            isHot ? 'bg-rose-400 shadow-[0_0_4px_#e8806f]' : 'bg-emerald-400 shadow-[0_0_4px_#81a171]'
           }`}
           style={{
             transformOrigin: '50% 11px',
@@ -547,7 +547,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                     onClick={() => setSelectedChannelNumber(ch.channelNumber)}
                     className={`w-28 border rounded-2xl p-2.5 flex flex-col items-center justify-between shadow-inner relative transition-all backdrop-blur-lg cursor-pointer ${
                       isSelected
-                        ? 'ring-2 ring-emerald-400 border-emerald-400 bg-emerald-500/[0.08] shadow-[0_0_12px_rgba(52,211,153,0.2)]'
+                        ? 'ring-2 ring-emerald-400 border-emerald-400 bg-emerald-500/[0.08] shadow-[0_0_12px_rgba(129,161,113,0.2)]'
                         : assignedGear
                         ? hasChainError
                           ? 'border-amber-500/40 bg-amber-500/[0.04] hover:border-amber-500/60'
@@ -622,7 +622,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                         }}
                         className={`px-2.5 py-0.5 rounded-full text-[9px] font-black border transition-all flex items-center gap-1 backdrop-blur-md cursor-pointer ${
                           ch.phantomPower
-                            ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 shadow-[0_0_8px_rgba(244,63,94,0.4)] font-bold'
+                            ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 shadow-[0_0_8px_rgba(217,96,74,0.4)] font-bold'
                             : 'bg-white/5 border-white/10 text-stone-400 hover:text-stone-200'
                         }`}
                         title={ch.phantomPower ? '+48V Power Active' : 'Toggle +48V Phantom Power for Condenser Mics'}
@@ -714,7 +714,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                                 : 'bg-red-950/40'
                               : isYellow
                               ? isLit
-                                ? 'bg-yellow-400 shadow-[0_0_4px_#facc15]'
+                                ? 'bg-yellow-400 shadow-[0_0_4px_#f2c94c]'
                                 : 'bg-yellow-950/40'
                               : isLit
                               ? 'bg-emerald-400 shadow-[0_0_4px_#81a171]'

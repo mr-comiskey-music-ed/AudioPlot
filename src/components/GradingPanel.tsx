@@ -120,10 +120,10 @@ export const GradingPanel: React.FC<GradingPanelProps> = ({
                 isSandbox
                   ? 'bg-stone-900/90 text-stone-300 border-stone-500 border-dashed'
                   : isHigh
-                  ? 'bg-emerald-950/90 text-emerald-300 border-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.5)] ring-2 ring-emerald-400/30'
+                  ? 'bg-emerald-950/90 text-emerald-300 border-emerald-400 shadow-[0_0_16px_rgba(129,161,113,0.5)] ring-2 ring-emerald-400/30'
                   : isMedium
-                  ? 'bg-orange-950/90 text-orange-300 border-orange-400 shadow-[0_0_16px_rgba(251,146,60,0.5)] ring-2 ring-orange-400/30'
-                  : 'bg-rose-950/90 text-rose-300 border-rose-400 shadow-[0_0_16px_rgba(244,63,94,0.5)] ring-2 ring-rose-400/30'
+                  ? 'bg-orange-950/90 text-orange-300 border-orange-400 shadow-[0_0_16px_rgba(227,176,78,0.5)] ring-2 ring-orange-400/30'
+                  : 'bg-rose-950/90 text-rose-300 border-rose-400 shadow-[0_0_16px_rgba(217,96,74,0.5)] ring-2 ring-rose-400/30'
               }`}
             >
               {isSandbox ? (
@@ -138,10 +138,10 @@ export const GradingPanel: React.FC<GradingPanelProps> = ({
               <div
                 className={`w-full rounded-full transition-all duration-300 ${
                   isHigh
-                    ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]'
+                    ? 'bg-emerald-400 shadow-[0_0_8px_rgba(129,161,113,0.9)]'
                     : isMedium
-                    ? 'bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.9)]'
-                    : 'bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.9)]'
+                    ? 'bg-orange-400 shadow-[0_0_8px_rgba(227,176,78,0.9)]'
+                    : 'bg-rose-400 shadow-[0_0_8px_rgba(217,96,74,0.9)]'
                 }`}
                 style={{ height: `${Math.max(6, evaluation.percentage)}%` }}
               />

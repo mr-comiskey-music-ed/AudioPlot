@@ -124,7 +124,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
             }}
             className={`px-2 py-0.5 rounded-full text-[11px] font-black border transition-all flex items-center gap-1 backdrop-blur-md cursor-pointer ${
               selectedAssignedChannel?.phantomPower
-                ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 shadow-[0_0_8px_rgba(244,63,94,0.4)]'
+                ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 shadow-[0_0_8px_rgba(217,96,74,0.4)]'
                 : 'bg-white/5 border-white/10 text-stone-400 hover:text-stone-200'
             }`}
             title="Toggle +48V Phantom Power for this mic's channel strip"

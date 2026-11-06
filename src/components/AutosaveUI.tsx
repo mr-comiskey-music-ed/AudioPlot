@@ -4,7 +4,15 @@ import { Check, AlertTriangle } from 'lucide-react';
 export type SaveStatus = 'idle' | 'saved' | 'failed';
 
 /** Small status label for the header: lets students see their work is being kept. */
-export const SaveIndicator: React.FC<{ status: SaveStatus; savedAt: number | null }> = ({ status, savedAt }) => {
+/**
+ * `pending` means the student changed something that is not saved yet, so the indicator steps aside rather than
+ * claim "Saved" for work that is not. The time shows only when the header has room for it.
+ */
+export const SaveIndicator: React.FC<{ status: SaveStatus; savedAt: number | null; pending?: boolean }> = ({
+  status,
+  savedAt,
+  pending = false,
+}) => {
   if (status === 'idle') return null;
   if (status === 'failed') {
     return (
@@ -17,14 +25,16 @@ export const SaveIndicator: React.FC<{ status: SaveStatus; savedAt: number | nul
       </div>
     );
   }
+  if (pending) return null;
   const time = savedAt ? new Date(savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
   return (
     <div
-      className="flex items-center gap-1 px-2 py-1 text-[11px] text-stone-400"
-      title="Your plot is saved in this browser on this computer. You still turn in your code."
+      className="flex items-center gap-1 px-2 py-1 text-[11px] text-stone-400 whitespace-nowrap"
+      title={`Your plot is saved in this browser on this computer${time ? ` (${time})` : ''}. You still turn in your code.`}
     >
-      <Check className="w-3 h-3" />
-      <span>Saved{time ? ` ${time}` : ''}</span>
+      <Check className="w-3 h-3 text-emerald-400" />
+      <span>Saved</span>
+      {time && <span className="hidden 2xl:inline">{time}</span>}
     </div>
   );
 };

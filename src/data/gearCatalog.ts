@@ -13,7 +13,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Human vocal source. Requires mic stand and pop filter for studio recording, or dynamic mic for live stage.',
     specs: 'Acoustic vocal source ~80Hz - 12kHz.',
     iconType: 'Mic',
-    color: '#EC4899',
+    color: '#d9604a',
     size: { width: 60, height: 60 },
   },
   {
@@ -125,7 +125,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'High-SPL acoustic snare with sharp wire crack. Best mic’d with high-SPL dynamic mic like Shure SM57.',
     specs: '150Hz - 8kHz sharp transient attack.',
     iconType: 'SnareDrum',
-    color: '#0EA5E9',
+    color: '#5f9fb8',
     size: { width: 45, height: 45 },
   },
   {
@@ -378,7 +378,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Precision pencil condenser with smooth high-end extension and fast transient attack. Ideal for drum kit overheads and acoustic guitars.',
     specs: '40Hz - 18kHz, Cardioid Pencil Condenser. REQUIRES +48V PHANTOM POWER.',
     iconType: 'MicADX51',
-    color: '#0369A1',
+    color: '#2f5f7a',
     size: { width: 46, height: 46 },
   },
   {

@@ -205,7 +205,7 @@ export const SignalFlowMap: React.FC<SignalFlowMapProps> = ({
         <div
           className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
             isSignalFlowing
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_10px_rgba(52,211,153,0.3)]'
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_10px_rgba(129,161,113,0.3)]'
               : signalValidation.hasSignal
               ? 'bg-sky-500/10 text-sky-300 border-sky-500/30'
               : assignedGear
@@ -260,7 +260,7 @@ export const SignalFlowMap: React.FC<SignalFlowMapProps> = ({
                     className={`w-2 h-2 rounded-full shrink-0 ${
                       chSignal.hasSignal
                         ? isPlayingAudio && !ch.muted && ch.fader > 5
-                          ? 'bg-emerald-400 ring-2 ring-emerald-400/30 shadow-[0_0_6px_rgba(52,211,153,0.8)]'
+                          ? 'bg-emerald-400 ring-2 ring-emerald-400/30 shadow-[0_0_6px_rgba(129,161,113,0.8)]'
                           : 'bg-emerald-500'
                         : ch.assignedGearInstanceId
                         ? 'bg-amber-400'
@@ -282,7 +282,7 @@ export const SignalFlowMap: React.FC<SignalFlowMapProps> = ({
         {/* Animated Flowing Signal Bus Line */}
         <div className="absolute left-[23px] top-6 bottom-6 w-0.5 bg-gradient-to-b from-stone-700 via-stone-600 to-stone-700 pointer-events-none">
           {isSignalFlowing && (
-            <div className="w-full h-full bg-gradient-to-b from-emerald-400 via-sky-400 to-orange-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+            <div className="w-full h-full bg-gradient-to-b from-emerald-400 via-sky-400 to-orange-400 animate-pulse shadow-[0_0_8px_rgba(129,161,113,0.8)]" />
           )}
         </div>
 

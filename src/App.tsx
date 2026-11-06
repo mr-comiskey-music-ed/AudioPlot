@@ -405,6 +405,8 @@ export default function App() {
   });
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  // True from a change until the debounced save has run, so the header never says "Saved" for unsaved work
+  const [savePending, setSavePending] = useState(false);
   const lastCodeRef = useRef<string>('');
   const autosaveOn = autosaveSlot !== null && restoreOffer === null;
   const projectRef = useRef(currentProjectState);
@@ -455,7 +457,11 @@ export default function App() {
   // Save shortly after the student stops changing things
   useEffect(() => {
     if (!autosaveOn) return;
-    const timer = window.setTimeout(() => saveNowRef.current(), 1500);
+    setSavePending(true);
+    const timer = window.setTimeout(() => {
+      saveNowRef.current();
+      setSavePending(false);
+    }, 1500);
     return () => window.clearTimeout(timer);
   }, [autosaveOn, placedGear, connections, mixerChannels, masterBus, environment, activeChallengeId, stageSize, projectTitle]);
 
@@ -956,7 +962,7 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen w-screen bg-[#0c0c11] overflow-hidden text-stone-100 font-sans relative">
       {/* Ambient background illumination */}
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_0%,rgba(249,115,22,0.07),transparent_50%),radial-gradient(circle_at_85%_70%,rgba(59,130,246,0.06),transparent_40%),radial-gradient(circle_at_15%_90%,rgba(168,85,247,0.05),transparent_40%)]" />
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_0%,rgba(217,164,65,0.07),transparent_50%),radial-gradient(circle_at_85%_70%,rgba(95,159,184,0.06),transparent_40%),radial-gradient(circle_at_15%_90%,rgba(207,98,64,0.05),transparent_40%)]" />
 
       {/* Top Application Navigation & Assignment Header */}
       <StudioHeader
@@ -985,7 +991,7 @@ export default function App() {
         onRedo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
-        statusSlot={<SaveIndicator status={saveStatus} savedAt={savedAt} />}
+        statusSlot={<SaveIndicator status={saveStatus} savedAt={savedAt} pending={savePending} />}
       />
 
       {restoreOffer && !learn && (

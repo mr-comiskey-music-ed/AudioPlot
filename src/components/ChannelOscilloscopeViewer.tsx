@@ -263,7 +263,7 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
           const h = Math.max(1, shown * (floorY - 8));
           const x = gap + b * (barW + gap);
           const grad = ctx.createLinearGradient(0, floorY, 0, floorY - h);
-          grad.addColorStop(0, 'rgba(56,189,248,0.35)');
+          grad.addColorStop(0, 'rgba(142,197,214,0.35)');
           grad.addColorStop(1, clipping ? '#d9604a' : '#8ec5d6');
           ctx.fillStyle = grad;
           ctx.fillRect(x, floorY - h, barW, h);
@@ -387,7 +387,7 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
                   }
                   const spkCount = connections.filter(c => c.cableType === 'speaker').length;
                   if (spkCount > 0) {
-                    map.set('cable-spk', { name: 'Speaker Cable', category: 'Cable', color: '#a855f7', count: spkCount });
+                    map.set('cable-spk', { name: 'Speaker Cable', category: 'Cable', color: '#cf6240', count: spkCount });
                   }
 
                   const aggregated = Array.from(map.values());

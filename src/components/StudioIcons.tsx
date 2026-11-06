@@ -677,7 +677,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
           {/* Metal Stompbox Chassis */}
-          <rect x="8" y="14" width="48" height="36" rx="4" fill="#536d46" stroke="#047857" strokeWidth="2" />
+          <rect x="8" y="14" width="48" height="36" rx="4" fill="#536d46" stroke="#536d46" strokeWidth="2" />
           {/* 1/4" Instrument Input Jack (Left) */}
           <circle cx="16" cy="32" r="4.5" fill="#3a2f24" stroke="#a3bcc6" strokeWidth="1.5" />
           <circle cx="16" cy="32" r="2" fill="#587d8e" />
@@ -969,7 +969,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <circle cx="55" cy="20" r="1.5" fill="#8a7a65" />
           <circle cx="55" cy="44" r="1.5" fill="#8a7a65" />
           {/* Front LCD Frequency / Audio Display */}
-          <rect x="14" y="22" width="22" height="14" rx="1.5" fill="#0369A1" stroke="#587d8e" strokeWidth="1" />
+          <rect x="14" y="22" width="22" height="14" rx="1.5" fill="#2f5f7a" stroke="#587d8e" strokeWidth="1" />
           <rect x="16" y="32" width="4" height="2" fill="#698859" />
           <rect x="21" y="32" width="4" height="2" fill="#698859" />
           <rect x="26" y="32" width="4" height="2" fill="#e6b52a" />

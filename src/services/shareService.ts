@@ -253,9 +253,9 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
       font-size: 10px;
       font-weight: 700;
     }
-    .status-perfect { background: #dcfce7; color: #166534; }
-    .status-warning { background: #fef9c3; color: #854d0e; }
-    .status-error { background: #fee2e2; color: #991b1b; }
+    .status-perfect { background: #dcfce7; color: #415637; }
+    .status-warning { background: #fdf1b8; color: #6b4c18; }
+    .status-error { background: #fee2e2; color: #6b2b19; }
     .status-not_applicable { background: #efe6d8; color: #8a7a65; }
     .packing-grid {
       display: grid;
@@ -383,8 +383,8 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
           <td><strong>${m.name}</strong> ${m.model ? `<span style="color:#8a7a65; font-size:11px;">(${m.model})</span>` : ''}</td>
           <td style="text-transform: capitalize;">${m.transducer}</td>
           <td>${m.polarPattern}</td>
-          <td>${m.requiresPhantom ? '<strong style="color:#b91c1c;">+48V Required</strong>' : 'No'}</td>
-          <td>${m.standHeight} ${m.popFilter ? '<br><span style="color:#047857; font-size:10px; font-weight:700;">+ Pop Filter</span>' : ''}</td>
+          <td>${m.requiresPhantom ? '<strong style="color:#8f3820;">+48V Required</strong>' : 'No'}</td>
+          <td>${m.standHeight} ${m.popFilter ? '<br><span style="color:#536d46; font-size:10px; font-weight:700;">+ Pop Filter</span>' : ''}</td>
           <td><strong>${m.assignedChannel}</strong></td>
         </tr>
       `
@@ -401,7 +401,7 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
           <td><strong>${d.name}</strong> ${d.model ? `<span style="color:#8a7a65; font-size:11px;">(${d.model})</span>` : ''}</td>
           <td>Direct Box</td>
           <td>Direct In</td>
-          <td>${d.requiresPhantom ? '<strong style="color:#b91c1c;">+48V Required</strong>' : 'Passive'}</td>
+          <td>${d.requiresPhantom ? '<strong style="color:#8f3820;">+48V Required</strong>' : 'Passive'}</td>
           <td>Floor / Stage Placement</td>
           <td><strong>${d.assignedChannel}</strong></td>
         </tr>

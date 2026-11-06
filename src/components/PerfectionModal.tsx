@@ -27,7 +27,7 @@ export const PerfectionModal: React.FC<PerfectionModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-200">
       <div
         id="perfection-challenge-modal"
-        className="relative w-full max-w-lg bg-stone-950/95 border-2 border-emerald-500/40 rounded-3xl shadow-[0_0_60px_rgba(16,185,129,0.25)] p-6 text-stone-100 flex flex-col items-center text-center overflow-hidden"
+        className="relative w-full max-w-lg bg-stone-950/95 border-2 border-emerald-500/40 rounded-3xl shadow-[0_0_60px_rgba(129,161,113,0.25)] p-6 text-stone-100 flex flex-col items-center text-center overflow-hidden"
       >
         {/* Ambient glow accent behind trophy */}
         <div className="absolute -top-20 -left-20 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />

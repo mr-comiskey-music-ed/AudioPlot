@@ -24,25 +24,25 @@ export interface PdfExportOptions {
 
 type RGB = [number, number, number];
 const C = {
-  ink: [17, 24, 39] as RGB,
-  text: [31, 41, 55] as RGB,
-  muted: [107, 114, 128] as RGB,
-  faint: [156, 163, 175] as RGB,
-  line: [209, 213, 219] as RGB,
-  panel: [243, 244, 246] as RGB,
+  ink: [42, 33, 24] as RGB,
+  text: [58, 47, 36] as RGB,
+  muted: [122, 106, 84] as RGB,
+  faint: [176, 160, 138] as RGB,
+  line: [221, 208, 188] as RGB,
+  panel: [247, 241, 230] as RGB,
   white: [255, 255, 255] as RGB,
-  accent: [234, 88, 12] as RGB,
-  good: [5, 150, 105] as RGB,
-  warn: [217, 119, 6] as RGB,
-  bad: [225, 29, 72] as RGB,
-  mic: [30, 41, 59] as RGB,
-  di: [15, 118, 110] as RGB,
-  unpatched: [156, 163, 175] as RGB,
+  accent: [164, 80, 31] as RGB,
+  good: [83, 109, 70] as RGB,
+  warn: [194, 147, 26] as RGB,
+  bad: [181, 71, 42] as RGB,
+  mic: [54, 80, 96] as RGB,
+  di: [83, 109, 70] as RGB,
+  unpatched: [176, 160, 138] as RGB,
 };
 const CABLE: Record<string, { color: RGB; label: string }> = {
-  xlr: { color: [234, 88, 12], label: 'XLR (mic) cable' },
-  quarter_inch: { color: [2, 132, 199], label: '1/4" instrument cable' },
-  speaker: { color: [22, 163, 74], label: 'Speaker cable' },
+  xlr: { color: [164, 80, 31], label: 'XLR (mic) cable' },
+  quarter_inch: { color: [47, 95, 122], label: '1/4" instrument cable' },
+  speaker: { color: [105, 136, 89], label: 'Speaker cable' },
 };
 const STAND_LABELS: Record<string, string> = {
   amp_low: 'Floor / short stand',
@@ -56,7 +56,7 @@ const NO_STAND = new Set(['clipped', 'mounted']);
 
 const hexToRgb = (hex?: string): RGB => {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
-  if (!m) return [100, 116, 139];
+  if (!m) return [138, 122, 101];
   const n = parseInt(m[1], 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 };
@@ -165,7 +165,7 @@ export async function generateStudioPlotPdf(
   const fx = M, fy = M + 15, fw = W - 2 * M, fh = H - fy - 26;
   doc.setDrawColor(...C.line);
   doc.setLineWidth(0.4);
-  doc.setFillColor(252, 252, 253);
+  doc.setFillColor(251, 248, 242);
   doc.roundedRect(fx, fy, fw, fh, 2, 2, 'FD');
 
   // Snake (top center) with input sockets 1..8 and, on stage, outputs
@@ -207,15 +207,15 @@ export async function generateStudioPlotPdf(
   // Room orientation labels
   setText(7, C.muted, 'bold');
   if (isStudio) {
-    doc.setFillColor(224, 242, 254);
+    doc.setFillColor(217, 235, 241);
     doc.rect(fx + fw / 2 - 45, fy + fh - 6, 90, 4.5, 'F');
-    setText(6.5, [3, 105, 161], 'bold');
+    setText(6.5, [47, 95, 122], 'bold');
     doc.text('CONTROL ROOM WINDOW', fx + fw / 2, fy + fh - 2.7, { align: 'center' });
   } else {
     doc.text('UPSTAGE (BACK OF STAGE)', fx + 4, fy + 5);
-    doc.setFillColor(238, 242, 255);
+    doc.setFillColor(236, 240, 232);
     doc.rect(fx + fw / 2 - 50, fy + fh - 6, 100, 4.5, 'F');
-    setText(6.5, [67, 56, 202], 'bold');
+    setText(6.5, [54, 80, 96], 'bold');
     doc.text('AUDIENCE / FRONT OF HOUSE', fx + fw / 2, fy + fh - 2.7, { align: 'center' });
   }
 

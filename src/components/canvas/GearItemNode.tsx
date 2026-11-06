@@ -172,13 +172,13 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
         isDimmed ? 'opacity-35 hover:opacity-100' : 'opacity-100'
       } ${
         isHighlightedInSignalPath && !isSelected
-          ? 'ring-2 ring-cyan-400 bg-stone-950/95 border-2 border-cyan-400 shadow-[0_0_24px_rgba(6,182,212,0.45)] scale-102'
+          ? 'ring-2 ring-cyan-400 bg-stone-950/95 border-2 border-cyan-400 shadow-[0_0_24px_rgba(142,197,214,0.45)] scale-102'
           : itemIssues.length > 0
           ? isSelected
             ? 'ring-2 ring-rose-500 bg-rose-950/70 border-2 border-rose-500 scale-105'
             : 'ring-1 ring-rose-500/60 bg-stone-950/80 border border-rose-500/50'
           : isSelected
-          ? 'ring-2 ring-orange-400 bg-stone-950/90 border border-orange-400 scale-105 shadow-[0_0_20px_rgba(249,115,22,0.3)]'
+          ? 'ring-2 ring-orange-400 bg-stone-950/90 border border-orange-400 scale-105 shadow-[0_0_20px_rgba(217,164,65,0.3)]'
           : isSourceForCable
           ? 'ring-2 ring-orange-500 animate-pulse bg-stone-950/90 border border-orange-500'
           : 'hover:ring-1 hover:ring-white/40 bg-stone-950/75 hover:bg-stone-950/90 border border-white/20'
@@ -189,7 +189,7 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
         width: `${dims.width}px`,
         height: `${dims.height}px`,
         transform: `rotate(${item.rotation}deg)`,
-        borderColor: item.hasPopFilter ? '#698859' : isHighlightedInSignalPath ? '#22D3EE' : undefined,
+        borderColor: item.hasPopFilter ? '#698859' : isHighlightedInSignalPath ? '#8ec5d6' : undefined,
       }}
     >
       {/* Active Signal Path Role Tag Badge */}

@@ -1584,7 +1584,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
             {/* Multi-item Selection Marquee Box */}
             {marqueeBox && (
               <div
-                className="absolute pointer-events-none border border-sky-400/90 bg-sky-500/15 rounded-sm z-40 shadow-[0_0_15px_rgba(56,189,248,0.25)] ring-1 ring-sky-400/30"
+                className="absolute pointer-events-none border border-sky-400/90 bg-sky-500/15 rounded-sm z-40 shadow-[0_0_15px_rgba(142,197,214,0.25)] ring-1 ring-sky-400/30"
                 style={{
                   left: `${Math.min(marqueeBox.startX, marqueeBox.currentX)}px`,
                   top: `${Math.min(marqueeBox.startY, marqueeBox.currentY)}px`,

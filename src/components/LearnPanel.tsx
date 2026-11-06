@@ -189,7 +189,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
             <MissionList missions={step.missions.slice(0, step.think ? askAfter : visibleMissions)} results={results} plot={plot} />
 
             {step.think && thinkReady && (
-              <div className="rounded-xl border-2 border-amber-400/40 bg-amber-400/[0.08] p-3 shadow-[0_0_0_3px_rgba(251,191,36,0.05)]">
+              <div className="rounded-xl border-2 border-amber-400/40 bg-amber-400/[0.08] p-3 shadow-[0_0_0_3px_rgba(242,201,76,0.05)]">
                 <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1.5">
                   <Lightbulb className="w-3.5 h-3.5" /> Think first
                 </div>

@@ -130,7 +130,7 @@ export const SnakeBox: React.FC<SnakeBoxProps> = ({
                     }}
                     className={`p-1 rounded-lg border flex flex-col items-center justify-center transition-all relative group cursor-pointer ${
                       isHighlighted
-                        ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200 shadow-[0_0_16px_rgba(6,182,212,0.5)] ring-2 ring-cyan-400 animate-pulse'
+                        ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200 shadow-[0_0_16px_rgba(142,197,214,0.5)] ring-2 ring-cyan-400 animate-pulse'
                         : assignedGear
                         ? 'bg-orange-500/20 border-orange-500/60 text-orange-200 shadow-md ring-1 ring-orange-400/40'
                         : 'bg-white/5 hover:bg-white/15 border-white/10 hover:border-orange-400/50 text-stone-400 hover:text-stone-200'
@@ -197,7 +197,7 @@ export const SnakeBox: React.FC<SnakeBoxProps> = ({
                     }}
                     className={`p-1 rounded-lg border flex flex-col items-center justify-center transition-all relative group cursor-pointer ${
                       isOutHighlighted
-                        ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200 shadow-[0_0_16px_rgba(6,182,212,0.5)] ring-2 ring-cyan-400 animate-pulse'
+                        ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200 shadow-[0_0_16px_rgba(142,197,214,0.5)] ring-2 ring-cyan-400 animate-pulse'
                         : connectedGear
                         ? 'bg-sky-500/20 border-sky-500/60 text-sky-200 shadow-md ring-1 ring-sky-400/40'
                         : 'bg-white/5 hover:bg-white/15 border-white/10 hover:border-sky-400/50 text-stone-400 hover:text-stone-200'
@@ -247,7 +247,7 @@ export const SnakeBox: React.FC<SnakeBoxProps> = ({
                 }}
                 className={`p-1.5 rounded-lg border flex flex-col items-center justify-center transition-all relative group cursor-pointer ${
                   isHighlighted
-                    ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200 shadow-[0_0_16px_rgba(6,182,212,0.5)] ring-2 ring-cyan-400 animate-pulse'
+                    ? 'bg-cyan-500/30 border-cyan-400 text-cyan-200 shadow-[0_0_16px_rgba(142,197,214,0.5)] ring-2 ring-cyan-400 animate-pulse'
                     : assignedGear
                     ? 'bg-orange-500/20 border-orange-500/60 text-orange-200 shadow-md ring-1 ring-orange-400/40'
                     : 'bg-white/5 hover:bg-white/15 border-white/10 hover:border-orange-400/50 text-stone-400 hover:text-stone-200'

@@ -131,10 +131,10 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
         const primaryColor = isMaster
           ? '#d9a441' // Orange for master
           : channel.solo
-          ? '#facc15' // Amber for solo
+          ? '#f2c94c' // Amber for solo
           : '#8ec5d6'; // Sky blue for live active input
 
-        const glowColor = isMaster ? 'rgba(249, 115, 22, 0.4)' : 'rgba(56, 189, 248, 0.4)';
+        const glowColor = isMaster ? 'rgba(217,164,65,0.4)' : 'rgba(142,197,214,0.4)';
 
         // Draw waveform path
         ctx.beginPath();
@@ -169,7 +169,7 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
 
         const grad = ctx.createLinearGradient(0, 0, 0, height);
         grad.addColorStop(0, glowColor);
-        grad.addColorStop(0.5, 'rgba(56, 189, 248, 0.02)');
+        grad.addColorStop(0.5, 'rgba(142,197,214,0.02)');
         grad.addColorStop(1, glowColor);
         ctx.fillStyle = grad;
         ctx.fill();
@@ -233,12 +233,12 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
 
         // Live amplitude percentage or dB label
         const ampPercent = Math.min(100, Math.round(currentPeak * 100));
-        ctx.fillStyle = currentPeak > 0.9 ? '#fca5a5' : '#ddd0bc';
+        ctx.fillStyle = currentPeak > 0.9 ? '#f0a090' : '#ddd0bc';
         ctx.fillText(`${ampPercent}%`, 12, 3);
 
         // Right corner: Status tag
         const tagText = isMaster ? 'MASTER' : channel.solo ? 'SOLO' : 'LIVE';
-        ctx.fillStyle = isMaster ? '#fed7aa' : channel.solo ? '#fbe58a' : '#99b68a';
+        ctx.fillStyle = isMaster ? '#f1d9a3' : channel.solo ? '#fbe58a' : '#99b68a';
         const tagWidth = ctx.measureText(tagText).width;
         ctx.fillText(tagText, width - tagWidth - 4, 3);
       } else if (hasChainError) {
@@ -249,7 +249,7 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
         const errWidth = ctx.measureText(errText).width;
         ctx.fillText(errText, width - errWidth - 4, 3);
       } else if (channel.muted) {
-        ctx.fillStyle = '#f87171';
+        ctx.fillStyle = '#e8806f';
         ctx.fillText('MUTED', 4, 3);
       } else if (assignedGear) {
         ctx.fillStyle = '#a8a29e';
@@ -268,7 +268,7 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
         ctx.fillText(srcName, width - nameWidth - 4, height - 9);
       } else if (isMaster) {
         ctx.font = '7px system-ui, -apple-system, sans-serif';
-        ctx.fillStyle = '#fdba74';
+        ctx.fillStyle = '#ecc67a';
         const masterText = 'STEREO SUM';
         const masterWidth = ctx.measureText(masterText).width;
         ctx.fillText(masterText, width - masterWidth - 4, height - 9);
@@ -304,9 +304,9 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
       id={isMaster ? 'waveform-visualizer-master' : `waveform-visualizer-ch-${channel.channelNumber}`}
       className={`w-full h-11 bg-black/90 rounded-xl border overflow-hidden relative shadow-inner select-none transition-colors ${
         isSignalActive
-          ? 'border-sky-500/50 shadow-[0_0_10px_rgba(56,189,248,0.2)]'
+          ? 'border-sky-500/50 shadow-[0_0_10px_rgba(142,197,214,0.2)]'
           : hasChainError
-          ? 'border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.15)]'
+          ? 'border-amber-500/40 shadow-[0_0_8px_rgba(230,181,42,0.15)]'
           : channel.muted
           ? 'border-rose-500/30'
           : 'border-white/15 hover:border-white/25'

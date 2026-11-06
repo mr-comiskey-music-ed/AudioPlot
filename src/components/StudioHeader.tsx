@@ -227,7 +227,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
 
           {/* Autosave status: sits next to Share & Submit; the room is reserved so nothing shifts when it appears */}
-          <div className="hidden lg:flex w-[92px] justify-end shrink-0">{statusSlot}</div>
+          <div className="hidden lg:flex w-[68px] 2xl:w-[112px] justify-end shrink-0">{statusSlot}</div>
 
           {/* Share / Export Modal */}
           <button

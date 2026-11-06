@@ -58,7 +58,7 @@ export const SignalFlowHUD: React.FC<SignalFlowHUDProps> = ({
       onMouseDown={(e) => e.stopPropagation()}
       className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 max-w-[98vw] w-max animate-in fade-in slide-in-from-bottom-3 duration-200"
     >
-      <div className="bg-stone-950/95 backdrop-blur-2xl border-2 border-cyan-500/40 hover:border-cyan-400/70 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.8),0_0_20px_rgba(6,182,212,0.2)] px-3 py-1.5 text-stone-200 transition-all">
+      <div className="bg-stone-950/95 backdrop-blur-2xl border-2 border-cyan-500/40 hover:border-cyan-400/70 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.8),0_0_20px_rgba(142,197,214,0.2)] px-3 py-1.5 text-stone-200 transition-all">
         {/* Header Row */}
         <div className="flex items-center justify-between gap-4 pb-1 border-b border-white/10">
           <div className="flex items-center gap-2">
@@ -82,11 +82,11 @@ export const SignalFlowHUD: React.FC<SignalFlowHUDProps> = ({
             <div
               className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
                 highlightedPath.health === 'healthy'
-                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_8px_rgba(129,161,113,0.3)]'
                   : highlightedPath.health === 'warning'
-                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_8px_rgba(230,181,42,0.3)]'
                   : highlightedPath.health === 'muted'
-                  ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 shadow-[0_0_8px_rgba(244,63,94,0.3)]'
+                  ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 shadow-[0_0_8px_rgba(217,96,74,0.3)]'
                   : 'bg-white/10 border-white/20 text-stone-400'
               }`}
             >
@@ -103,7 +103,7 @@ export const SignalFlowHUD: React.FC<SignalFlowHUDProps> = ({
               onClick={onToggleHighlight}
               className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-1 cursor-pointer ${
                 isHighlightEnabled
-                  ? 'bg-cyan-500 border-cyan-400 text-stone-950 font-black shadow-[0_0_12px_rgba(6,182,212,0.5)] ring-1 ring-cyan-300'
+                  ? 'bg-cyan-500 border-cyan-400 text-stone-950 font-black shadow-[0_0_12px_rgba(142,197,214,0.5)] ring-1 ring-cyan-300'
                   : 'bg-white/5 hover:bg-white/15 border-white/10 text-stone-400 hover:text-stone-200'
               }`}
               title={
@@ -164,7 +164,7 @@ export const SignalFlowHUD: React.FC<SignalFlowHUDProps> = ({
                       }}
                       className={`px-2 py-1 rounded-lg border flex items-center gap-1.5 shrink-0 transition-all text-left group ${
                         isSelected
-                          ? 'bg-cyan-500/25 border-cyan-400 text-cyan-100 ring-1 ring-cyan-400/60 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                          ? 'bg-cyan-500/25 border-cyan-400 text-cyan-100 ring-1 ring-cyan-400/60 shadow-[0_0_10px_rgba(142,197,214,0.3)]'
                           : isClickable
                           ? 'bg-white/5 hover:bg-white/15 border-white/10 hover:border-cyan-400/50 text-stone-300 hover:text-stone-100 cursor-pointer'
                           : 'bg-white/5 border-white/10 text-stone-300 cursor-default'
