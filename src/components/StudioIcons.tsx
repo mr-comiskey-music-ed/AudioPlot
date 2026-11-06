@@ -609,17 +609,17 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
     case 'Mic':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
-          {/* A singer: head and shoulders, eyes closed, mouth open, sound rolling out to both sides */}
-          <path d="M9 58C9 46 19 39.5 32 39.5C45 39.5 55 46 55 58Z" fill="#b5472a" stroke="#4a1f12" strokeWidth="1.3" strokeLinejoin="round" />
-          <rect x="27.6" y="29" width="8.8" height="12" rx="3" fill="#d9604a" stroke="#4a1f12" strokeWidth="1.1" />
-          <circle cx="32" cy="22" r="11" fill="#e8806f" stroke="#4a1f12" strokeWidth="1.3" />
-          <path d="M26 20.2Q28.2 17.8 30.4 20.2M33.6 20.2Q35.8 17.8 38 20.2" stroke="#4a1f12" strokeWidth="1.3" strokeLinecap="round" />
-          <ellipse cx="32" cy="26.6" rx="3.1" ry="3.5" fill="#4a1f12" />
-          {/* Sound waves */}
-          <path d="M15.5 12.5Q11 22 15.5 31.5" stroke="#f0a090" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M9.5 8.5Q3.5 22 9.5 35.5" stroke="#f0a090" strokeWidth="2.5" strokeLinecap="round" opacity="0.65" />
-          <path d="M48.5 12.5Q53 22 48.5 31.5" stroke="#f0a090" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M54.5 8.5Q60.5 22 54.5 35.5" stroke="#f0a090" strokeWidth="2.5" strokeLinecap="round" opacity="0.65" />
+          {/* A singer in profile, facing right: head with a hint of nose and ear, shoulders, sound rolling out */}
+          <g opacity="0.85">
+            <circle cx="26" cy="22" r="10" fill="#d9604a" />
+            <path d="M35.2 19.4L39.4 23.4L35.6 25.2Z" fill="#d9604a" stroke="#d9604a" strokeWidth="1" strokeLinejoin="round" />
+          </g>
+          <ellipse cx="22.6" cy="23" rx="1.9" ry="2.8" fill="#8f3f25" />
+          <path d="M12 50C12 40 20 36 26 36C32 36 40 40 40 50" fill="#b5472a" />
+          {/* Vocal Waves */}
+          <path d="M43 20C47 22 47 28 43 30" stroke="#f0a090" strokeWidth="2" strokeLinecap="round" />
+          <path d="M48 16C54 19 54 31 48 34" stroke="#f0a090" strokeWidth="2" strokeLinecap="round" />
+          <path d="M53 12C61 16 61 34 53 38" stroke="#f0a090" strokeWidth="2" strokeLinecap="round" />
         </svg>
       );
 
