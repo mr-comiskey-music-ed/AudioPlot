@@ -609,17 +609,13 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
     case 'Mic':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
-          {/* A singer in profile, facing right: head with a hint of nose and ear, shoulders, sound rolling out */}
-          <g opacity="0.85">
-            <circle cx="26" cy="22" r="10" fill="#aab35f" />
-            <path d="M35.4 21Q38.2 22.2 36.8 24.2Q36.2 24.8 35.4 24.8Z" fill="#aab35f" stroke="#aab35f" strokeWidth="1" strokeLinejoin="round" />
-          </g>
-          <ellipse cx="22.6" cy="23" rx="1.9" ry="2.8" fill="#59622b" />
+          {/* A singer: head and shoulders with sound rolling out to the right */}
+          <circle cx="26" cy="22" r="10" fill="#aab35f" opacity="0.85" />
           <path d="M12 50C12 40 20 36 26 36C32 36 40 40 40 50" fill="#727c37" />
           {/* Vocal Waves */}
-          <path d="M43 20C47 22 47 28 43 30" stroke="#bfc67a" strokeWidth="2" strokeLinecap="round" />
-          <path d="M48 16C54 19 54 31 48 34" stroke="#bfc67a" strokeWidth="2" strokeLinecap="round" />
-          <path d="M53 12C61 16 61 34 53 38" stroke="#bfc67a" strokeWidth="2" strokeLinecap="round" />
+          <path d="M42 20C46 22 46 28 42 30" stroke="#bfc67a" strokeWidth="2" strokeLinecap="round" />
+          <path d="M47 16C53 19 53 31 47 34" stroke="#bfc67a" strokeWidth="2" strokeLinecap="round" />
+          <path d="M52 12C60 16 60 34 52 38" stroke="#bfc67a" strokeWidth="2" strokeLinecap="round" />
         </svg>
       );
 
