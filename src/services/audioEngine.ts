@@ -1,6 +1,8 @@
 import * as Tone from 'tone';
 import { PlacedGear, MixerChannelState, CableConnection, EnvironmentMode, MasterBusState } from '../types';
 import { validateChannelSignalChain } from './gradingEngine';
+import { measureLoudnessLufs } from './loudness';
+import { faderPositionToGain } from '../utils/faderLaw';
 
 /**
  * Mapping of all 17 studio and stage instrument sources to their corresponding
@@ -34,6 +36,19 @@ interface ActiveTrackNode {
   pannerNode: StereoPannerNode | null;
 }
 
+// Perceived loudness every soundcheck loop is brought to (LUFS, one loop at unity fader and trim).
+// -25 keeps the overall level about where the old peak matching left it.
+const TARGET_STEM_LUFS = -25;
+// Small per-instrument mix adjustments in dB, on top of equal loudness:
+//  - kick and basses: laptop and Chromebook speakers barely play low frequencies, which a loudness meter still counts
+//  - saxophone: it sat out in front of the rest of the band at equal loudness
+const STEM_MIX_OFFSET_DB: Record<string, number> = {
+  inst_kick_drum: 3,
+  inst_double_bass: 3,
+  inst_bass_guitar: 2,
+  inst_saxophone: -2,
+};
+
 // Every soundcheck stem is the same 4 bars at 90 BPM (511998 samples at 48 kHz, ~10.67 s).
 // The loop must use this full length; looping early cuts the last part of the bar off.
 export const LOOP_DURATION_SECONDS = 511998 / 48000;
@@ -48,6 +63,7 @@ class StudioAudioEngine {
   private masterLimiterNode: DynamicsCompressorNode | null = null;
   // Per-stem level match: every recording peaks at the same headroom at 0 dB
   private normFactors = new Map<string, number>();
+  private stemLoudness = new Map<string, { lufs: number; gainDb: number }>();
   private masterBalanceNode: StereoPannerNode | null = null;
   private masterAnalyserNode: AnalyserNode | null = null;
   private masterSplitterNode: ChannelSplitterNode | null = null;
@@ -115,9 +131,8 @@ class StudioAudioEngine {
     if (master.muted || master.fader <= 2) {
       this.masterGainNode.gain.setTargetAtTime(0, now, 0.015);
     } else {
-      // Fader curve: 75 = Unity (1.0), 100 = +6 dB (2.0), 0 = -∞ (0.0)
-      const faderRatio = master.fader / 75;
-      const faderGain = Math.min(2.5, Math.pow(faderRatio, 1.6));
+      // The fader's real dB law (utils/faderLaw.ts): the label on the fader is the gain you hear
+      const faderGain = faderPositionToGain(master.fader);
 
       // Master Preamp Trim: 50 = Unity 1.0, 100 = 2.5x saturation, 0 = 0.0x (-24 dB)
       const rawTrim = master.gain !== undefined ? master.gain : 50;
@@ -665,9 +680,10 @@ class StudioAudioEngine {
   }
 
   /**
-   * Every stem is scaled so its loudest peak sits at -12 dBFS when the channel
-   * trim and fader are at 0 dB. That leaves room to sum several channels and
-   * means a channel only clips when a student actually pushes it.
+   * Every soundcheck loop is scaled to the same perceived loudness (measured with LUFS, so a sustained flute and a
+   * sparse kick both land where they should, not just matching peaks), plus a small mix adjustment for things a
+   * meter can't hear. The loops are measured when they load, so a new one added to /public/audio balances itself.
+   * No loop is ever boosted past full scale, and the target leaves room to sum a whole band.
    */
   private getNormFactor(gearId: string, buffer?: AudioBuffer): number {
     const cached = this.normFactors.get(gearId);
@@ -676,19 +692,30 @@ class StudioAudioEngine {
     let peak = 0;
     for (let c = 0; c < buffer.numberOfChannels; c++) {
       const data = buffer.getChannelData(c);
-      for (let i = 0; i < data.length; i += 2) {
+      for (let i = 0; i < data.length; i++) {
         const v = data[i] < 0 ? -data[i] : data[i];
         if (v > peak) peak = v;
       }
     }
-    const TARGET_PEAK = 0.25; // -12 dBFS
-    // Peak matching leaves very short, low hits (the kick) sounding quieter than the rest,
-    // and laptop/Chromebook speakers barely play its lows. A small lift puts it back in the mix.
-    const STEM_LIFT_DB: Record<string, number> = { inst_kick_drum: 5 };
-    const lift = Math.pow(10, (STEM_LIFT_DB[gearId] ?? 0) / 20);
-    const factor = (peak > 0.0001 ? TARGET_PEAK / peak : 1) * lift;
+    const lufs = measureLoudnessLufs(buffer);
+    let gainDb: number;
+    if (Number.isFinite(lufs)) {
+      gainDb = TARGET_STEM_LUFS + (STEM_MIX_OFFSET_DB[gearId] ?? 0) - lufs;
+    } else {
+      gainDb = peak > 0.0001 ? 20 * Math.log10(0.25 / peak) : 0; // silent/very short file: fall back to peak matching
+    }
+    // Never past digital full scale, and never a huge boost
+    if (peak > 0.0001) gainDb = Math.min(gainDb, -20 * Math.log10(peak));
+    gainDb = Math.min(gainDb, 12);
+    const factor = Math.pow(10, gainDb / 20);
     this.normFactors.set(gearId, factor);
+    this.stemLoudness.set(gearId, { lufs, gainDb });
     return factor;
+  }
+
+  /** What was measured for each loop (for checking balance): loudness before and the gain applied. */
+  public getStemLoudnessReport(): Record<string, { lufs: number; gainDb: number }> {
+    return Object.fromEntries(this.stemLoudness);
   }
 
   /** Sample rate of the audio engine (needed to map FFT bins to Hz). */
@@ -894,9 +921,8 @@ class StudioAudioEngine {
             preampGain = Math.pow(10, db / 20);
           }
 
-          // Fader (0..100, where 75 is Unity 0.0dB)
-          const faderRatio = ch.fader / 75;
-          const faderGain = Math.min(2.0, Math.pow(faderRatio, 1.6));
+          // Fader: the same dB law as the label (utils/faderLaw.ts), so -15 dB on the fader is -15 dB in the audio
+          const faderGain = faderPositionToGain(ch.fader);
 
           const totalGain = Math.min(3.0, preampGain * faderGain);
           const pan = Math.max(-1, Math.min(1, (ch.pan || 0) / 50));

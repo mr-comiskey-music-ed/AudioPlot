@@ -3,6 +3,7 @@ import { StudioProjectState, RubricEvaluation } from '../types';
 import { getGearById } from '../data/gearCatalog';
 import { exportStudioPlotToPdf, PdfExportOptions } from './pdfExportService';
 import { calculateXlrCablesCount } from '../utils/cableUtils';
+import { formatFaderDb } from '../utils/faderLaw';
 
 export { exportStudioPlotToPdf };
 export type { PdfExportOptions };
@@ -450,7 +451,7 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
           <td>${ch.label || '<span style="color:#94a3b8">Unpatched</span>'}</td>
           <td>${ch.phantomPower ? '<strong style="color:#dc2626;">ACTIVE (+48V)</strong>' : 'OFF'}</td>
           <td>${ch.pan === 0 ? 'Center (C)' : ch.pan < 0 ? `L ${Math.abs(ch.pan)}%` : `R ${ch.pan}%`}</td>
-          <td>${ch.fader > 70 ? `${Math.round(((ch.fader - 75) / 25) * 6)} dB` : `${Math.round(((ch.fader - 75) / 75) * 60)} dB`}</td>
+          <td>${formatFaderDb(ch.fader)}</td>
         </tr>
       `
         )

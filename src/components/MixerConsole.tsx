@@ -27,6 +27,7 @@ import { audioEngine } from '../services/audioEngine';
 
 import { ChannelOscilloscopeViewer, trimToPreampDb } from './ChannelOscilloscopeViewer';
 import { MasterMixMeter } from './MasterMixMeter';
+import { formatFaderDb, faderPositionToDb } from '../utils/faderLaw';
 
 interface MixerConsoleProps {
   environment: EnvironmentMode;
@@ -45,17 +46,11 @@ interface MixerConsoleProps {
   onToggleCollapse?: () => void;
 }
 
-// Convert 0..100 fader position to accurate audio decibels (-∞ to +6dB)
-const faderToDb = (val: number): string => {
-  if (val <= 0) return '-∞ dB';
-  if (val === 75) return '0.0 dB';
-  if (val > 75) {
-    const db = ((val - 75) / 25) * 6;
-    return `+${db.toFixed(1)} dB`;
-  }
-  const db = ((val - 75) / 75) * 48;
-  return `${db.toFixed(1)} dB`;
-};
+// Channel trim knob (72 = 0 dB, down to -48 dB, up to +12 dB) as a number: the same law as the knob's label
+const trimToPreampDbValue = (val: number = 72): number => (val <= 0 ? -48 : val <= 72 ? -48 * (1 - val / 72) : ((val - 72) / 28) * 12);
+
+// 0..100 fader position to the dB label (-∞ to +6 dB), the same law the audio uses
+const faderToDb = (val: number): string => formatFaderDb(val);
 
 // Preamp Gain Trim knob (Default: 50 / 0.0dB Unity, 0: -24dB, 100: +24dB)
 interface GainTrimKnobProps {
@@ -368,16 +363,10 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
 
   const isMasterAudible = hasAnyValidAudibleSignal && !effectiveMaster.muted && effectiveMaster.fader > 5;
 
-  const getInstrumentBaseLevel = (gearId: string | undefined): number => {
-    if (!gearId) return 0.7;
-    if (gearId.includes('drum') || gearId.includes('bass')) return 0.9;
-    if (gearId.includes('voice') || gearId.includes('electric_guitar') || gearId.includes('keyboard')) return 0.8;
-    if (gearId.includes('acoustic') || gearId.includes('violin') || gearId.includes('flute') || gearId.includes('saxophone')) return 0.65;
-    return 0.75;
-  };
-
   const [channelMeterLevels, setChannelMeterLevels] = useState<number[]>([0, 0, 0, 0, 0, 0, 0, 0]);
   const channelAnimRef = useRef<number | null>(null);
+  const meterBufRef = useRef(new Uint8Array(2048));
+  const meterHoldRef = useRef<number[]>([0, 0, 0, 0, 0, 0, 0, 0]);
 
   useEffect(() => {
     let lastTime = performance.now();
@@ -395,21 +384,27 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
           const isAudible = (hasAnySolo ? ch.solo && !ch.muted : !ch.muted) && ch.fader > 5;
 
           if (!isAudible || !channelSignal.hasSignal || !assignedGear) {
+            meterHoldRef.current[idx] = 0;
             return 0;
           }
 
-          const rawTrim = ch.gain !== undefined ? ch.gain : 50;
-          const trimMult = rawTrim <= 50 ? rawTrim / 50 : 1 + ((rawTrim - 50) / 50) * 1.5;
-          const baseLoudness = getInstrumentBaseLevel(assignedGear.gearId);
-          const faderRatio = ch.fader / 100;
-
-          // Target level determined by audio initial level, gain knob, and volume fader
-          const targetLevel = Math.min(100, Math.max(10, faderRatio * 85 * trimMult * baseLoudness));
-          
-          // Organic real-time audio animation wave responding to volume level
-          const wave = Math.sin(now / 85 + idx * 2.3) * 16 + Math.cos(now / 55 + idx * 1.5) * 10 + (Math.random() - 0.5) * 10;
-          const currentLevel = Math.min(100, Math.max(5, targetLevel + wave * (targetLevel / 100)));
-          return currentLevel;
+          // The real level of this channel, read after its trim and fader, shown on a -48 to 0 dBFS scale:
+          // a -15 dB fader move drops the meter by 15 dB. (Falls back to the expected level if no track is playing.)
+          let peakDb: number | null = null;
+          const instId = channelSignal.instrumentGear?.gearId;
+          if (instId) {
+            const real = audioEngine.getGearWaveformData(instId, meterBufRef.current);
+            if (real.hasData) peakDb = 20 * Math.log10(Math.max(real.peakAmplitude, 1e-5));
+          }
+          if (peakDb === null) {
+            const trimDb = trimToPreampDbValue(ch.gain);
+            peakDb = -12 + faderPositionToDb(ch.fader) + trimDb;
+          }
+          const pct = Math.min(100, Math.max(0, ((peakDb + 48) / 48) * 100));
+          // Instant rise, steady fall
+          const held = Math.max(pct, meterHoldRef.current[idx] - 70 * dt);
+          meterHoldRef.current[idx] = held;
+          return held;
         });
 
         setChannelMeterLevels(newLevels);

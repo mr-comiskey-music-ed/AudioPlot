@@ -11,6 +11,7 @@ import { getGearById } from '../data/gearCatalog';
 import { validateChannelSignalChain } from '../services/gradingEngine';
 import { audioEngine } from '../services/audioEngine';
 import { calculateXlrCablesCount } from '../utils/cableUtils';
+import { formatFaderDb, faderPositionToGain } from '../utils/faderLaw';
 
 interface ChannelOscilloscopeViewerProps {
   selectedChannelNumber: number | 'master';
@@ -42,22 +43,24 @@ export const trimToPreampDb = (val: number = 72): string => {
   return `+${db.toFixed(1)} dB`;
 };
 
-// Convert fader position to dB
-export const faderToDb = (val: number): string => {
-  if (val <= 0) return '-∞ dB';
-  if (val === 75) return '0.0 dB';
-  if (val > 75) {
-    const db = ((val - 75) / 25) * 6;
-    return `+${db.toFixed(1)} dB`;
-  }
-  const db = ((val - 75) / 75) * 48;
-  return `${db.toFixed(1)} dB`;
-};
+// Fader position to the dB label (the same law the audio uses)
+export const faderToDb = (val: number): string => formatFaderDb(val);
 
 // Spectrum display range (log-spaced bars, like a real analyzer)
 const SPEC_MIN_HZ = 40;
 const SPEC_MAX_HZ = 16000;
 const SPEC_BARS = 36;
+// Where the Hz markers go (labels are fewer when the display is narrow)
+const HZ_MARKERS: Array<{ hz: number; label: string; narrow: boolean }> = [
+  { hz: 50, label: '50', narrow: false },
+  { hz: 100, label: '100', narrow: true },
+  { hz: 200, label: '200', narrow: false },
+  { hz: 500, label: '500', narrow: false },
+  { hz: 1000, label: '1k', narrow: true },
+  { hz: 2000, label: '2k', narrow: false },
+  { hz: 5000, label: '5k', narrow: false },
+  { hz: 10000, label: '10k', narrow: true },
+];
 
 /**
  * A small, fun live meter for the selected channel: the waveform (what the
@@ -121,8 +124,7 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
   if (rawGain === 0) preampRatio = 0;
   else if (rawGain <= UNITY_VAL) preampRatio = Math.pow(10, (-48 * (1 - rawGain / UNITY_VAL)) / 20);
   else preampRatio = Math.pow(10, (((rawGain - UNITY_VAL) / (100 - UNITY_VAL)) * 12) / 20);
-  const faderRatio = (isMaster ? effectiveMaster.fader : activeChannel.fader) / 75;
-  const totalGain = preampRatio * Math.pow(faderRatio, 1.4);
+  const totalGain = preampRatio * faderPositionToGain(isMaster ? effectiveMaster.fader : activeChannel.fader);
 
   const sourceName = isMaster
     ? 'Master mix'
@@ -225,6 +227,21 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
         const gap = 2;
         const barW = (width - gap * (SPEC_BARS + 1)) / SPEC_BARS;
         const floorY = height - 14;
+        // x of a frequency on the log scale the bars use (bar edges sit mid-gap)
+        const xAtHz = (hz: number) =>
+          gap + (Math.log(hz / SPEC_MIN_HZ) / Math.log(SPEC_MAX_HZ / SPEC_MIN_HZ)) * SPEC_BARS * (barW + gap) - gap / 2;
+        const showAll = width >= 520;
+        // Faint gridlines behind the bars, so a bar can be read against a frequency
+        ctx.strokeStyle = 'rgba(148,163,184,0.14)';
+        ctx.lineWidth = 1;
+        for (const m of HZ_MARKERS) {
+          if (!showAll && !m.narrow) continue;
+          const x = Math.round(xAtHz(m.hz)) + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(x, 8);
+          ctx.lineTo(x, floorY);
+          ctx.stroke();
+        }
         for (let b = 0; b < SPEC_BARS; b++) {
           const f0 = SPEC_MIN_HZ * Math.pow(SPEC_MAX_HZ / SPEC_MIN_HZ, b / SPEC_BARS);
           const f1 = SPEC_MIN_HZ * Math.pow(SPEC_MAX_HZ / SPEC_MIN_HZ, (b + 1) / SPEC_BARS);
@@ -251,16 +268,24 @@ export const ChannelOscilloscopeViewer: React.FC<ChannelOscilloscopeViewerProps>
           ctx.fillStyle = grad;
           ctx.fillRect(x, floorY - h, barW, h);
         }
-        // Just three plain-language labels
-        ctx.fillStyle = '#64748b';
+        // Hz labels along the bottom
+        ctx.fillStyle = '#94a3b8';
         ctx.font = 'bold 9px system-ui, sans-serif';
         ctx.textBaseline = 'bottom';
-        ctx.textAlign = 'left';
-        ctx.fillText('LOW', 6, height - 2);
         ctx.textAlign = 'center';
-        ctx.fillText('MID', width / 2, height - 2);
+        for (const m of HZ_MARKERS) {
+          if (!showAll && !m.narrow) continue;
+          ctx.fillText(m.label, xAtHz(m.hz), height - 2);
+        }
         ctx.textAlign = 'right';
-        ctx.fillText('HIGH', width - 6, height - 2);
+        ctx.fillText('Hz', width - 4, height - 2);
+        // Plain-language ends, small, in the top corners
+        ctx.fillStyle = 'rgba(100,116,139,0.8)';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        ctx.fillText('LOW', 6, 4);
+        ctx.textAlign = 'right';
+        ctx.fillText('HIGH', width - 6, 4);
       }
 
       ctx.restore();

@@ -3,6 +3,7 @@ import { audioEngine } from '../services/audioEngine';
 import { PlacedGear, MixerChannelState, CableConnection, EnvironmentMode } from '../types';
 import { validateChannelSignalChain } from '../services/gradingEngine';
 import { getGearById } from '../data/gearCatalog';
+import { faderPositionToGain } from '../utils/faderLaw';
 
 interface ChannelWaveformVisualizerProps {
   channel: MixerChannelState;
@@ -147,8 +148,7 @@ export const ChannelWaveformVisualizer: React.FC<ChannelWaveformVisualizerProps>
           
           // Fallback dynamic synthesis if buffer not ready yet
           if (!hasRealData) {
-            const faderRatio = channel.fader / 75;
-            const synthGain = Math.min(1.2, Math.pow(faderRatio, 1.4) * 0.7);
+            const synthGain = Math.min(1.2, faderPositionToGain(channel.fader) * 0.7);
             const freq = i * 0.15 + phase;
             v = (Math.sin(freq) * 0.6 + Math.sin(freq * 2.3 + phase) * 0.3) * synthGain;
           }

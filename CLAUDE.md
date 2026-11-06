@@ -73,11 +73,22 @@ master bus → snake outputs (MAIN L/R, MON 1/2) → PA / monitors.
   on: unpatched channel, condenser without +48V, mic aimed at nothing,
   mic on an electric instrument directly, amp/DI with no 1/4" input.
 - The audio engine (`src/services/audioEngine.ts`, Web Audio + Tone)
-  plays a synced 10-second MP3 stem per instrument (`public/audio/`)
+  plays a synced 4-bar (~10.67 s) MP3 stem per instrument (`public/audio/`)
   only on channels that pass that check, then applies gain, fader,
   pan, mute/solo, and master trim/fader/dim/mono, with a limiter.
   Channels with fader ≤ 5 or muted are silent. Students hear their
   mistakes.
+- Loop levels: every loop is measured at load (LUFS, `loudness.ts`) and
+  brought to the same perceived loudness, so a NEW loop dropped into
+  `public/audio/` balances itself. `STEM_MIX_OFFSET_DB` in the engine holds
+  the few judgment calls (kick and basses up for laptop speakers, sax
+  down); adjust there. Loops that would clip are never boosted.
+- Faders: ONE law in `src/utils/faderLaw.ts` (75 = 0 dB, top +6, straight
+  line down to -48 dB, bottom off). The label, the audio, the scope and
+  the meters all use it, so "-15 dB" on the label is -15 dB in the audio.
+  Channel meters read the real post-fader level (-48 to 0 dBFS).
+- The Master mix spectrum has Hz gridlines and labels (log scale, 40 Hz
+  to 16 kHz).
 - XLR cable drawing (`src/components/canvas/cableRouting.ts`): all XLR
   runs are laid out together. Inputs rise straight from their gear to a
   shared trunk just downstage of the snake and ride it in a tight bundle
@@ -85,8 +96,14 @@ master bus → snake outputs (MAIN L/R, MON 1/2) → PA / monitors.
   still crosses near the snake, which is realistic). Outputs leave the
   side of the snake: MAIN L down the left wall, MAIN R the right, MON
   runs down the nearer wall and along the downstage edge to wedges.
-  Gaff tape (`GaffTape.tsx`: light gray, torn ends, slight tilt) goes
-  across bundles and never covers an unpatch ✕. The ✕ shows only on
+  Cables are clipped at the snake box edge (they plug in from outside,
+  nothing runs under it) and the shared trunk sits just in front of it.
+  The snake box size and socket positions in `canvasMath.ts` are MEASURED
+  from the drawn box (live 500x175, studio 336x165): if `SnakeBox.tsx`
+  changes size or padding, measure them again or cables will aim wrong.
+  Gaff tape (`GaffTape.tsx`: black like venues use, set `TAPE_TONE` to
+  'white' for white; nearly straight tears) goes across bundles and
+  never covers an unpatch ✕. The ✕ shows only on
   hover or while that cable's gear is selected. 1/4" runs keep their
   drooping curve.
 - `traceSignalPath` (`src/components/canvas/signalPath.ts`) highlights
