@@ -153,7 +153,7 @@ export const GEAR_CATALOG: GearDefinition[] = [
     description: 'Crisp acoustic hi-hats with tight chick and articulate stick definition.',
     specs: '2kHz - 20kHz acoustic transient attack.',
     iconType: 'HiHat',
-    color: '#EAB308',
+    color: '#e6b52a',
     size: { width: 48, height: 46 },
   },
   {

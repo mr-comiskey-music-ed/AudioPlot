@@ -449,7 +449,7 @@ export function printGradingReport(project: StudioProjectState, evaluation: Rubr
         <tr>
           <td><strong>Channel ${ch.channelNumber}</strong></td>
           <td>${ch.label || '<span style="color:#b0a08a">Unpatched</span>'}</td>
-          <td>${ch.phantomPower ? '<strong style="color:#dc2626;">ACTIVE (+48V)</strong>' : 'OFF'}</td>
+          <td>${ch.phantomPower ? '<strong style="color:#d9604a;">ACTIVE (+48V)</strong>' : 'OFF'}</td>
           <td>${ch.pan === 0 ? 'Center (C)' : ch.pan < 0 ? `L ${Math.abs(ch.pan)}%` : `R ${ch.pan}%`}</td>
           <td>${formatFaderDb(ch.fader)}</td>
         </tr>

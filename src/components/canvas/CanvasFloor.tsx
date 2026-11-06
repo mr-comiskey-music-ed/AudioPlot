@@ -44,10 +44,10 @@ export const CanvasFloor: React.FC<Props> = ({ width, height, environment, style
         </filter>
         <pattern id="floor-planks" width="240" height="56" patternUnits="userSpaceOnUse">
           <rect width="240" height="56" fill="#e6dcc7" />
-          <rect x="0" y="0" width="150" height="28" fill="#eadfca" />
-          <rect x="150" y="0" width="90" height="28" fill="#e0d5bd" />
-          <rect x="0" y="28" width="70" height="28" fill="#e0d5bd" />
-          <rect x="70" y="28" width="170" height="28" fill="#e9dfca" />
+          <rect x="0" y="0" width="150" height="28" fill="#e8ddc8" />
+          <rect x="150" y="0" width="90" height="28" fill="#e3d8c1" />
+          <rect x="0" y="28" width="70" height="28" fill="#e3d8c1" />
+          <rect x="70" y="28" width="170" height="28" fill="#e8ddc8" />
           <g stroke="#bfae8b" strokeWidth="0.9" strokeOpacity="0.75">
             <line x1="0" y1="0" x2="240" y2="0" />
             <line x1="0" y1="28" x2="240" y2="28" />
