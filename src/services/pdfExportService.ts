@@ -18,6 +18,12 @@ export interface PdfExportOptions {
   includeGradingRubric?: boolean;
   includePatchList?: boolean;
   includeEquipmentManifest?: boolean;
+  /** Stage plot page: draw the cable runs (default true). */
+  includeCables?: boolean;
+  /** Stage plot page: draw the snake and everything patched into it (default true). Off also drops the input list. */
+  includeSnake?: boolean;
+  /** Stage plot page: draw the microphones (default true). */
+  includeMics?: boolean;
   onProgress?: (status: string) => void;
   download?: boolean;
 }
@@ -64,6 +70,20 @@ const mix = (c: RGB, withWhite: number): RGB => c.map((v) => Math.round(v + (255
 const darken = (c: RGB, by: number): RGB => c.map((v) => Math.round(v * (1 - by))) as RGB;
 const humanize = (id?: string) => (id ? id.replace(/_/g, ' ').replace(/^\w/, (ch) => ch.toUpperCase()) : '');
 const isMarker = (def?: GearDefinition) => def?.category === 'microphone' || def?.category === 'di_box';
+
+/**
+ * On the stage plot, mics are described by what they are, not by which model sits in our cabinet: any
+ * condenser is just an LDC or SDC, and the kick and tom mics are named for their job. The SM58 and SM57
+ * are standard everywhere, so they keep their names.
+ */
+function genericMic(def?: GearDefinition): { name: string; kind: string } | null {
+  if (!def || def.category !== 'microphone') return null;
+  if (def.transducerType === 'condenser_large') return { name: 'LDC', kind: 'Large Diaphragm Condenser' };
+  if (def.transducerType === 'condenser_small') return { name: 'SDC', kind: 'Small Diaphragm Condenser' };
+  if (def.id === 'mic_beta52a') return { name: 'Kick Drum Mic', kind: 'Large dynamic' };
+  if (def.id === 'mic_e604') return { name: 'Tom Mic', kind: 'Clip-on dynamic' };
+  return null;
+}
 
 // ---------- Project helpers ----------
 function gearName(item: PlacedGear | undefined) {
@@ -115,7 +135,7 @@ export async function generateStudioPlotPdf(
   evaluation: RubricEvaluation,
   options: PdfExportOptions = {}
 ): Promise<{ doc: jsPDF; blob: Blob; filename: string }> {
-  const { filename, includeGradingRubric = true, includePatchList = true, includeEquipmentManifest = true, onProgress } = options;
+  const { filename, includeGradingRubric = true, includePatchList = true, includeEquipmentManifest = true, includeCables = true, includeSnake = true, includeMics = true, onProgress } = options;
   onProgress?.('Drawing stage plot...');
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
@@ -179,13 +199,14 @@ export async function generateStudioPlotPdf(
   const sockW = 8.5, outW = 12;
   const snakeW = 8 + inputs * sockW + (outputs.length ? 4 + outputs.length * outW : 0);
   const snakeX = fx + (fw - snakeW) / 2, snakeY = fy + 4, snakeH = 15;
+  const socketPos = new Map<string, { x: number; y: number }>();
+  if (includeSnake) {
   doc.setFillColor(...C.panel);
   doc.setDrawColor(...C.faint);
   doc.setLineWidth(0.3);
   doc.roundedRect(snakeX, snakeY, snakeW, snakeH, 1.5, 1.5, 'FD');
   setText(6, C.muted, 'bold');
   doc.text(isStudio ? 'STUDIO SNAKE (INPUTS)' : 'STAGE SNAKE', snakeX + snakeW / 2, snakeY + 3.4, { align: 'center' });
-  const socketPos = new Map<string, { x: number; y: number }>();
   for (let n = 1; n <= inputs; n++) {
     const cx = snakeX + 4 + sockW * (n - 0.5), cy = snakeY + 9.5;
     socketPos.set(`snake_in_${n}`, { x: cx, y: cy + 3 });
@@ -203,6 +224,7 @@ export async function generateStudioPlotPdf(
     setText(5, C.ink, 'bold');
     doc.text(o.label, ox + (outW - 2) / 2, oy + 3.9, { align: 'center' });
   });
+  }
 
   // Room orientation labels
   setText(7, C.muted, 'bold');
@@ -221,8 +243,12 @@ export async function generateStudioPlotPdf(
 
   // Fit the student's layout into the drawing area, keeping its proportions
   const gear = project.placedGear || [];
-  const area = { x: fx + 6, y: snakeY + snakeH + 6, w: fw - 12, h: fy + fh - 9 - (snakeY + snakeH + 6) };
-  const boxes = gear.map((g) => ({ g, def: getGearById(g.gearId), ...boxDims(project, g) }));
+  const areaTop = includeSnake ? snakeY + snakeH + 6 : fy + 8;
+  const area = { x: fx + 6, y: areaTop, w: fw - 12, h: fy + fh - 9 - areaTop };
+  const boxes = gear
+    .map((g) => ({ g, def: getGearById(g.gearId), ...boxDims(project, g) }))
+    .filter((b) => includeMics || b.def?.category !== 'microphone');
+  const shown = new Set(boxes.map((b) => b.g.instanceId));
   const pos = new Map<string, { cx: number; cy: number; w: number; h: number }>();
   if (boxes.length) {
     const minX = Math.min(...boxes.map((b) => b.g.x)), minY = Math.min(...boxes.map((b) => b.g.y));
@@ -295,9 +321,11 @@ export async function generateStudioPlotPdf(
   };
 
   // Cables first, so equipment sits on top of them
-  for (const c of project.connections || []) {
+  for (const c of includeCables ? project.connections || [] : []) {
     // Snake outputs (MAIN / MON) are drawn as proper runs below
     if (c.cableType === 'xlr' && (c.fromInstanceId.startsWith('snake_out_') || c.toInstanceId.startsWith('snake_out_'))) continue;
+    if ((!shown.has(c.fromInstanceId) && !c.fromInstanceId.startsWith('snake_')) || (!shown.has(c.toInstanceId) && !c.toInstanceId.startsWith('snake_'))) continue;
+    if (!includeSnake && (c.fromInstanceId.startsWith('snake_') || c.toInstanceId.startsWith('snake_'))) continue;
     const a = pointOf(c.fromInstanceId), b = pointOf(c.toInstanceId);
     if (!a || !b) continue;
     const style = CABLE[c.cableType] ?? CABLE.xlr;
@@ -309,7 +337,7 @@ export async function generateStudioPlotPdf(
   // XLR runs from each patched mic / DI up to its snake input, laid out the way they run on a real stage:
   // straight toward the snake from the gear, along a shared trunk just downstage of it, then up into the
   // socket. (Patches live on the mixer channels, not in `connections`, so they need drawing here.)
-  {
+  if (includeCables && includeSnake) {
     type Run = { ch: number; g: { x: number; y: number }; s: { x: number; y: number } };
     const runs: Run[] = [];
     for (const ch of project.mixerChannels || []) {
@@ -426,15 +454,17 @@ export async function generateStudioPlotPdf(
   for (const b of boxes) {
     if (!isMarker(b.def)) continue;
     const p = pos.get(b.g.instanceId)!;
-    const ch = channelOf(project, b.g);
-    const fill = ch == null ? C.unpatched : b.def?.category === 'di_box' ? C.di : C.mic;
+    const ch = includeSnake ? channelOf(project, b.g) : null;
+    const fill = includeSnake && ch == null ? C.unpatched : b.def?.category === 'di_box' ? C.di : C.mic;
     doc.setFillColor(...fill);
     doc.setDrawColor(...C.white);
     doc.setLineWidth(0.5);
     if (b.def?.category === 'di_box') doc.roundedRect(p.cx - R, p.cy - R, R * 2, R * 2, 0.8, 0.8, 'FD');
     else doc.circle(p.cx, p.cy, R, 'FD');
-    setText(ch != null && ch >= 10 ? 6.5 : 8, C.white, 'bold');
-    doc.text(ch == null ? '-' : String(ch), p.cx, p.cy + 1.1, { align: 'center' });
+    if (includeSnake) {
+      setText(ch != null && ch >= 10 ? 6.5 : 8, C.white, 'bold');
+      doc.text(ch == null ? '-' : String(ch), p.cx, p.cy + 1.1, { align: 'center' });
+    }
   }
 
   // Name & type tags beside each mic/DI, placed where they cover nothing else
@@ -444,20 +474,20 @@ export async function generateStudioPlotPdf(
   const obstacles: Rect[] = [
     ...solid.map((b) => ({ x: b.cx - b.w / 2, y: b.cy - b.h / 2, w: b.w, h: b.h })),
     ...markers.map((m) => ({ x: m.p.cx - R, y: m.p.cy - R, w: R * 2, h: R * 2 })),
-    { x: snakeX, y: snakeY, w: snakeW, h: snakeH },
+    ...(includeSnake ? [{ x: snakeX, y: snakeY, w: snakeW, h: snakeH }] : []),
   ];
   const placedTags: Rect[] = [];
   for (const b of boxes) {
     if (!isMarker(b.def)) continue;
     const p = pos.get(b.g.instanceId)!;
-    const chNum = channelOf(project, b.g);
-    const name = `${chNum != null ? `${chNum} · ` : ''}${b.def?.name || b.g.gearId}`;
+    const chNum = includeSnake ? channelOf(project, b.g) : null;
+    const generic = genericMic(b.def);
+    const name = `${chNum != null ? `${chNum} · ` : ''}${generic?.name ?? (b.def?.name || b.g.gearId)}`;
     const kind =
-      b.def?.category === 'di_box' ? 'Direct input'
-      : b.def?.transducerType === 'condenser_large' ? 'Large-diaphragm condenser'
-      : b.def?.transducerType === 'condenser_small' ? 'Small-diaphragm condenser'
+      generic?.kind ??
+      (b.def?.category === 'di_box' ? 'Direct input'
       : b.def?.transducerType === 'dynamic' ? 'Dynamic'
-      : '';
+      : '');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6);
     const w1 = doc.getTextWidth(name);
@@ -506,11 +536,11 @@ export async function generateStudioPlotPdf(
     doc.text(label, lx + 6, ly + 1);
     lx += width;
   };
-  legendItem(() => { doc.setFillColor(...C.mic); doc.circle(lx + 2, ly, 2, 'F'); setText(5.5, C.white, 'bold'); doc.text('3', lx + 2, ly + 0.7, { align: 'center' }); }, 'Microphone (number = input channel)', 52);
+  if (includeMics) legendItem(() => { doc.setFillColor(...C.mic); doc.circle(lx + 2, ly, 2, 'F'); if (includeSnake) { setText(5.5, C.white, 'bold'); doc.text('3', lx + 2, ly + 0.7, { align: 'center' }); } }, includeSnake ? 'Microphone (number = input channel)' : 'Microphone', includeSnake ? 52 : 26);
   legendItem(() => { doc.setFillColor(...C.di); doc.roundedRect(lx, ly - 2, 4, 4, 0.5, 0.5, 'F'); }, 'DI box', 20);
-  legendItem(() => { doc.setFillColor(...C.unpatched); doc.circle(lx + 2, ly, 2, 'F'); }, 'Not patched', 25);
+  if (includeSnake) legendItem(() => { doc.setFillColor(...C.unpatched); doc.circle(lx + 2, ly, 2, 'F'); }, 'Not patched', 25);
   legendItem(() => { doc.setFillColor(235, 235, 240); doc.setDrawColor(...C.faint); doc.roundedRect(lx, ly - 2, 5, 4, 0.6, 0.6, 'FD'); }, 'Instrument / amp / monitor', 42);
-  for (const [, s] of Object.entries(CABLE)) {
+  for (const [, s] of includeCables ? Object.entries(CABLE) : []) {
     legendItem(() => { doc.setDrawColor(...mix(s.color, 0.25)); doc.setLineWidth(0.8); doc.line(lx, ly, lx + 5, ly); }, s.label, s.label.length * 1.35 + 10);
   }
 
@@ -542,7 +572,7 @@ export async function generateStudioPlotPdf(
   y += 8;
 
   // ---- Input list ----
-  if (includePatchList) {
+  if (includePatchList && includeSnake) {
     heading('Input List');
     const cols = [
       { label: 'CH', w: 10 },

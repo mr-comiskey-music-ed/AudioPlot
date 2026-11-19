@@ -26,6 +26,11 @@ the goal is students designing real setups with understanding.
   90% (ids and percentages only). The Tasks window shows Completed /
   Continue / Start over; the finish window offers Start New Task (opens
   that same Tasks window), Open Sandbox, and Share & Submit.
+- The PDF stage plot (`pdfExportService.ts`) draws the XLR runs the same way
+  as the screen (inputs on a trunk under the snake, outputs along the walls).
+  Share & Submit has "Include on the stage plot" checkboxes (Cables, Snake,
+  Mics; Snake off also drops the input list). On the plot, mics use generic
+  names (LDC, SDC, Kick Drum Mic, Tom Mic); the SM58/SM57 keep theirs.
 - Share & Submit has "Restore progress from a code": paste the last
   code and it replaces the plot (asks first if the plot has work). For a
   different computer or a cleared browser. It reads the code with the

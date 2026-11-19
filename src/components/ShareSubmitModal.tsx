@@ -55,6 +55,8 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
   const codeAreaRef = useRef<HTMLTextAreaElement>(null);
   const [localName, setLocalName] = useState(studentName || '');
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  // What goes on the PDF stage plot. Everything by default; turning off the snake also drops the patching to it.
+  const [pdfInclude, setPdfInclude] = useState({ cables: true, snake: true, mics: true });
   const [pdfStatus, setPdfStatus] = useState<string | null>(null);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [restoreInput, setRestoreInput] = useState('');
@@ -101,6 +103,9 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
       setIsExportingPdf(true);
       setPdfStatus('Capturing stage plot...');
       await exportStudioPlotToPdf(updatedProject, evaluation, {
+        includeCables: pdfInclude.cables,
+        includeSnake: pdfInclude.snake,
+        includeMics: pdfInclude.mics,
         onProgress: (status) => setPdfStatus(status),
       });
       setPdfStatus('Downloaded!');
@@ -281,6 +286,33 @@ export const ShareSubmitModal: React.FC<ShareSubmitModalProps> = ({
             <p className="text-[11px] text-stone-300 leading-relaxed">
               Export a publication-ready, multi-page PDF document featuring high-resolution visual stage plot snapshot, complete equipment packing manifest, 8-channel mixer patch sheet, and full diagnostic rubric breakdown.
             </p>
+
+            {/* What to show on the stage plot */}
+            <fieldset className="mt-1 mb-1" disabled={isExportingPdf}>
+              <legend className="text-[10px] font-bold uppercase tracking-wide text-stone-400 mb-1">Include on the stage plot</legend>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {(
+                  [
+                    ['cables', 'Cables', 'Draw the cable runs'],
+                    ['snake', 'Snake', 'Draw the snake and the patching into it (input numbers and the input list)'],
+                    ['mics', 'Mics', 'Draw the microphones'],
+                  ] as const
+                ).map(([key, label, hint]) => (
+                  <label key={key} className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-200 cursor-pointer" title={hint}>
+                    <input
+                      type="checkbox"
+                      checked={pdfInclude[key]}
+                      onChange={(e) => setPdfInclude((p) => ({ ...p, [key]: e.target.checked }))}
+                      className="w-3.5 h-3.5 accent-orange-400 cursor-pointer"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {!pdfInclude.snake && (
+                <p className="text-[10px] text-stone-400 mt-1">Without the snake there is no patching, so cable runs to it and the input list are left out.</p>
+              )}
+            </fieldset>
 
             <button
               id="btn-export-stage-plot-pdf"
