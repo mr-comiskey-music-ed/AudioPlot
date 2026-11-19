@@ -431,16 +431,12 @@ export const CableLayer: React.FC<CableLayerProps> = ({
           : (() => {
               const midX = (fromCenter.x + toCenter.x) / 2;
               const midY = (fromCenter.y + toCenter.y) / 2 + 25;
-              const ptTape1 = getQuadBezierPointAndAngle(fromCenter.x, fromCenter.y, midX, midY, toCenter.x, toCenter.y, 0.3);
-              const ptTape2 = getQuadBezierPointAndAngle(fromCenter.x, fromCenter.y, midX, midY, toCenter.x, toCenter.y, 0.7);
               const ptCenter = getQuadBezierPointAndAngle(fromCenter.x, fromCenter.y, midX, midY, toCenter.x, toCenter.y, 0.5);
               return {
                 d: `M ${fromCenter.x} ${fromCenter.y} Q ${midX} ${midY} ${toCenter.x} ${toCenter.y}`,
                 midPoint: { x: ptCenter.x, y: ptCenter.y },
-                gaffPoints: [
-                  { x: ptTape1.x, y: ptTape1.y, angle: ptTape1.angle },
-                  { x: ptTape2.x, y: ptTape2.y, angle: ptTape2.angle },
-                ],
+                // 1/4" cables hang loose between the instrument and the amp / DI: never taped
+                gaffPoints: [] as Array<{ x: number; y: number; angle: number }>,
               };
             })();
 

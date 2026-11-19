@@ -287,7 +287,14 @@ function placeTape(segs: Seg[], hidden: (p: Pt) => boolean, badges: Pt[]): GaffS
     const hi = Math.max(...spans.map((s) => s.hi));
     const length = hi - lo;
     if (length < 50) continue;
-    const count = Math.max(1, Math.floor(length / TAPE_EVERY));
+    // Strips sit at fixed positions along the stage (every TAPE_EVERY, starting TAPE_EVERY/2 in), not spaced
+    // out between this bundle's ends. So moving one mic never shifts tape on other cables: a strip only
+    // changes where the moved cable's own run joins or leaves it.
+    const first = Math.ceil((lo + 18 - TAPE_EVERY / 2) / TAPE_EVERY);
+    const last = Math.floor((hi - 18 - TAPE_EVERY / 2) / TAPE_EVERY);
+    const ideals: number[] = [];
+    for (let k = first; k <= last; k++) ideals.push(k * TAPE_EVERY + TAPE_EVERY / 2);
+    if (ideals.length === 0 && length >= 90) ideals.push((lo + hi) / 2); // a short bundle still gets one wrap
     // A strip at `pos` covers what's under it; returns null if it would hit an unpatch button.
     const stripAt = (pos: number) => {
       const under = spans.filter((s) => pos > s.lo + 18 && pos < s.hi - 18);
@@ -298,8 +305,7 @@ function placeTape(segs: Seg[], hidden: (p: Pt) => boolean, badges: Pt[]): GaffS
       const blocked = badges.some((p) => Math.abs(along(p) - pos) < 22 && across(p) > a - 20 && across(p) < b + 20);
       return blocked ? null : { a, b };
     };
-    for (let i = 0; i < count; i++) {
-      const ideal = lo + (length * (i + 0.5)) / count;
+    for (const ideal of ideals) {
       // Slide along the bundle to clear a button; skip this strip if there's no clear spot nearby.
       let pos = ideal;
       let hit = stripAt(pos);
@@ -316,7 +322,8 @@ function placeTape(segs: Seg[], hidden: (p: Pt) => boolean, badges: Pt[]): GaffS
         ...center,
         length: b - a + 14,
         orientation: horizontal ? 'v' : 'h',
-        seed: Math.abs(Math.round(center.x * 31 + center.y * 17)) % 9973,
+        // the torn-edge look depends on where along the stage the strip is, not on which cables are under it
+        seed: Math.abs(Math.round(ideal * 31 + (horizontal ? 7 : 13) * 17)) % 9973,
       });
     }
   }
