@@ -296,12 +296,94 @@ export async function generateStudioPlotPdf(
 
   // Cables first, so equipment sits on top of them
   for (const c of project.connections || []) {
+    // Snake outputs (MAIN / MON) are drawn as proper runs below
+    if (c.cableType === 'xlr' && (c.fromInstanceId.startsWith('snake_out_') || c.toInstanceId.startsWith('snake_out_'))) continue;
     const a = pointOf(c.fromInstanceId), b = pointOf(c.toInstanceId);
     if (!a || !b) continue;
     const style = CABLE[c.cableType] ?? CABLE.xlr;
     doc.setDrawColor(...mix(style.color, 0.25));
     doc.setLineWidth(0.45);
     doc.line(a.x, a.y, b.x, b.y);
+  }
+
+  // XLR runs from each patched mic / DI up to its snake input, laid out the way they run on a real stage:
+  // straight toward the snake from the gear, along a shared trunk just downstage of it, then up into the
+  // socket. (Patches live on the mixer channels, not in `connections`, so they need drawing here.)
+  {
+    type Run = { ch: number; g: { x: number; y: number }; s: { x: number; y: number } };
+    const runs: Run[] = [];
+    for (const ch of project.mixerChannels || []) {
+      const p = ch.assignedGearInstanceId ? pos.get(ch.assignedGearInstanceId) : undefined;
+      const s = socketPos.get(`snake_in_${ch.channelNumber}`);
+      if (p && s) runs.push({ ch: ch.channelNumber, g: { x: p.cx, y: p.cy }, s });
+    }
+    const trunkBase = snakeY + snakeH + 2.6;
+    const laneGap = 0.9;
+    const straight = runs.filter((r) => Math.abs(r.g.x - r.s.x) < 1);
+    const fromLeft = runs.filter((r) => r.g.x <= r.s.x - 1).sort((a, b) => a.g.x - b.g.x);
+    const fromRight = runs.filter((r) => r.g.x >= r.s.x + 1).sort((a, b) => b.g.x - a.g.x);
+    // If the two bundles reach past each other under the snake, give the right one its own lanes
+    const reachPast =
+      fromLeft.length > 0 && fromRight.length > 0 && Math.max(...fromLeft.map((r) => r.s.x)) > Math.min(...fromRight.map((r) => r.s.x));
+    const lanes = new Map<number, number>();
+    fromLeft.forEach((r, i) => lanes.set(r.ch, i));
+    fromRight.forEach((r, i) => lanes.set(r.ch, (reachPast ? fromLeft.length : 0) + i));
+    const xlr = CABLE.xlr.color;
+    doc.setLineCap('round');
+    doc.setLineJoin('round');
+    const drawPath = (pts: Array<{ x: number; y: number }>, color: RGB, width: number) => {
+      doc.setDrawColor(...color);
+      doc.setLineWidth(width);
+      doc.lines(
+        pts.slice(1).map((p, i) => [p.x - pts[i].x, p.y - pts[i].y]),
+        pts[0].x,
+        pts[0].y,
+        [1, 1],
+        'S',
+        false
+      );
+    };
+    const laneCount = Math.max(0, ...[...lanes.values()].map((l) => l + 1));
+    for (const r of [...fromLeft, ...fromRight, ...straight]) {
+      const lane = lanes.get(r.ch);
+      const pts =
+        lane === undefined
+          ? [r.g, r.s]
+          : [r.g, { x: r.g.x, y: trunkBase + lane * laneGap }, { x: r.s.x, y: trunkBase + lane * laneGap }, r.s];
+      drawPath(pts, darken(xlr, 0.3), 0.75); // soft edge so runs stay distinct where they cross
+      drawPath(pts, xlr, 0.42);
+    }
+
+    // Snake outputs (MAIN L/R, MON 1/2): out under the snake, out to the nearest wall, down the wall, into the
+    // speaker from the side, so they never cut across the middle of the stage.
+    type Out = { id: string; s: { x: number; y: number }; side: 'left' | 'right'; t: { cx: number; cy: number; w: number; h: number } };
+    const outs: Out[] = [];
+    for (const c of project.connections || []) {
+      if (c.cableType !== 'xlr') continue;
+      const fromSnake = c.fromInstanceId.startsWith('snake_out_');
+      if (!fromSnake && !c.toInstanceId.startsWith('snake_out_')) continue;
+      const portId = fromSnake ? c.fromInstanceId : c.toInstanceId;
+      const t = pos.get(fromSnake ? c.toInstanceId : c.fromInstanceId);
+      const sock = socketPos.get(portId);
+      if (!t || !sock) continue;
+      const side = portId === 'snake_out_main_l' ? 'left' : portId === 'snake_out_main_r' ? 'right' : t.cx < fx + fw / 2 ? 'left' : 'right';
+      outs.push({ id: c.id, s: sock, side, t });
+    }
+    for (const side of ['left', 'right'] as const) {
+      outs
+        .filter((o) => o.side === side)
+        .sort((a, b) => b.t.cy - a.t.cy) // deepest speaker gets the outermost lane
+        .forEach((o, k) => {
+          const wallX = side === 'left' ? fx + 4 + k * laneGap : fx + fw - 4 - k * laneGap;
+          const exitY = trunkBase + (laneCount + 1) * laneGap + 1.5 + k * laneGap;
+          const entryX = side === 'left' ? o.t.cx - o.t.w / 2 : o.t.cx + o.t.w / 2;
+          const pts = [o.s, { x: o.s.x, y: exitY }, { x: wallX, y: exitY }, { x: wallX, y: o.t.cy }, { x: entryX, y: o.t.cy }];
+          drawPath(pts, darken(xlr, 0.3), 0.75);
+          drawPath(pts, xlr, 0.42);
+        });
+    }
+    doc.setLineCap('butt');
+    doc.setLineJoin('miter');
   }
 
   // Instruments, amps, monitors, speakers: labeled boxes
