@@ -116,7 +116,9 @@ master bus → snake outputs (MAIN L/R, MON 1/2) → PA / monitors.
   changes size or padding, measure them again or cables will aim wrong.
   Gaff tape (`GaffTape.tsx`: black like venues use, set `TAPE_TONE` to
   'white' for white; nearly straight tears) goes across bundles and
-  never covers an unpatch ✕. The ✕ shows only on
+  never covers an unpatch ✕. Tape sits at fixed spots along the stage
+  (every 170 units), so moving one mic doesn't shift tape elsewhere;
+  1/4" cables are never taped (they hang loose). The ✕ shows only on
   hover or while that cable's gear is selected. Input ✕s sit on each
   cable's drop a short way out from the snake, sliding until they are
   clear of every piece of gear and of each other (`cableRouting.ts`).

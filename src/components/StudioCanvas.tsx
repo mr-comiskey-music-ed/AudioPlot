@@ -971,7 +971,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
             standHeight: undefined,
             hasPopFilter: false,
           };
-          onUpdateGear([...placedGear, newGear], { action: `Add ${newDef.name} on ${targetDef?.name}` });
+          onUpdateGear(fanOutMics([...placedGear, newGear], targetItem), { action: `Add ${newDef.name} on ${targetDef?.name}` });
           setSelectedItemIds([instanceId]);
           onSelectItem(instanceId);
           showErrorToast('Microphone Attached', `Placed ${newDef.name} on ${targetDef?.name}`);
@@ -1289,6 +1289,33 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
   const DRUM_KIT_IDS = ['inst_drum_set', 'inst_kick_drum', 'inst_snare_drum', 'inst_tom_drum', 'inst_hi_hat', 'inst_drum_cymbals'];
 
+  /**
+   * Several mics on one source sit side by side in front of it (centered under the source) instead of
+   * stacking on top of each other. Mics keep their left-to-right order; other gear is untouched.
+   */
+  const fanOutMics = (gear: PlacedGear[], source: PlacedGear): PlacedGear[] => {
+    const isMicOnDrum = source.gearId.includes('drum') || source.gearId === 'gear_drum_kit';
+    const mics = gear
+      .filter((g) => g.latchedSourceInstanceId === source.instanceId && getGearById(g.gearId)?.category === 'microphone')
+      .sort((a, b) => a.x - b.x);
+    if (mics.length < 2) return gear;
+    const rect = getWorldRect();
+    const src = gear.find((g) => g.instanceId === source.instanceId) ?? source;
+    const sourceDims = getGearBoxDimensions(src.gearId, !!src.latchedSourceInstanceId, src.customScale, src.customWidth, src.customHeight);
+    const dims = mics.map((m) => getGearBoxDimensions(m.gearId, true, m.customScale, m.customWidth, m.customHeight, isMicOnDrum));
+    const GAP = 8;
+    const total = dims.reduce((sum, d) => sum + d.width, 0) + GAP * (mics.length - 1);
+    const startX = Math.max(10, Math.min(rect.width - total - 10, src.x + (sourceDims.width - total) / 2));
+    const placed = new Map<string, { x: number; y: number }>();
+    let cursor = startX;
+    mics.forEach((m, i) => {
+      const y = isMicOnDrum ? src.y + sourceDims.height * 0.85 : src.y + sourceDims.height + 12;
+      placed.set(m.instanceId, { x: Math.round(cursor), y: Math.max(10, Math.min(rect.height - dims[i].height - 10, y)) });
+      cursor += dims[i].width + GAP;
+    });
+    return gear.map((g) => (placed.has(g.instanceId) ? { ...g, ...placed.get(g.instanceId)! } : g));
+  };
+
   const setLatchedSource = (instanceId: string, sourceId: string | undefined) => {
     const isDrummerTarget = sourceId === 'drummer';
     const currentForDrummer = placedGear.find((g) => g.instanceId === instanceId);
@@ -1394,7 +1421,10 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
           }
         : g
     );
-    onUpdateGear(updatedGear, { action: `Latch to ${sourceId || 'None'}` });
+    // A second (or third...) mic on the same source fans out beside the others rather than landing on top of them
+    const fannedGear =
+      targetSource && !isDrummerTarget && currentDef?.category === 'microphone' ? fanOutMics(updatedGear, targetSource) : updatedGear;
+    onUpdateGear(fannedGear, { action: `Latch to ${sourceId || 'None'}` });
 
     const targetGear = updatedGear.find((g) => g.instanceId === instanceId);
     if (targetGear?.assignedChannel) {
