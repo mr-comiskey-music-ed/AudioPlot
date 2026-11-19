@@ -112,7 +112,10 @@ master bus → snake outputs (MAIN L/R, MON 1/2) → PA / monitors.
   Gaff tape (`GaffTape.tsx`: black like venues use, set `TAPE_TONE` to
   'white' for white; nearly straight tears) goes across bundles and
   never covers an unpatch ✕. The ✕ shows only on
-  hover or while that cable's gear is selected. 1/4" runs keep their
+  hover or while that cable's gear is selected. Input ✕s sit on each
+  cable's drop a short way out from the snake, sliding until they are
+  clear of every piece of gear and of each other (`cableRouting.ts`).
+  1/4" runs keep their
   drooping curve.
 - `traceSignalPath` (`src/components/canvas/signalPath.ts`) highlights
   the whole up/downstream chain for selected gear (the HUD view).

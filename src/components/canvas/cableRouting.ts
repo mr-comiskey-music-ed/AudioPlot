@@ -1,5 +1,5 @@
 import { CableConnection, EnvironmentMode, MixerChannelState, PlacedGear } from '../../types';
-import { getSnakeBoxBounds, getSnakeChannelPosition, getSnakeOutputPosition } from './canvasMath';
+import { getGearBoxDimensions, getSnakeBoxBounds, getSnakeChannelPosition, getSnakeOutputPosition } from './canvasMath';
 
 /**
  * Stage-style XLR routing. All XLR runs are laid out together so they can share bundles:
@@ -26,7 +26,7 @@ export interface Pt {
 export interface RoutedCable {
   points: Pt[];
   d: string;
-  /** Where the unpatch button sits: the middle of the longest visible straight piece. */
+  /** Where the unpatch button sits (inputs: on the drop, close to the snake and clear of any gear). */
   midPoint: Pt;
 }
 
@@ -140,13 +140,52 @@ export function routeXlrCables(opts: {
     fromRight.length > 0 &&
     Math.max(...fromLeft.map((c) => c.s.x)) > Math.min(...fromRight.map((c) => c.s.x));
   const rightStart = overlap ? fromLeft.length : 0;
+  const laneYByChannel = new Map<number, number>();
   const laneRun = (c: In, lane: number, bundle: string) => {
     const y = trunkBase + lane * GAP;
+    laneYByChannel.set(c.ch, y);
     finish(`in:${c.ch}`, [c.g, { x: c.g.x, y }, { x: c.s.x, y }, c.s], ['drop', 'trunk', 'hidden'], ['', bundle, '']);
   };
   fromLeft.forEach((c, i) => laneRun(c, i, 'trunk-left'));
   fromRight.forEach((c, i) => laneRun(c, rightStart + i, overlap ? 'trunk-right' : 'trunk-left'));
-  straight.forEach((c) => finish(`in:${c.ch}`, [c.g, { x: c.g.x, y: c.s.y }], ['drop'], ['']));
+  straight.forEach((c) => {
+    laneYByChannel.set(c.ch, box.y + box.h);
+    finish(`in:${c.ch}`, [c.g, { x: c.g.x, y: c.s.y }], ['drop'], ['']);
+  });
+
+  // ---------- Unpatch buttons for inputs: one standard spot ----------
+  // Each button sits on its cable's drop, a short way out from the snake, so they all read as "the end of the
+  // cable near the snake". It slides along the drop until it is clear of every piece of gear (the drop's own
+  // gear included) and of the other buttons, so none is hidden under an instrument or stacked on another.
+  const gearRects = placedGear.map((g) => {
+    const c = getGearCenter(g);
+    const d = getGearBoxDimensions(g.gearId, !!g.latchedSourceInstanceId, g.customScale, g.customWidth, g.customHeight);
+    return { x0: c.x - d.width / 2, x1: c.x + d.width / 2, y0: c.y - d.height / 2, y1: c.y + d.height / 2 };
+  });
+  const BADGE_CLEAR = 14; // button radius plus a little
+  const placedBadges: Pt[] = [];
+  for (const c of [...inputs].sort((a, b) => a.ch - b.ch)) {
+    const key = `in:${c.ch}`;
+    const cable = cables.get(key);
+    const laneY = laneYByChannel.get(c.ch);
+    if (!cable || laneY === undefined) continue;
+    const dir = c.g.y >= laneY ? 1 : -1; // which way the drop runs from the snake side toward the gear
+    const reach = Math.abs(c.g.y - laneY);
+    let chosen: Pt | null = null;
+    for (let dist = 28; dist <= reach && !chosen; dist += 8) {
+      const p = { x: c.g.x, y: laneY + dir * dist };
+      if (inSnake(p)) continue;
+      const underGear = gearRects.some((r) => p.x > r.x0 - BADGE_CLEAR && p.x < r.x1 + BADGE_CLEAR && p.y > r.y0 - BADGE_CLEAR && p.y < r.y1 + BADGE_CLEAR);
+      const nearOther = placedBadges.some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 28);
+      if (!underGear && !nearOther) chosen = p;
+    }
+    if (chosen) {
+      cable.midPoint = chosen;
+      placedBadges.push(chosen);
+    } else {
+      placedBadges.push(cable.midPoint);
+    }
+  }
 
   // ---------- Outputs: out the side of the snake, along the walls ----------
   type Out = { key: string; s: Pt; t: Pt; front: boolean };
