@@ -25,7 +25,10 @@ interface ChallengeModalProps {
   activeChallengeId: string | null;
   /** Task the teacher assigned through the link the student opened, if any. */
   assignedTaskId?: string | null;
-  onSelectChallenge: (challenge: ChallengeDefinition | null) => void;
+  onSelectChallenge: (challenge: ChallengeDefinition | null, options?: { startOver?: boolean }) => void;
+  /** Tasks the student has finished, and tasks with saved work (finished or not), in this browser. */
+  doneTaskIds?: string[];
+  savedTaskIds?: string[];
 }
 
 type Filter = 'all' | 'recording_studio' | 'live_stage';
@@ -45,6 +48,8 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   activeChallengeId,
   assignedTaskId,
   onSelectChallenge,
+  doneTaskIds = [],
+  savedTaskIds = [],
 }) => {
   const [filter, setFilter] = useState<Filter>('all');
   const [showTeacherLinks, setShowTeacherLinks] = useState(false);
@@ -66,6 +71,8 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   const renderTask = (task: ChallengeDefinition) => {
     const isActive = activeChallengeId === task.id;
     const isAssigned = assignedTaskId === task.id;
+    const isDone = doneTaskIds.includes(task.id);
+    const hasWork = savedTaskIds.includes(task.id);
     const isStudio = task.environment === 'recording_studio';
 
     return (
@@ -92,6 +99,11 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
                 {isStudio ? <Headphones className="w-2.5 h-2.5" /> : <Radio className="w-2.5 h-2.5" />}
                 {isStudio ? 'Studio' : 'Live Stage'}
               </span>
+              {isDone && (
+                <span className="text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <CheckCircle2 className="w-2.5 h-2.5" /> Completed
+                </span>
+              )}
               {isAssigned && (
                 <span className="text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider flex items-center gap-1 bg-sky-500/20 text-sky-300 border border-sky-400/50">
                   <GraduationCap className="w-2.5 h-2.5" /> Assigned by your teacher
@@ -117,6 +129,20 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
                 <span>{copiedId === task.id ? 'Link copied' : 'Copy assignment link'}</span>
               </button>
             )}
+            {hasWork && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Start this task over? Your saved work on it will be replaced.')) {
+                    onSelectChallenge(task, { startOver: true });
+                    onClose();
+                  }
+                }}
+                className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-stone-400 hover:text-stone-100 hover:bg-white/10 border border-transparent hover:border-white/15 transition-all cursor-pointer"
+                title="Clear your saved work on this task and begin again"
+              >
+                Start over
+              </button>
+            )}
             <button
               onClick={() => {
                 onSelectChallenge(task);
@@ -130,7 +156,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
                   : 'bg-blue-500/20 hover:bg-blue-500 text-blue-300 hover:text-stone-950 border border-blue-500/40'
               }`}
             >
-              <span>{isActive ? 'Current Task' : 'Start'}</span>
+              <span>{isActive ? 'Current Task' : isDone ? 'View' : hasWork ? 'Continue' : 'Start'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

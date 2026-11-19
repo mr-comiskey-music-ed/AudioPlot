@@ -38,11 +38,11 @@ import { MobileDeviceNotice } from './components/MobileDeviceNotice';
 import { BatchGradeModal } from './components/BatchGradeModal';
 import { BatchReviewBar } from './components/BatchReviewBar';
 import { parseBatch, BatchParseResult } from './services/batchGrading';
-import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES, getTaskById, resolveTaskId, SANDBOX_ID, lockedGivenInstruments } from './data/challenges';
+import { STUDIO_CHALLENGES, LIVE_STAGE_CHALLENGES, OPEN_TASKS, getTaskById, resolveTaskId, SANDBOX_ID, lockedGivenInstruments } from './data/challenges';
 import { useUndoRedo, DEFAULT_MASTER_BUS } from './hooks/useUndoRedo';
 import { StageSize, getWorld } from './components/canvas/stageGeometry';
 import { encodeSubmission, decodeSubmission } from './services/submissionCodec';
-import { slotFor, loadSaved, writeSaved, clearSaved } from './utils/autosave';
+import { slotFor, loadSaved, writeSaved, clearSaved, getLastSlot, setLastSlot, hasSaved, loadDone, markDone, clearDone } from './utils/autosave';
 import { SaveIndicator, RestorePrompt, type SaveStatus } from './components/AutosaveUI';
 import { getGearBoxDimensions } from './components/canvas/canvasMath';
 
@@ -337,14 +337,15 @@ export default function App() {
     return evaluateStudioSetup(environment, placedGear, connections, mixerChannels, activeChallengeId, stageSize);
   }, [environment, placedGear, connections, mixerChannels, activeChallengeId, stageSize]);
 
-  // Current & Next Challenge definition
-  const allChallenges = environment === 'recording_studio' ? STUDIO_CHALLENGES : LIVE_STAGE_CHALLENGES;
-  const currentChallengeIndex = allChallenges.findIndex((c) => c.id === activeChallengeId);
   const currentChallenge = getTaskById(activeChallengeId);
-  const nextChallenge =
-    currentChallengeIndex >= 0 && currentChallengeIndex < allChallenges.length - 1
-      ? allChallenges[currentChallengeIndex + 1]
-      : null;
+
+  // Which tasks are finished / have saved work (read when the Tasks window or the finish window opens)
+  const doneTasks = useMemo(() => loadDone(), [isChallengeModalOpen, isPerfectionModalOpen, activeChallengeId]);
+  const savedTaskIds = useMemo(
+    () => [...STUDIO_CHALLENGES, ...LIVE_STAGE_CHALLENGES, ...OPEN_TASKS].filter((t) => hasSaved(t.id)).map((t) => t.id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isChallengeModalOpen, isPerfectionModalOpen, activeChallengeId]
+  );
 
   // Celebrate with confetti on hitting 90%+ (Perfection!)
   useEffect(() => {
@@ -358,6 +359,7 @@ export default function App() {
       });
       setHasCelebratedA(true);
       if (activeChallengeId) {
+        markDone(activeChallengeId, evaluation.percentage);
         setIsPerfectionModalOpen(true);
       }
     } else if (evaluation.percentage < 80) {
@@ -392,10 +394,13 @@ export default function App() {
   // Not used for shared-plot links. Each assignment link has its own slot. If a plot was saved on an
   // earlier visit, ask before doing anything; autosave stays off until the student answers, so a blank
   // plot can never overwrite saved work.
+  // Each task has its own saved plot, so moving between tasks never loses work. On load, an assignment link
+  // opens its own task's plot; a plain visit offers back whatever the student was last working on.
   const autosaveSlot = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('plot') || window.location.hash.includes('plot=')) return null;
-    return slotFor(params.get('task'));
+    const task = params.get('task');
+    return task ? slotFor(task) : getLastSlot() ?? slotFor(null);
   }, []);
   const [restoreOffer, setRestoreOffer] = useState<{ project: StudioProjectState; code: string; savedAt: number } | null>(() => {
     if (!autosaveSlot) return null;
@@ -427,12 +432,18 @@ export default function App() {
     );
   };
 
+  // Where the plot on screen is saved: the active task's slot (or the sandbox's)
+  const currentSlot = autosaveSlot ? slotFor(activeChallengeId) : null;
+  const currentSlotRef = useRef(currentSlot);
+  currentSlotRef.current = currentSlot;
+
   const saveNow = () => {
-    if (!autosaveSlot || reviewActiveRef.current) return; // teacher review / shared views are not the student's work
+    const slot = currentSlotRef.current;
+    if (!slot || restoreOffer || reviewActiveRef.current) return; // teacher review / shared views are not the student's work
     if (!hasWorkNow()) {
       // The student cleared everything on purpose: don't offer the old plot back next time.
       if (lastCodeRef.current) {
-        clearSaved(autosaveSlot);
+        clearSaved(slot);
         lastCodeRef.current = '';
         setSaveStatus('idle');
       }
@@ -441,7 +452,8 @@ export default function App() {
     // The name is never saved: it is typed only when making the code to turn in.
     const code = encodeSubmission({ ...projectRef.current, studentName: '', studentId: undefined, teacherName: undefined });
     if (code === lastCodeRef.current) return;
-    if (writeSaved(autosaveSlot, code)) {
+    if (writeSaved(slot, code)) {
+      setLastSlot(slot);
       lastCodeRef.current = code;
       setSaveStatus('saved');
       setSavedAt(Date.now());
@@ -693,21 +705,83 @@ export default function App() {
     }
   };
 
-  const handleSelectChallenge = (challenge: ChallengeDefinition | null) => {
+  /** Put a saved plot on screen (used when going back to a task or the sandbox). */
+  const showSavedPlot = (project: StudioProjectState, code: string, savedTime: number) => {
+    setProjectTitle(project.title || 'Studio Setup Assignment');
+    setEnvironment(project.environment || 'recording_studio');
+    setStageSize(project.stageSize || 'standard');
+    setSelectedItemId(null);
+    resetHistory({
+      placedGear: project.placedGear || [],
+      connections: project.connections || [],
+      mixerChannels: project.mixerChannels && project.mixerChannels.length > 0 ? project.mixerChannels : INITIAL_CHANNELS,
+      masterBus: project.masterBus || DEFAULT_MASTER_BUS,
+    });
+    lastCodeRef.current = code;
+    setSavedAt(savedTime);
+    setSaveStatus('saved');
+  };
+
+  const stopSoundcheck = () => {
+    if (isPlayingAudio) {
+      audioEngine.stop();
+      setIsPlayingAudio(false);
+    }
+  };
+
+  const handleSelectChallenge = (challenge: ChallengeDefinition | null, options: { startOver?: boolean } = {}) => {
+    // Whatever is on screen belongs to the task being left: save it now rather than waiting for the autosave
+    saveNowRef.current();
     if (!challenge) {
+      if (activeChallengeId === null) return; // already in the sandbox
+      // The sandbox has its own plot: bring it back, or open an empty one. The task's work stays saved.
+      const saved = loadSaved(slotFor(null));
+      const project = saved ? decodeSubmission(saved.code) : null;
       setActiveChallengeId(null);
+      stopSoundcheck();
+      setLastSlot(slotFor(null));
+      if (saved && project) {
+        showSavedPlot(project, saved.code, saved.savedAt);
+      } else {
+        setSelectedItemId(null);
+        resetHistory({ placedGear: [], connections: [], mixerChannels: INITIAL_CHANNELS, masterBus: DEFAULT_MASTER_BUS });
+        lastCodeRef.current = '';
+      }
       return;
     }
+    if (options.startOver) {
+      clearSaved(slotFor(challenge.id));
+      clearDone(challenge.id);
+      startTask(challenge, { forceReset: true });
+      return;
+    }
+    if (challenge.id === activeChallengeId) return; // already here
     startTask(challenge);
   };
 
   function startTask(challenge: ChallengeDefinition, options: { forceReset?: boolean } = {}) {
+    // Going back to a task that has saved work: put that work back exactly as it was (completed tasks included)
+    if (!options.forceReset) {
+      const saved = loadSaved(slotFor(challenge.id));
+      const project = saved ? decodeSubmission(saved.code) : null;
+      if (saved && project) {
+        setActiveChallengeId(challenge.id);
+        stopSoundcheck();
+        setLastSlot(slotFor(challenge.id));
+        showSavedPlot(project, saved.code, saved.savedAt);
+        if (loadDone()[challenge.id]) setHasCelebratedA(true); // already passed: no second celebration
+        return;
+      }
+    }
+    setLastSlot(slotFor(challenge.id));
     // An open task in the same room keeps what the student already built in the sandbox.
     if (challenge.openEnded && challenge.environment === environment && !options.forceReset) {
       setActiveChallengeId(challenge.id);
       setProjectTitle(challenge.title);
+      lastCodeRef.current = ''; // so the carried-over plot is saved under this task's slot
       return;
     }
+    lastCodeRef.current = '';
     setActiveChallengeId(challenge.id);
     setEnvironment(challenge.environment);
     setProjectTitle(challenge.title);
@@ -1212,6 +1286,8 @@ export default function App() {
         activeChallengeId={activeChallengeId}
         assignedTaskId={assignedTaskId}
         onSelectChallenge={handleSelectChallenge}
+        doneTaskIds={Object.keys(doneTasks)}
+        savedTaskIds={savedTaskIds}
       />
 
       {/* Learn: the questions behind every setup */}
@@ -1230,12 +1306,13 @@ export default function App() {
         isOpen={isPerfectionModalOpen}
         onClose={() => setIsPerfectionModalOpen(false)}
         challenge={currentChallenge}
-        nextChallenge={nextChallenge}
-        onSelectNextChallenge={() => {
+        onStartNewTask={() => {
           setIsPerfectionModalOpen(false);
-          if (nextChallenge) {
-            handleSelectChallenge(nextChallenge);
-          }
+          setIsChallengeModalOpen(true);
+        }}
+        onOpenSandbox={() => {
+          setIsPerfectionModalOpen(false);
+          handleSelectChallenge(null);
         }}
         onOpenShareModal={() => {
           setIsPerfectionModalOpen(false);

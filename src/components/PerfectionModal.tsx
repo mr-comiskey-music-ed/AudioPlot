@@ -1,13 +1,15 @@
 import React from 'react';
-import { Trophy, Sparkles, ArrowRight, Share2, CheckCircle2, Award, X } from 'lucide-react';
+import { Trophy, Sparkles, ArrowRight, Share2, CheckCircle2, X, Shapes } from 'lucide-react';
 import { ChallengeDefinition } from '../types';
 
 interface PerfectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   challenge: ChallengeDefinition | null;
-  nextChallenge: ChallengeDefinition | null;
-  onSelectNextChallenge: () => void;
+  /** Opens the same Tasks window as the button in the header. */
+  onStartNewTask: () => void;
+  /** Switches to the open sandbox (this task's work stays saved). */
+  onOpenSandbox: () => void;
   onOpenShareModal: () => void;
   percentage: number;
 }
@@ -16,8 +18,8 @@ export const PerfectionModal: React.FC<PerfectionModalProps> = ({
   isOpen,
   onClose,
   challenge,
-  nextChallenge,
-  onSelectNextChallenge,
+  onStartNewTask,
+  onOpenSandbox,
   onOpenShareModal,
   percentage,
 }) => {
@@ -80,36 +82,35 @@ export const PerfectionModal: React.FC<PerfectionModalProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full mt-2">
-          {nextChallenge ? (
-            <button
-              id="btn-perfection-next-challenge"
-              onClick={onSelectNextChallenge}
-              className="w-full sm:flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-stone-950 font-black text-sm shadow-lg shadow-emerald-950/50 transition-all group"
-            >
-              <span>Next Challenge</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-          ) : (
-            <button
-              id="btn-perfection-close"
-              onClick={onClose}
-              className="w-full sm:flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-sm transition-all"
-            >
-              <Award className="w-4 h-4" />
-              <span>All Challenges Mastered!</span>
-            </button>
-          )}
-
+        {/* Action Buttons: the finished plot stays saved and comes back when the task is reopened */}
+        <div className="flex flex-col gap-2.5 w-full mt-2">
           <button
-            id="btn-perfection-share"
-            onClick={onOpenShareModal}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-stone-200 border border-white/10 font-bold text-xs transition-all"
+            id="btn-perfection-new-task"
+            onClick={onStartNewTask}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-sm shadow-lg shadow-emerald-950/50 transition-all group"
           >
-            <Share2 className="w-4 h-4 text-blue-400" />
-            <span>Share & Submit</span>
+            <span>Start New Task</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full">
+            <button
+              id="btn-perfection-sandbox"
+              onClick={onOpenSandbox}
+              className="w-full sm:flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-stone-200 border border-white/10 font-bold text-xs transition-all"
+            >
+              <Shapes className="w-4 h-4 text-stone-300" />
+              <span>Open Sandbox</span>
+            </button>
+            <button
+              id="btn-perfection-share"
+              onClick={onOpenShareModal}
+              className="w-full sm:flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-stone-200 border border-white/10 font-bold text-xs transition-all"
+            >
+              <Share2 className="w-4 h-4 text-sky-400" />
+              <span>Share & Submit</span>
+            </button>
+          </div>
+          <p className="text-[11px] text-stone-500">Your finished plot is saved. Reopen this task any time to see it.</p>
         </div>
       </div>
     </div>

@@ -41,3 +41,62 @@ export function clearSaved(slot: string): void {
     /* nothing to clear */
   }
 }
+
+/** The slot the student last worked in, so a plain visit (no assignment link) offers the right plot back. */
+const LAST_KEY = PREFIX + '__last';
+
+export function getLastSlot(): string | null {
+  try {
+    const v = window.localStorage.getItem(LAST_KEY);
+    return v && v.startsWith(PREFIX) && v !== LAST_KEY ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setLastSlot(slot: string): void {
+  try {
+    window.localStorage.setItem(LAST_KEY, slot);
+  } catch {
+    /* nothing to remember */
+  }
+}
+
+/** Does this task (or the sandbox, with no id) have saved work in this browser? */
+export const hasSaved = (taskId: string | null | undefined) => loadSaved(slotFor(taskId)) !== null;
+
+/**
+ * Tasks the student has completed (reached the passing score), kept in this browser next to their saved plots.
+ * Only task ids, percentages and times: no names.
+ */
+const DONE_KEY = 'audioplot:v1:done';
+
+export function loadDone(): Record<string, { pct: number; at: number }> {
+  try {
+    const raw = window.localStorage.getItem(DONE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function markDone(taskId: string, pct: number): void {
+  try {
+    const all = loadDone();
+    all[taskId] = { pct, at: Date.now() };
+    window.localStorage.setItem(DONE_KEY, JSON.stringify(all));
+  } catch {
+    /* nothing to record */
+  }
+}
+
+export function clearDone(taskId: string): void {
+  try {
+    const all = loadDone();
+    delete all[taskId];
+    window.localStorage.setItem(DONE_KEY, JSON.stringify(all));
+  } catch {
+    /* nothing to clear */
+  }
+}

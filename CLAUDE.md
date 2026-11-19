@@ -18,6 +18,14 @@ the goal is students designing real setups with understanding.
   off until they answer. Not used for shared-plot (`?plot=`) links or
   while the teacher steps through batch review or while in Learn. The
   leave-page warning appears only if the browser can't save.
+- Every task and the sandbox keep their own saved plot: the plot on screen
+  is saved under the ACTIVE task's slot, switching tasks saves first and
+  then restores the target's saved plot (finished tasks come back exactly
+  as left, with no second celebration), and the sandbox always returns its
+  own plot or an empty one. `audioplot:v1:done` records tasks that reached
+  90% (ids and percentages only). The Tasks window shows Completed /
+  Continue / Start over; the finish window offers Start New Task (opens
+  that same Tasks window), Open Sandbox, and Share & Submit.
 - Share & Submit has "Restore progress from a code": paste the last
   code and it replaces the plot (asks first if the plot has work). For a
   different computer or a cleared browser. It reads the code with the
