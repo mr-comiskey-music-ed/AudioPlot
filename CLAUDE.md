@@ -186,7 +186,8 @@ challenges can reach 100%. Setups of 4+ score as before.
 
 ## Quiz Mode (`src/quiz/`, hidden link `/quiz`)
 - Nothing in the app links to it. `/quiz` draws a random gig; `/quiz?t=<id>` picks a named
-  one (`QUIZ_TEMPLATES`: wedding, coffeehouse, rock, worship, jazz, school-dance). Never
+  one (`QUIZ_TEMPLATES`: coffeehouse, rock, worship, jazz, school-dance). The DJ Rig
+  is just one source in the random pool, not a featured pairing. Never
   rename a template id or change the draw order: codes rebuild the gig from the seed.
 - Live stage only. Three parts: Plan it (build from scratch), Fix it (the same band set up
   by "someone else" with 3-4 seeded faults), Explain it (two written answers). Weights

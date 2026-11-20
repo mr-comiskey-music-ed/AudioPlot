@@ -91,7 +91,6 @@ export interface QuizTemplate {
 
 /** Named gigs, chosen by the teacher with /quiz?t=<id>. Never rename an id. */
 export const QUIZ_TEMPLATES: QuizTemplate[] = [
-  { id: 'wedding', title: 'Wedding reception', blurb: 'A DJ spins between sets from a live drummer and a singer.', units: ['dj_rig', 'kit', 'vocal'] },
   { id: 'coffeehouse', title: 'Coffeehouse night', blurb: 'A quiet acoustic set in a small room.', units: ['vocal', 'acoustic_guitar', 'keys', 'bass'] },
   { id: 'rock', title: 'Rock trio', blurb: 'Loud and simple: drums, guitar, bass.', units: ['kit', 'electric_guitar', 'bass'] },
   { id: 'worship', title: 'Sunday service band', blurb: 'A singer leads a full band.', units: ['vocal', 'acoustic_guitar', 'piano', 'bass', 'electric_guitar'] },
