@@ -9,7 +9,7 @@ import {
   MixerChannelState,
   GearCategory,
 } from '../types';
-import { getGearById, isBreakoutSourceId } from '../data/gearCatalog';
+import { getGearById, isBreakoutSourceId, isDiBoxId, isStereoOutSourceId, stereoLinkCable } from '../data/gearCatalog';
 import { Cable, Trash2 } from 'lucide-react';
 import {
   getGearBoxDimensions,
@@ -1109,19 +1109,19 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       return;
     }
 
-    // The Stereo Breakout has two 1/4" ends: one Stereo DI takes both, or two mono DIs take one each
-    if (type === 'breakout') {
-      const src = isBreakoutSourceId(fromItem.gearId) ? fromItem : toItem;
+    // A stereo source has two sides (L and R): one Stereo DI takes both, or two mono DIs take one each
+    const src = isStereoOutSourceId(fromItem.gearId) ? fromItem : isStereoOutSourceId(toItem.gearId) ? toItem : null;
+    if (src && type === stereoLinkCable(src.gearId) && isDiBoxId((src === fromItem ? toItem : fromItem).gearId)) {
       const di = src === fromItem ? toItem : fromItem;
       const legsTo = connections
-        .filter((c) => c.cableType === 'breakout' && (c.fromInstanceId === src.instanceId || c.toInstanceId === src.instanceId))
+        .filter((c) => c.cableType === type && (c.fromInstanceId === src.instanceId || c.toInstanceId === src.instanceId))
         .map((c) => placedGear.find((g) => g.instanceId === (c.fromInstanceId === src.instanceId ? c.toInstanceId : c.fromInstanceId)))
         .filter((g): g is PlacedGear => !!g && g.instanceId !== di.instanceId);
       const full = legsTo.length >= 2 || legsTo.some((g) => g.gearId === 'gear_di_stereo') || (legsTo.length > 0 && di.gearId === 'gear_di_stereo');
       if (full) {
         showErrorToast(
-          'Breakout Already Used',
-          'The Stereo Breakout has two 1/4" ends (L and R): both go into one Stereo DI, or one into each of two DIs.'
+          'Both Sides Already Connected',
+          'A stereo source has two sides (L and R): both go into one Stereo DI, or one into each of two DIs.'
         );
         return;
       }

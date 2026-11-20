@@ -49,7 +49,7 @@ import { hasLiveOutputs } from './components/canvas/monitorChain';
 import { packProject, unpackProject } from './services/submissionCodec';
 import {
   QuizRecord, QuizPlot, buildFixScenario, evaluateFix, evaluatePlan, explainSource, newQuizSeed, readQuizLink, scenarioFromRecord,
-  combineAttempts, fixItems, liveOutputsOf, planItems,
+  combineAttempts, fixItems, liveOutputsOf, planItems, QUIZ_VERSION,
 } from './quiz/quizEngine';
 import { QuizPanel } from './quiz/QuizPanel';
 import { QuizReviewPanel } from './quiz/QuizReviewPanel';
@@ -306,7 +306,9 @@ export default function App() {
               const name = otherGear.gearId === 'inst_dj_rig' ? 'DJ' : 'LAPTOP';
               // One breakout leg into each of two mono DIs: name them L and R in the order they were cabled
               const legs = connList.filter(
-                (c) => c.cableType === 'breakout' && (c.fromInstanceId === otherGear.instanceId || c.toInstanceId === otherGear.instanceId)
+                (c) =>
+                  (c.cableType === 'breakout' || c.cableType === 'quarter_inch') &&
+                  (c.fromInstanceId === otherGear.instanceId || c.toInstanceId === otherGear.instanceId)
               );
               const i = legs.findIndex((c) => c.fromInstanceId === gearItem.instanceId || c.toInstanceId === gearItem.instanceId);
               return legs.length === 2 && gearItem.gearId === 'gear_di_box' ? `${name} ${i === 0 ? 'L' : 'R'}` : `${name} DI`;
@@ -1145,7 +1147,7 @@ export default function App() {
       loadQuizPlot(stored.plot ? unpackPlot(stored.plot) : emptyQuizPlot());
       if (stored.rec.ph === 'fix') setIsMixerCollapsed(false);
     } else {
-      setQuizRec({ v: 1, sd: newQuizSeed(), tp: quizLink.template ?? undefined, ph: 'intro' });
+      setQuizRec({ v: QUIZ_VERSION, sd: newQuizSeed(), tp: quizLink.template ?? undefined, ph: 'intro' });
       loadQuizPlot(emptyQuizPlot());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

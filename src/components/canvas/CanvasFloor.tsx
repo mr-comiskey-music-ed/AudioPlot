@@ -95,11 +95,19 @@ const CanvasFloorBase: React.FC<Props> = ({ width, height, environment, style })
         </>
       ) : (
         <>
-          <rect x="16" y="16" width={width - 32} height={height - 32} rx="12" fill="none" stroke="#8f3f25" strokeWidth="1.5" strokeDasharray="8 6" strokeOpacity="0.5" />
+          {/* Stage outline: back and sides only. The front edge is the single heavier line below (they used to overlap). */}
+          <path
+            d={`M 16 ${height - 18} V 28 Q 16 16 28 16 H ${width - 28} Q ${width - 16} 16 ${width - 16} 28 V ${height - 18}`}
+            fill="none"
+            stroke="#8f3f25"
+            strokeWidth="1.5"
+            strokeDasharray="8 6"
+            strokeOpacity="0.5"
+          />
           <text x={width / 2} y="28" textAnchor="middle" fill={PAPER_INK} fillOpacity="0.8" fontSize="9" fontWeight="bold" letterSpacing="1.5">
             UPSTAGE BACKDROP
           </text>
-          <line x1="20" y1={height - 18} x2={width - 20} y2={height - 18} stroke="#8f3f25" strokeWidth="2" strokeDasharray="6 4" strokeOpacity="0.6" />
+          <line x1="16" y1={height - 18} x2={width - 16} y2={height - 18} stroke="#8f3f25" strokeWidth="2" strokeDasharray="6 4" strokeOpacity="0.6" />
           <text x={width / 2} y={height - 24} textAnchor="middle" fill="#8f3f25" fontSize="9" fontWeight="bold" letterSpacing="1">
             AUDIENCE / FRONT-OF-HOUSE
           </text>

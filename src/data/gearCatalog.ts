@@ -606,8 +606,13 @@ export const GEAR_CATALOG: GearDefinition[] = [
 export const isDiBoxId = (id?: string | null): boolean => id === 'gear_di_box' || id === 'gear_di_stereo';
 /** Gear that feeds two mixer channels (L and R). */
 export const isStereoGearId = (id?: string | null): boolean => id === 'gear_di_stereo' || id === 'inst_dj_rig';
-/** Sources with a 1/8" stereo out that the Stereo Breakout plugs into. */
-export const isBreakoutSourceId = (id?: string | null): boolean => id === 'inst_dj_rig' || id === 'inst_computer';
+/** Sources with a 1/8" stereo out that the Stereo Breakout plugs into (only the Laptop / Phone). */
+export const isBreakoutSourceId = (id?: string | null): boolean => id === 'inst_computer';
+/** Stereo sources that can run into a Stereo DI or two mono DIs (one side each). */
+export const isStereoOutSourceId = (id?: string | null): boolean => id === 'inst_dj_rig' || id === 'inst_computer';
+/** The cable from a stereo source into its DI(s): the DJ Rig's 1/4" booth outs, the Laptop / Phone's breakout. */
+export const stereoLinkCable = (id?: string | null): 'quarter_inch' | 'breakout' | null =>
+  id === 'inst_dj_rig' ? 'quarter_inch' : id === 'inst_computer' ? 'breakout' : null;
 
 export function getGearById(id: string): GearDefinition | undefined {
   if (id === 'mic_at2020') {

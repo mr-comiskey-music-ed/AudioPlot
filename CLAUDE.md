@@ -189,6 +189,12 @@ challenges can reach 100%. Setups of 4+ score as before.
   one (`QUIZ_TEMPLATES`: coffeehouse, rock, worship, jazz, school-dance). The DJ Rig
   is just one source in the random pool, not a featured pairing. Never
   rename a template id or change the draw order: codes rebuild the gig from the seed.
+- Source names in the prompt come from the equipment locker (`SOURCE_LABELS` reads the
+  gear catalog: Voice, Keyboard, Acoustic Piano, Hi-Hats...), so they match what students drag in.
+- Random gigs: version 2 (`QUIZ_VERSION`, saved as `v`) puts Voice in at least 75% of gigs (about
+  87% in practice). Codes keep their version, so old codes rebuild the same gig. A DJ Rig drawn
+  with a full band is framed "A band and a DJ" (the DJ spins between sets); with only a singer
+  and/or drummer it's a "DJ set with live players".
 - Live stage only. Three parts: Plan it (build from scratch), Fix it (the same band set up
   by "someone else" with 3-4 seeded faults), Explain it (two written answers). Weights
   50 / 30 / 20; Part 3 is scored by the teacher in the batch view.
@@ -227,7 +233,8 @@ engine's output gate is closed and a notice explains why. Learn is exempt (its P
 
 ## DJ Rig, Stereo DI, Stereo Breakout
 - `inst_dj_rig`: laptop + controller, one stereo line-level source. Its XLR outs go straight
-  to two snake inputs (L/R); first patch sets gain to 54 since line level is ~12 dB hot
+  to two snake inputs (L/R), or its 1/4" booth outs go into a Stereo DI or two mono DIs (no
+  breakout: that's not how a DJ controller is hooked up); first patch sets gain to 54 since line level is ~12 dB hot
   (`LINE_LEVEL_BOOST` in the audio engine). Its sound is built in the browser from the
   kick, snare, bass and keys loops (`DERIVED_STEMS`), so no extra download.
 - `gear_di_stereo`: shows in the locker once keys or a DJ Rig is on the plot. Stereo gear
@@ -239,8 +246,8 @@ engine's output gate is closed and a notice explains why. Learn is exempt (its P
   Stereo Breakout into a Stereo DI or into two mono DIs (one leg each). Plays a backing
   track built from the piano, bass and acoustic guitar loops. Not in the quiz pool.
 - Cable type `breakout` (code letter `b`): Stereo Breakout, 1/8" TRS to two 1/4". Appears
-  under the 1/4" hook while a DJ Rig or Laptop / Phone is on the plot; it only goes from
-  one of those into DI(s) (the snake takes XLR). Two ends: one Stereo DI takes both, or two
+  under the 1/4" hook only while a Laptop / Phone is on the plot; it only goes from that into
+  DI(s) (the snake takes XLR). Two ends: one Stereo DI takes both, or two
   mono DIs take one each (labelled L/R in cabling order); a third leg is refused. `isDiBoxId` treats the mono and stereo DI alike in every check.
 
 ## Code format (`src/services/submissionCodec.ts`)

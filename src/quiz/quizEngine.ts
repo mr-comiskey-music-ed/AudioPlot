@@ -62,18 +62,22 @@ export interface QuizSource {
 
 const POOL: UnitKind[] = ['vocal', 'acoustic_guitar', 'electric_guitar', 'bass', 'keys', 'piano', 'kit', 'dj_rig'];
 
-export const SOURCE_LABELS: Record<SourceKind, string> = {
-  vocal: 'Lead vocal',
-  acoustic_guitar: 'Acoustic guitar',
-  electric_guitar: 'Electric guitar',
-  bass: 'Bass guitar',
-  keys: 'Keys (stage piano / synth)',
-  piano: 'Piano',
-  kick: 'Kick drum',
-  snare: 'Snare drum',
-  hihat: 'Hi-hat',
-  dj_rig: 'DJ Rig',
+/** The instrument each source is, as named in the equipment locker (so the prompt matches what students drag in). */
+const SOURCE_GEAR: Record<SourceKind, string> = {
+  vocal: 'inst_voice',
+  acoustic_guitar: 'inst_acoustic_guitar',
+  electric_guitar: 'inst_electric_guitar',
+  bass: 'inst_bass_guitar',
+  keys: 'inst_keyboard',
+  piano: 'inst_acoustic_piano',
+  kick: 'inst_kick_drum',
+  snare: 'inst_snare_drum',
+  hihat: 'inst_hi_hat',
+  dj_rig: 'inst_dj_rig',
 };
+export const SOURCE_LABELS = Object.fromEntries(
+  Object.entries(SOURCE_GEAR).map(([k, id]) => [k, getGearById(id)?.name ?? k])
+) as Record<SourceKind, string>;
 
 const expand = (units: UnitKind[]): QuizSource[] =>
   units.flatMap((u) =>
@@ -110,7 +114,12 @@ export interface QuizScenario {
 const units = (u: UnitKind) => (u === 'kit' ? 3 : 1);
 
 /** The gig for this seed (and template, when the link named one). */
-export function buildScenario(seed: number, templateId?: string | null): QuizScenario {
+/**
+ * The gig for this seed (and template, when the link named one).
+ * version 1 = the first draw (codes made before Nov 20 2026). Version 2 puts a vocal in at least 75% of
+ * gigs. Never change a version's draw: old codes must rebuild the same gig.
+ */
+export function buildScenario(seed: number, templateId?: string | null, version: number = QUIZ_VERSION): QuizScenario {
   const tpl = templateId ? QUIZ_TEMPLATES.find((t) => t.id === templateId) : undefined;
   if (tpl) {
     return { seed, template: tpl.id, title: tpl.title, blurb: tpl.blurb, units: tpl.units, sources: expand(tpl.units) };
@@ -119,19 +128,37 @@ export function buildScenario(seed: number, templateId?: string | null): QuizSce
   const target = rng.next() < 0.5 ? 4 : 5;
   const picked: UnitKind[] = [];
   let count = 0;
+  if (version >= 2 && rng.next() < 0.75) {
+    picked.push('vocal');
+    count = 1;
+  }
   for (const u of rng.shuffle(POOL)) {
+    if (picked.includes(u)) continue;
     if (count + units(u) > target) continue;
     picked.push(u);
     count += units(u);
     if (count === target) break;
   }
   const order = POOL.filter((u) => picked.includes(u));
+  return { seed, ...frameGig(order, count), units: order, sources: expand(order) };
+}
+
+export const QUIZ_VERSION = 2;
+
+/**
+ * Title and one-line setup for a drawn gig. A DJ only performs *with* live players in a few styles
+ * (hip hop / EDM with a singer or drummer); next to a full band it is a band and a DJ sharing the stage.
+ */
+function frameGig(units: UnitKind[], count: number): { title: string; blurb: string } {
+  if (!units.includes('dj_rig')) return { title: 'Tonight\'s gig', blurb: `A ${count}-source band on a live stage.` };
+  const others = units.filter((u) => u !== 'dj_rig');
+  if (others.every((u) => u === 'vocal' || u === 'kit')) {
+    const who = others.length === 2 ? 'a singer and a drummer' : others[0] === 'vocal' ? 'a singer' : 'a drummer';
+    return { title: 'DJ set with live players', blurb: `A DJ performs with ${who} on a live stage.` };
+  }
   return {
-    seed,
-    title: 'Tonight\'s gig',
-    blurb: `A ${count}-source band on a live stage.`,
-    units: order,
-    sources: expand(order),
+    title: 'A band and a DJ',
+    blurb: 'A live band plays its sets and a DJ spins between them. Both run through the same stage, snake and mixer.',
   };
 }
 
@@ -518,7 +545,7 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
     const id = (s: string) => `quiz_${u}_${s}`;
     switch (u) {
       case 'vocal': {
-        const lead = b.add(id('inst'), 'inst_voice', x, y + 20, { label: 'Singer' });
+        const lead = b.add(id('inst'), 'inst_voice', x, y + 20, { label: 'Voice' });
         const condenser = rng.next() < 0.35;
         const m = b.add(id('mic'), condenser ? 'mic_c214' : 'mic_sm58', x + 70, y + 10, {
           latchedSourceInstanceId: lead, standHeight: STAND.vocal, hasPopFilter: condenser,
@@ -560,7 +587,7 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
         break;
       }
       case 'keys': {
-        const k = b.add(id('inst'), 'inst_keyboard', x, y, { label: 'Keys' });
+        const k = b.add(id('inst'), 'inst_keyboard', x, y, { label: 'Keyboard' });
         if (rng.next() < 0.5) {
           const di = b.add(id('di'), 'gear_di_stereo', x + 85, y + 10, { latchedSourceInstanceId: k });
           b.cable(k, di, 'quarter_inch');
@@ -574,25 +601,19 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
         break;
       }
       case 'piano': {
-        if (rng.next() < 0.5) {
-          const pno = b.add(id('inst'), 'inst_acoustic_piano', x, y - 20, { label: 'Piano' });
-          const m1 = b.add(id('mic_l'), 'mic_c214', x - 10, y - 110, { latchedSourceInstanceId: pno, standHeight: STAND.seated });
-          const m2 = b.add(id('mic_r'), 'mic_c214', x + 70, y - 110, { latchedSourceInstanceId: pno, standHeight: STAND.seated });
-          b.patch(m1, 'PIANO L', { phantom: true, pan: -50 });
-          b.patch(m2, 'PIANO R', { phantom: true, pan: 50 });
-        } else {
-          const k = b.add(id('inst'), 'inst_keyboard', x, y, { label: 'Digital Piano' });
-          const di = b.add(id('di'), 'gear_di_stereo', x + 85, y + 10, { latchedSourceInstanceId: k });
-          b.cable(k, di, 'quarter_inch');
-          b.patch(di, 'PIANO DI L', { pan: -50 });
-          b.patch(di, 'PIANO DI R', { pan: 50 });
-        }
+        // The gig names an Acoustic Piano, so Part 2 always mics one (a pair of condensers).
+        rng.next(); // was a coin toss (acoustic or digital); kept so the rest of the seeded setup stays the same
+        const pno = b.add(id('inst'), 'inst_acoustic_piano', x, y - 20, { label: 'Acoustic Piano' });
+        const m1 = b.add(id('mic_l'), 'mic_c214', x - 10, y - 110, { latchedSourceInstanceId: pno, standHeight: STAND.seated });
+        const m2 = b.add(id('mic_r'), 'mic_c214', x + 70, y - 110, { latchedSourceInstanceId: pno, standHeight: STAND.seated });
+        b.patch(m1, 'PIANO L', { phantom: true, pan: -50 });
+        b.patch(m2, 'PIANO R', { phantom: true, pan: 50 });
         break;
       }
       case 'kit': {
         const kick = b.add(id('kick'), 'inst_kick_drum', x + 20, y - 60, { label: 'Kick Drum' });
         const snare = b.add(id('snare'), 'inst_snare_drum', x - 50, y + 10, { label: 'Snare Drum' });
-        const hat = b.add(id('hihat'), 'inst_hi_hat', x - 120, y - 40, { label: 'Hi-Hat' });
+        const hat = b.add(id('hihat'), 'inst_hi_hat', x - 120, y - 40, { label: 'Hi-Hats' });
         const mk = b.add(id('kick_mic'), 'mic_beta52a', x + 30, y + 30, { latchedSourceInstanceId: kick, standHeight: STAND.amp });
         const ms = b.add(id('snare_mic'), 'mic_sm57', x - 30, y + 80, { latchedSourceInstanceId: snare, standHeight: 'clipped' });
         const mh = b.add(id('hihat_mic'), 'mic_sm81', x - 130, y + 30, { latchedSourceInstanceId: hat, standHeight: STAND.kit });
@@ -608,7 +629,7 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
           b.patch(rig, 'DJ R', { gain: 54, pan: 50 });
         } else {
           const di = b.add(id('di'), 'gear_di_stereo', x + 90, y + 10, { latchedSourceInstanceId: rig });
-          b.cable(rig, di, 'breakout');
+          b.cable(rig, di, 'quarter_inch');
           b.patch(di, 'DJ DI L', { pan: -50 });
           b.patch(di, 'DJ DI R', { pan: 50 });
         }
@@ -649,7 +670,7 @@ export const ERROR_LABELS: Record<ErrorKind, string> = {
   pan_hard: 'Mono source panned hard to one side',
   main_down: 'Main level down',
   dj_gain_high: 'DJ Rig gain far too high (line level)',
-  wrong_di: 'DJ Rig only half connected (one leg into one mono DI)',
+  wrong_di: 'DJ Rig only half connected (one side into one mono DI)',
   unpatched: 'Not patched to the snake',
   wrong_mic: 'Completely wrong mic',
   no_mic: 'No mic on the source',
@@ -807,7 +828,7 @@ function inject(p: QuizPlot, e: InjectedError, scenario: QuizScenario) {
       inst.assignedChannel = undefined;
       const diId = `quiz_${u}_monodi`;
       p.placedGear.push({ instanceId: diId, gearId: 'gear_di_box', x: inst.x + 90, y: inst.y + 10, rotation: 0, latchedSourceInstanceId: inst.instanceId, assignedChannel: firstCh });
-      p.connections.push({ id: `quiz_cable_${p.connections.length}_wd`, fromInstanceId: inst.instanceId, toInstanceId: diId, cableType: 'breakout', color: CH_COLORS.breakout });
+      p.connections.push({ id: `quiz_cable_${p.connections.length}_wd`, fromInstanceId: inst.instanceId, toInstanceId: diId, cableType: 'quarter_inch', color: CH_COLORS.quarter_inch });
       const ch = p.mixerChannels.find((c) => c.channelNumber === firstCh);
       if (ch) Object.assign(ch, { assignedGearInstanceId: diId, label: 'DJ DI', pan: 0 });
       break;
@@ -947,12 +968,9 @@ export function explainSource(scenario: QuizScenario): QuizSource {
   return rng.pick(scenario.sources);
 }
 
-/** "Lead vocal" -> "lead vocal", but "DJ Rig" keeps its capitals. */
-const inSentence = (label: string) => (/^[A-Z][a-z]/.test(label) ? label[0].toLowerCase() + label.slice(1) : label);
-
 export function explainQuestion(s: QuizSource): string {
   if (s.key === 'dj_rig') return 'Why did you connect the DJ Rig the way you did?';
-  return `Why did you choose this mic or DI for the ${inSentence(s.label)}?`;
+  return `Why did you choose this mic or DI for the ${s.label}?`;
 }
 
 export const FIX_QUESTION = 'Explain one fix you made in Part 2.';
@@ -971,7 +989,7 @@ export type QuizPhase =
 
 /** Saved in the student's code under `qz`. Short keys; never reuse one. */
 export interface QuizRecord {
-  v: 1;
+  v: number; // 1 = first draw, 2 = vocals in at least 75% (see buildScenario)
   sd: number; // seed
   tp?: string; // template id
   ph: QuizPhase;
@@ -987,7 +1005,7 @@ export interface QuizRecord {
 }
 
 export function scenarioFromRecord(r: QuizRecord): QuizScenario {
-  return buildScenario(r.sd, r.tp);
+  return buildScenario(r.sd, r.tp, r.v ?? 1);
 }
 
 // ---------- The hidden link ----------

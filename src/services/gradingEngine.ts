@@ -6,7 +6,7 @@ import {
   RubricEvaluation,
   RubricCategoryScore,
 } from '../types';
-import { getGearById, isBreakoutSourceId, isDiBoxId } from '../data/gearCatalog';
+import { getGearById, isDiBoxId, isStereoOutSourceId } from '../data/gearCatalog';
 import { getTaskById, givenInstrumentCounts } from '../data/challenges';
 import { getWorld, getPaZone, getItemCenter, StageSize } from '../components/canvas/stageGeometry';
 import { wedgesFedFromSnake } from '../components/canvas/monitorChain';
@@ -495,10 +495,13 @@ export function getInstrumentSignalChainStatus(
   }
 
   // DJ Rig: XLR pair straight to the snake. DJ Rig or Laptop / Phone: Stereo Breakout into DI(s) that are patched
-  if (isBreakoutSourceId(inst.gearId)) {
+  if (isStereoOutSourceId(inst.gearId)) {
     // A stereo source: both sides (L and R) must reach the snake on their own XLR runs
     const legs = connections.filter(
-      (c) => (c.fromInstanceId === inst.instanceId || c.toInstanceId === inst.instanceId) && c.cableType === 'breakout'
+      (c) =>
+        (c.fromInstanceId === inst.instanceId || c.toInstanceId === inst.instanceId) &&
+        (c.cableType === 'breakout' || c.cableType === 'quarter_inch') &&
+        isDiBoxId(placedGear.find((g) => g.instanceId === (c.fromInstanceId === inst.instanceId ? c.toInstanceId : c.fromInstanceId))?.gearId)
     );
     const fedBy = new Set([inst.instanceId, ...legs.map((brk) => (brk.fromInstanceId === inst.instanceId ? brk.toInstanceId : brk.fromInstanceId))]);
     const sides = mixerChannels.filter((c) => c.assignedGearInstanceId && fedBy.has(c.assignedGearInstanceId));
@@ -510,7 +513,7 @@ export function getInstrumentSignalChainStatus(
     return {
       valid: false,
       error: inst.gearId === 'inst_dj_rig'
-        ? 'DJ Rig needs its XLR outs patched to the snake, or a Stereo Breakout into a DI'
+        ? 'DJ Rig needs its XLR outs patched to the snake, or its 1/4" outs into a Stereo DI (or two DIs)'
         : 'Laptop / Phone needs the Stereo Breakout into a Stereo DI (or two DIs)',
     };
   }
