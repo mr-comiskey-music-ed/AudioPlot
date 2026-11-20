@@ -51,7 +51,7 @@ export const newQuizSeed = () => (Math.floor(Math.random() * 0xfffffffe) + 1) >>
 // ---------- Sources ----------
 
 /** A unit drawn for the band. The kit counts as three sources. */
-export type UnitKind = 'vocal' | 'acoustic_guitar' | 'electric_guitar' | 'bass' | 'keys' | 'piano' | 'kit' | 'dj_rig';
+export type UnitKind = 'vocal' | 'acoustic_guitar' | 'electric_guitar' | 'bass' | 'keys' | 'piano' | 'kit' | 'dj_rig' | 'laptop';
 /** One source the student has to get into the mixer. */
 export type SourceKind = Exclude<UnitKind, 'kit'> | 'kick' | 'snare' | 'hihat';
 
@@ -60,7 +60,11 @@ export interface QuizSource {
   label: string;
 }
 
-const POOL: UnitKind[] = ['vocal', 'acoustic_guitar', 'electric_guitar', 'bass', 'keys', 'piano', 'kit', 'dj_rig'];
+// Draw pools. Never edit one: old codes rebuild their gig from it.
+const POOL: UnitKind[] = ['vocal', 'acoustic_guitar', 'electric_guitar', 'bass', 'keys', 'piano', 'kit', 'dj_rig']; // versions 1-2
+const POOL_V3: UnitKind[] = ['vocal', 'acoustic_guitar', 'electric_guitar', 'bass', 'keys', 'piano', 'kit']; // version 3 (+ laptop by its own 25% draw)
+/** Order sources are listed in. */
+const LIST_ORDER: UnitKind[] = [...POOL, 'laptop'];
 
 /** The instrument each source is, as named in the equipment locker (so the prompt matches what students drag in). */
 const SOURCE_GEAR: Record<SourceKind, string> = {
@@ -74,6 +78,7 @@ const SOURCE_GEAR: Record<SourceKind, string> = {
   snare: 'inst_snare_drum',
   hihat: 'inst_hi_hat',
   dj_rig: 'inst_dj_rig',
+  laptop: 'inst_computer',
 };
 export const SOURCE_LABELS = Object.fromEntries(
   Object.entries(SOURCE_GEAR).map(([k, id]) => [k, getGearById(id)?.name ?? k])
@@ -91,6 +96,8 @@ export interface QuizTemplate {
   title: string;
   blurb: string;
   units: UnitKind[];
+  /** What this template was in codes made before version 3 (the DJ Rig left the quiz then). */
+  before3?: { blurb: string; units: UnitKind[] };
 }
 
 /** Named gigs, chosen by the teacher with /quiz?t=<id>. Never rename an id. */
@@ -99,7 +106,13 @@ export const QUIZ_TEMPLATES: QuizTemplate[] = [
   { id: 'rock', title: 'Rock trio', blurb: 'Loud and simple: drums, guitar, bass.', units: ['kit', 'electric_guitar', 'bass'] },
   { id: 'worship', title: 'Sunday service band', blurb: 'A singer leads a full band.', units: ['vocal', 'acoustic_guitar', 'piano', 'bass', 'electric_guitar'] },
   { id: 'jazz', title: 'Jazz trio', blurb: 'Piano, bass and a small kit in a lounge.', units: ['piano', 'bass', 'kit'] },
-  { id: 'school-dance', title: 'School dance', blurb: 'A DJ with a live drummer playing along.', units: ['dj_rig', 'kit'] },
+  {
+    id: 'school-dance',
+    title: 'School dance',
+    blurb: 'A live drummer plays along with tracks from a laptop.',
+    units: ['laptop', 'kit'],
+    before3: { blurb: 'A DJ with a live drummer playing along.', units: ['dj_rig', 'kit'] },
+  },
 ];
 
 export interface QuizScenario {
@@ -122,7 +135,8 @@ const units = (u: UnitKind) => (u === 'kit' ? 3 : 1);
 export function buildScenario(seed: number, templateId?: string | null, version: number = QUIZ_VERSION): QuizScenario {
   const tpl = templateId ? QUIZ_TEMPLATES.find((t) => t.id === templateId) : undefined;
   if (tpl) {
-    return { seed, template: tpl.id, title: tpl.title, blurb: tpl.blurb, units: tpl.units, sources: expand(tpl.units) };
+    const t = version < 3 && tpl.before3 ? { ...tpl, ...tpl.before3 } : tpl;
+    return { seed, template: tpl.id, title: t.title, blurb: t.blurb, units: t.units, sources: expand(t.units) };
   }
   const rng = makeRng(seed);
   const target = rng.next() < 0.5 ? 4 : 5;
@@ -132,25 +146,34 @@ export function buildScenario(seed: number, templateId?: string | null, version:
     picked.push('vocal');
     count = 1;
   }
-  for (const u of rng.shuffle(POOL)) {
+  // Version 3: no DJ Rig; a Laptop / Phone (backing tracks) joins 1 gig in 4
+  if (version >= 3 && rng.next() < 0.25) {
+    picked.push('laptop');
+    count += 1;
+  }
+  for (const u of rng.shuffle(version >= 3 ? POOL_V3 : POOL)) {
     if (picked.includes(u)) continue;
     if (count + units(u) > target) continue;
     picked.push(u);
     count += units(u);
     if (count === target) break;
   }
-  const order = POOL.filter((u) => picked.includes(u));
+  const order = LIST_ORDER.filter((u) => picked.includes(u));
   return { seed, ...frameGig(order, count), units: order, sources: expand(order) };
 }
 
-export const QUIZ_VERSION = 2;
+/** 1 = first draw; 2 = Voice in 75%+; 3 = no DJ Rig, Laptop / Phone in 25%. */
+export const QUIZ_VERSION = 3;
 
 /**
  * Title and one-line setup for a drawn gig. A DJ only performs *with* live players in a few styles
  * (hip hop / EDM with a singer or drummer); next to a full band it is a band and a DJ sharing the stage.
  */
 function frameGig(units: UnitKind[], count: number): { title: string; blurb: string } {
-  if (!units.includes('dj_rig')) return { title: 'Tonight\'s gig', blurb: `A ${count}-source band on a live stage.` };
+  if (!units.includes('dj_rig')) {
+    const tracks = units.includes('laptop') ? ', playing along with backing tracks from a laptop' : '';
+    return { title: 'Tonight\'s gig', blurb: `A ${count}-source band on a live stage${tracks}.` };
+  }
   const others = units.filter((u) => u !== 'dj_rig');
   if (others.every((u) => u === 'vocal' || u === 'kit')) {
     const who = others.length === 2 ? 'a singer and a drummer' : others[0] === 'vocal' ? 'a singer' : 'a drummer';
@@ -226,6 +249,7 @@ const INSTRUMENTS_FOR: Record<SourceKind, string[]> = {
   snare: ['inst_snare_drum'],
   hihat: ['inst_hi_hat'],
   dj_rig: ['inst_dj_rig'],
+  laptop: ['inst_computer'],
 };
 
 /** Mics that are a sensible choice for each source. */
@@ -242,7 +266,7 @@ const GOOD_MICS: Partial<Record<SourceKind | 'piano_acoustic' | 'guitar_amp' | '
 
 function capturesOf(p: QuizPlot, inst: PlacedGear): Capture[] {
   const out: Capture[] = [];
-  const electric = ['inst_electric_guitar', 'inst_bass_guitar', 'inst_keyboard', 'inst_dj_rig'].includes(inst.gearId);
+  const electric = ['inst_electric_guitar', 'inst_bass_guitar', 'inst_keyboard', 'inst_dj_rig', 'inst_computer'].includes(inst.gearId);
   micsOn(p, inst).forEach((m) => out.push({ gear: m, kind: 'mic', onInstrument: electric }));
   cabledTo(p, inst, ['quarter_inch', 'breakout']).forEach((g) => {
     if (isDiBoxId(g.gearId)) out.push({ gear: g, kind: 'di' });
@@ -279,13 +303,15 @@ function captureOk(source: SourceKind, inst: PlacedGear, c: Capture): boolean {
       return c.kind === 'mic' && !!GOOD_MICS.piano_acoustic?.includes(mic);
     case 'dj_rig':
       return c.kind === 'direct' || c.kind === 'di';
+    case 'laptop':
+      return c.kind === 'di'; // Stereo Breakout into a Stereo DI or two mono DIs
   }
 }
 
 /** Most channels a source should use before it counts as doubled up. */
 const MAX_CHANNELS: Record<SourceKind, number> = {
   vocal: 1, kick: 1, snare: 1, hihat: 1, electric_guitar: 1,
-  acoustic_guitar: 2, bass: 2, keys: 2, piano: 2, dj_rig: 2,
+  acoustic_guitar: 2, bass: 2, keys: 2, piano: 2, dj_rig: 2, laptop: 2,
 };
 
 export type CheckId = 'input' | 'cable' | 'phantom' | 'stereo' | 'channel';
@@ -363,7 +389,7 @@ function matchInstruments(p: QuizPlot, sources: QuizSource[]): Map<SourceKind, P
 
 function evalSource(p: QuizPlot, s: QuizSource, inst: PlacedGear | undefined): SourceResult {
   const base = { key: s.key, label: s.label };
-  const stereoApplies = s.key === 'dj_rig' || s.key === 'keys' || (s.key === 'piano' && inst?.gearId === 'inst_keyboard');
+  const stereoApplies = s.key === 'dj_rig' || s.key === 'laptop' || s.key === 'keys' || (s.key === 'piano' && inst?.gearId === 'inst_keyboard');
   if (!inst) {
     const checks: Partial<Record<CheckId, boolean>> = { input: false, cable: false, phantom: false, channel: false };
     if (stereoApplies || s.key === 'dj_rig') checks.stereo = false;
@@ -379,7 +405,7 @@ function evalSource(p: QuizPlot, s: QuizSource, inst: PlacedGear | undefined): S
     caps.every((c) => channelsOf(p, c.gear).every((ch) => ch.phantomPower === needs48(c.gear)));
   if (stereoApplies) {
     const stereoDis = caps.filter((c) => c.gear.gearId === 'gear_di_stereo');
-    if (s.key === 'dj_rig') checks.stereo = chans.length >= 2;
+    if (s.key === 'dj_rig' || s.key === 'laptop') checks.stereo = chans.length >= 2;
     else checks.stereo = stereoDis.every((c) => channelsOf(p, c.gear).length === 2); // mono keys are fine
   }
   checks.channel = chans.length >= 1 && chans.length <= MAX_CHANNELS[s.key];
@@ -622,6 +648,23 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
         b.patch(mh, 'HI-HAT', { phantom: true });
         break;
       }
+      case 'laptop': {
+        const lap = b.add(id('inst'), 'inst_computer', x, y, { label: 'Laptop / Phone' });
+        if (rng.next() < 0.5) {
+          const di = b.add(id('di'), 'gear_di_stereo', x + 90, y + 10, { latchedSourceInstanceId: lap });
+          b.cable(lap, di, 'breakout');
+          b.patch(di, 'LAPTOP DI L', { pan: -50 });
+          b.patch(di, 'LAPTOP DI R', { pan: 50 });
+        } else {
+          const l = b.add(id('di'), 'gear_di_box', x + 90, y - 20, { latchedSourceInstanceId: lap });
+          const r = b.add(id('di2'), 'gear_di_box', x + 90, y + 50, { latchedSourceInstanceId: lap });
+          b.cable(lap, l, 'breakout');
+          b.cable(lap, r, 'breakout');
+          b.patch(l, 'LAPTOP L', { pan: -50 });
+          b.patch(r, 'LAPTOP R', { pan: 50 });
+        }
+        break;
+      }
       case 'dj_rig': {
         const rig = b.add(id('inst'), 'inst_dj_rig', x, y, { label: 'DJ Rig' });
         if (rng.next() < 0.6) {
@@ -670,7 +713,7 @@ export const ERROR_LABELS: Record<ErrorKind, string> = {
   pan_hard: 'Mono source panned hard to one side',
   main_down: 'Main level down',
   dj_gain_high: 'DJ Rig gain far too high (line level)',
-  wrong_di: 'DJ Rig only half connected (one side into one mono DI)',
+  wrong_di: 'Stereo source only half connected (one side into one mono DI)',
   unpatched: 'Not patched to the snake',
   wrong_mic: 'Completely wrong mic',
   no_mic: 'No mic on the source',
@@ -726,6 +769,7 @@ function candidates(p: QuizPlot, scenario: QuizScenario): InjectedError[] {
     if (s.key === 'electric_guitar') out.push({ kind: 'mic_on_instrument', source: s.key });
     if (s.key === 'keys') out.push({ kind: 'mic_on_instrument', source: s.key }, { kind: 'missing_di', source: s.key });
     if ((s.key === 'bass' || s.key === 'acoustic_guitar') && gear.some((g) => isDiBoxId(g.gearId))) out.push({ kind: 'missing_di', source: s.key });
+    if (s.key === 'laptop') out.push({ kind: 'wrong_di', source: s.key });
     if (s.key === 'dj_rig') {
       out.push({ kind: 'wrong_di', source: s.key });
       if (gear.some((g) => g.gearId === 'inst_dj_rig')) out.push({ kind: 'dj_gain_high', source: s.key });
@@ -828,9 +872,10 @@ function inject(p: QuizPlot, e: InjectedError, scenario: QuizScenario) {
       inst.assignedChannel = undefined;
       const diId = `quiz_${u}_monodi`;
       p.placedGear.push({ instanceId: diId, gearId: 'gear_di_box', x: inst.x + 90, y: inst.y + 10, rotation: 0, latchedSourceInstanceId: inst.instanceId, assignedChannel: firstCh });
-      p.connections.push({ id: `quiz_cable_${p.connections.length}_wd`, fromInstanceId: inst.instanceId, toInstanceId: diId, cableType: 'quarter_inch', color: CH_COLORS.quarter_inch });
+      const link: CableType = key === 'laptop' ? 'breakout' : 'quarter_inch';
+      p.connections.push({ id: `quiz_cable_${p.connections.length}_wd`, fromInstanceId: inst.instanceId, toInstanceId: diId, cableType: link, color: CH_COLORS[link] });
       const ch = p.mixerChannels.find((c) => c.channelNumber === firstCh);
-      if (ch) Object.assign(ch, { assignedGearInstanceId: diId, label: 'DJ DI', pan: 0 });
+      if (ch) Object.assign(ch, { assignedGearInstanceId: diId, label: key === 'laptop' ? 'LAPTOP DI' : 'DJ DI', pan: 0 });
       break;
     }
   }
@@ -969,7 +1014,7 @@ export function explainSource(scenario: QuizScenario): QuizSource {
 }
 
 export function explainQuestion(s: QuizSource): string {
-  if (s.key === 'dj_rig') return 'Why did you connect the DJ Rig the way you did?';
+  if (s.key === 'dj_rig' || s.key === 'laptop') return `Why did you connect the ${s.label} the way you did?`;
   return `Why did you choose this mic or DI for the ${s.label}?`;
 }
 

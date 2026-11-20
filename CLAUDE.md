@@ -191,10 +191,12 @@ challenges can reach 100%. Setups of 4+ score as before.
   rename a template id or change the draw order: codes rebuild the gig from the seed.
 - Source names in the prompt come from the equipment locker (`SOURCE_LABELS` reads the
   gear catalog: Voice, Keyboard, Acoustic Piano, Hi-Hats...), so they match what students drag in.
-- Random gigs: version 2 (`QUIZ_VERSION`, saved as `v`) puts Voice in at least 75% of gigs (about
-  87% in practice). Codes keep their version, so old codes rebuild the same gig. A DJ Rig drawn
-  with a full band is framed "A band and a DJ" (the DJ spins between sets); with only a singer
-  and/or drummer it's a "DJ set with live players".
+- Random gigs are versioned (`QUIZ_VERSION`, saved in the code as `v`); never change a version's
+  draw, so old codes rebuild the same gig. v1 = first draw. v2 = Voice in at least 75% (about 88%).
+  v3 (current) = the DJ Rig is out of the quiz (non-standard), and a Laptop / Phone playing backing
+  tracks joins about 1 gig in 4 (connected only by Stereo Breakout into a Stereo DI or two mono DIs).
+  v1/v2 codes with a DJ Rig still grade; their gigs read "A band and a DJ" or "DJ set with live players".
+- `school-dance` is Laptop / Phone + kit from v3 on (it was DJ Rig + kit before; `before3`).
 - Live stage only. Three parts: Plan it (build from scratch), Fix it (the same band set up
   by "someone else" with 3-4 seeded faults), Explain it (two written answers). Weights
   50 / 30 / 20; Part 3 is scored by the teacher in the batch view.
@@ -244,7 +246,7 @@ engine's output gate is closed and a notice explains why. Learn is exempt (its P
   two channels in total). Keys on one mono DI stay fine.
 - `inst_computer` (Laptop / Phone): only a 1/8" headphone out, so it works ONLY through the
   Stereo Breakout into a Stereo DI or into two mono DIs (one leg each). Plays a backing
-  track built from the piano, bass and acoustic guitar loops. Not in the quiz pool.
+  track built from the piano, bass and acoustic guitar loops. In the quiz pool (v3) at 25%.
 - Cable type `breakout` (code letter `b`): Stereo Breakout, 1/8" TRS to two 1/4". Appears
   under the 1/4" hook only while a Laptop / Phone is on the plot; it only goes from that into
   DI(s) (the snake takes XLR). Two ends: one Stereo DI takes both, or two
