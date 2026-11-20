@@ -80,10 +80,10 @@ export const GearPalette: React.FC<GearPaletteProps> = ({
       return false;
     }
 
-    // The Stereo DI shows up once a stereo source (keys or the DJ Rig) is on the plot
+    // The Stereo DI shows up once a stereo source (keys, DJ Rig, Laptop / Phone) is on the plot
     if (
       item.id === 'gear_di_stereo' &&
-      !placedGear.some((g) => g.gearId === 'inst_keyboard' || g.gearId === 'inst_dj_rig' || g.gearId === 'gear_di_stereo')
+      !placedGear.some((g) => g.gearId === 'inst_keyboard' || g.gearId === 'inst_dj_rig' || g.gearId === 'inst_computer' || g.gearId === 'gear_di_stereo')
     ) {
       return false;
     }

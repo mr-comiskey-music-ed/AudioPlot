@@ -217,9 +217,13 @@ challenges can reach 100%. Setups of 4+ score as before.
   kick, snare, bass and keys loops (`DERIVED_STEMS`), so no extra download.
 - `gear_di_stereo`: shows in the locker once keys or a DJ Rig is on the plot. Stereo gear
   (`isStereoGearId`) can hold two mixer channels; the lower is labelled L, the higher R.
+- `inst_computer` (Laptop / Phone): only a 1/8" headphone out, so it works ONLY through the
+  Stereo Breakout into a Stereo DI or into two mono DIs (one leg each). Plays a backing
+  track built from the piano, bass and acoustic guitar loops. Not in the quiz pool.
 - Cable type `breakout` (code letter `b`): Stereo Breakout, 1/8" TRS to two 1/4". Appears
-  under the 1/4" hook only while a DJ Rig is on the plot; it only goes DJ Rig -> DI (the
-  snake takes XLR). `isDiBoxId` treats the mono and stereo DI alike in every check.
+  under the 1/4" hook while a DJ Rig or Laptop / Phone is on the plot; it only goes from
+  one of those into DI(s) (the snake takes XLR). Two ends: one Stereo DI takes both, or two
+  mono DIs take one each (labelled L/R in cabling order); a third leg is refused. `isDiBoxId` treats the mono and stereo DI alike in every check.
 
 ## Code format (`src/services/submissionCodec.ts`)
 Format is frozen: changing keys, defaults, or the hash breaks old codes.

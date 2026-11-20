@@ -701,6 +701,29 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
         </svg>
       );
 
+    case 'LaptopPhone':
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
+          {/* Laptop screen */}
+          <rect x="6" y="14" width="38" height="25" rx="2" fill="#2a2118" stroke="#66584a" strokeWidth="1.5" />
+          <rect x="9" y="17" width="32" height="19" rx="1" fill="#587d8e" opacity="0.85" />
+          {/* Play triangle and a progress bar: playing a track */}
+          <path d="M21 21.5L29 26.5L21 31.5Z" fill="#ddd0bc" />
+          <rect x="12" y="33" width="26" height="1.4" rx="0.7" fill="#2a2118" opacity="0.6" />
+          <rect x="12" y="33" width="11" height="1.4" rx="0.7" fill="#d9a441" />
+          {/* Laptop base */}
+          <path d="M2 39H48L50 43H0Z" fill="#4d3f31" stroke="#66584a" strokeWidth="1" strokeLinejoin="round" />
+          {/* Phone in front */}
+          <rect x="44" y="24" width="15" height="27" rx="2.5" fill="#2a2118" stroke="#a3bcc6" strokeWidth="1.3" />
+          <rect x="46" y="27" width="11" height="19" rx="1" fill="#3f6e82" />
+          <path d="M50 33.5V40" stroke="#ddd0bc" strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="49" cy="40.5" r="1.6" fill="#ddd0bc" />
+          {/* 1/8" headphone jack and its cable */}
+          <rect x="50" y="51" width="3" height="3" rx="0.6" fill="#ddd0bc" />
+          <path d="M51.5 54V60" stroke="#c08a6a" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      );
+
     case 'DIBoxStereo':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>

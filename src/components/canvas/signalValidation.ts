@@ -6,7 +6,7 @@ import {
   PlacedGear,
 } from '../../types';
 import { wedgesFedFromSnake } from './monitorChain';
-import { getGearById, isDiBoxId } from '../../data/gearCatalog';
+import { getGearById, isBreakoutSourceId, isDiBoxId } from '../../data/gearCatalog';
 import { isAcousticInstrument } from './canvasMath';
 import { getPaZone, StageSize } from './stageGeometry';
 
@@ -53,27 +53,36 @@ export function validateGearToGearConnection(
     return { valid: true };
   }
 
-  // DJ Rig to a DI: the Stereo Breakout (1/8" TRS to two 1/4" plugs) from the rig's aux out
-  const isDjToDI =
-    (fromItem.gearId === 'inst_dj_rig' && isDiBoxId(toItem.gearId)) ||
-    (toItem.gearId === 'inst_dj_rig' && isDiBoxId(fromItem.gearId));
-  if (isDjToDI) {
+  // DJ Rig or Laptop / Phone to a DI: the Stereo Breakout (1/8" TRS to two 1/4" plugs) from the 1/8" out
+  const breakoutSource = isBreakoutSourceId(fromItem.gearId) ? fromItem : isBreakoutSourceId(toItem.gearId) ? toItem : null;
+  const other = breakoutSource === fromItem ? toItem : fromItem;
+  if (breakoutSource && isDiBoxId(other.gearId)) {
     if (type !== 'breakout') {
+      const name = getGearById(breakoutSource.gearId)?.name ?? 'This source';
       return {
         valid: false,
-        title: 'Incorrect Cable for DJ Rig to DI',
-        error: 'The DJ Rig\'s aux out is a 1/8" stereo jack. Use the Stereo Breakout (1/8" to two 1/4" plugs) into the DI.',
+        title: `Incorrect Cable for ${name} to DI`,
+        error: `The ${name}'s output is a 1/8" stereo jack. Use the Stereo Breakout (1/8" to two 1/4" plugs) into a Stereo DI, or one leg into each of two DIs.`,
       };
     }
     return { valid: true };
   }
 
-  // The Stereo Breakout only fits the DJ Rig's 1/8" aux out
+  // The Stereo Breakout only fits a 1/8" stereo out (DJ Rig, Laptop / Phone)
   if (type === 'breakout') {
     return {
       valid: false,
       title: 'Stereo Breakout',
-      error: 'The Stereo Breakout\'s 1/8" end plugs into the DJ Rig. Its two 1/4" ends go into a DI.',
+      error: 'The Stereo Breakout\'s 1/8" end plugs into a DJ Rig or a Laptop / Phone. Its two 1/4" ends go into a Stereo DI (or two DIs).',
+    };
+  }
+
+  // A laptop or phone has only a headphone jack
+  if (fromItem.gearId === 'inst_computer' || toItem.gearId === 'inst_computer') {
+    return {
+      valid: false,
+      title: 'Laptop / Phone Output',
+      error: 'A laptop or phone only has a 1/8" headphone jack. Use the Stereo Breakout into a Stereo DI (or two DIs).',
     };
   }
 
@@ -307,6 +316,15 @@ export function validateGearToSnakeConnection(
       valid: false,
       title: 'Acoustic Sound Source (No Cable Jack)',
       error: `${def.name} has no cable output jack. Position a microphone aimed at this instrument, then run an XLR cable from the mic to the snake.`,
+    };
+  }
+
+  // Laptop / Phone: no XLR out at all
+  if (item.gearId === 'inst_computer') {
+    return {
+      valid: false,
+      title: 'Laptop / Phone Output',
+      error: 'A laptop or phone only has a 1/8" headphone jack, and the snake takes XLR. Use the Stereo Breakout into a Stereo DI (or two DIs), then XLR from the DI to the snake.',
     };
   }
 
@@ -589,7 +607,18 @@ export function getGearIssues(
 
   // ================= 5. INSTRUMENTS =================
   if (def.category === 'instrument') {
-    if (item.gearId === 'inst_dj_rig') {
+    if (item.gearId === 'inst_computer') {
+      const legs = connections.filter(
+        (c) => c.cableType === 'breakout' && (c.fromInstanceId === item.instanceId || c.toInstanceId === item.instanceId)
+      );
+      const dis = legs
+        .map((c) => placedGear.find((g) => g.instanceId === (c.fromInstanceId === item.instanceId ? c.toInstanceId : c.fromInstanceId)))
+        .filter((g): g is PlacedGear => !!g);
+      const sides = dis.reduce((n, d) => n + mixerChannels.filter((ch) => ch.assignedGearInstanceId === d.instanceId).length, 0);
+      if (!legs.length) issues.push('Laptop / Phone needs the Stereo Breakout into a Stereo DI (or two DIs)');
+      else if (sides === 0) issues.push('The DI for the Laptop / Phone is not patched to the snake');
+      else if (sides === 1) issues.push('Laptop / Phone is stereo: get both sides (L and R) onto two snake channels');
+    } else if (item.gearId === 'inst_dj_rig') {
       const direct = mixerChannels.filter((ch) => ch.assignedGearInstanceId === item.instanceId).length;
       const hasBreakout = connections.some(
         (c) => c.cableType === 'breakout' && (c.fromInstanceId === item.instanceId || c.toInstanceId === item.instanceId)

@@ -550,7 +550,7 @@ export const ERROR_LABELS: Record<ErrorKind, string> = {
   pan_hard: 'Mono source panned hard to one side',
   main_down: 'Main level down',
   dj_gain_high: 'DJ Rig gain far too high (line level)',
-  wrong_di: 'Wrong DI: stereo DJ Rig through a mono DI',
+  wrong_di: 'DJ Rig only half connected (one leg into one mono DI)',
   unpatched: 'Not patched to the snake',
   wrong_mic: 'Completely wrong mic',
   no_mic: 'No mic on the source',

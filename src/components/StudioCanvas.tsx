@@ -9,7 +9,7 @@ import {
   MixerChannelState,
   GearCategory,
 } from '../types';
-import { getGearById } from '../data/gearCatalog';
+import { getGearById, isBreakoutSourceId } from '../data/gearCatalog';
 import { Cable, Trash2 } from 'lucide-react';
 import {
   getGearBoxDimensions,
@@ -1109,6 +1109,24 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       return;
     }
 
+    // The Stereo Breakout has two 1/4" ends: one Stereo DI takes both, or two mono DIs take one each
+    if (type === 'breakout') {
+      const src = isBreakoutSourceId(fromItem.gearId) ? fromItem : toItem;
+      const di = src === fromItem ? toItem : fromItem;
+      const legsTo = connections
+        .filter((c) => c.cableType === 'breakout' && (c.fromInstanceId === src.instanceId || c.toInstanceId === src.instanceId))
+        .map((c) => placedGear.find((g) => g.instanceId === (c.fromInstanceId === src.instanceId ? c.toInstanceId : c.fromInstanceId)))
+        .filter((g): g is PlacedGear => !!g && g.instanceId !== di.instanceId);
+      const full = legsTo.length >= 2 || legsTo.some((g) => g.gearId === 'gear_di_stereo') || (legsTo.length > 0 && di.gearId === 'gear_di_stereo');
+      if (full) {
+        showErrorToast(
+          'Breakout Already Used',
+          'The Stereo Breakout has two 1/4" ends (L and R): both go into one Stereo DI, or one into each of two DIs.'
+        );
+        return;
+      }
+    }
+
     const exists = connections.some(
       (c) =>
         (c.fromInstanceId === fromId && c.toInstanceId === toId) ||
@@ -1701,7 +1719,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
       {/* Cable Hooks & Active Signal Flow Toast */}
       <CableHooks
-        showBreakout={placedGear.some((g) => g.gearId === 'inst_dj_rig')}
+        showBreakout={placedGear.some((g) => isBreakoutSourceId(g.gearId))}
         activeCableTool={activeCableTool}
         onSelectCableTool={(type) => {
           setActiveCableTool(type);

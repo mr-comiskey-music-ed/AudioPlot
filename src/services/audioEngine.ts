@@ -35,6 +35,8 @@ export const INSTRUMENT_AUDIO_FILES: Record<string, string> = {
  */
 const DERIVED_STEMS: Record<string, string[]> = {
   inst_dj_rig: ['inst_kick_drum', 'inst_snare_drum', 'inst_bass_guitar', 'inst_keyboard'],
+  // Laptop / Phone plays a backing track
+  inst_computer: ['inst_acoustic_piano', 'inst_bass_guitar', 'inst_acoustic_guitar'],
 };
 // +12 dB: a DJ Rig's line-level XLR outs into a mic preamp. Trim 54 (-12 dB) brings it back to normal.
 export const LINE_LEVEL_BOOST = Math.pow(10, 12 / 20);

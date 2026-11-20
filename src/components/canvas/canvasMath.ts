@@ -229,6 +229,7 @@ export const formatShortGearName = (name?: string, gearId?: string): string => {
   }
   if (gearId === 'gear_di_stereo') return 'Stereo DI';
   if (gearId === 'inst_dj_rig') return 'DJ Rig';
+  if (gearId === 'inst_computer') return 'Laptop';
   if (gearId === 'gear_di_box' || name.toLowerCase().includes('di box')) {
     return 'DI Box';
   }

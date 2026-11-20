@@ -300,7 +300,15 @@ export default function App() {
             if (otherGear.gearId === 'inst_electric_guitar') return 'E GUIT DI';
             if (otherGear.gearId === 'inst_acoustic_guitar') return 'A GUIT DI';
             if (otherGear.gearId === 'inst_double_bass') return 'UPRIGHT DI';
-            if (otherGear.gearId === 'inst_dj_rig') return 'DJ DI';
+            if (otherGear.gearId === 'inst_dj_rig' || otherGear.gearId === 'inst_computer') {
+              const name = otherGear.gearId === 'inst_dj_rig' ? 'DJ' : 'LAPTOP';
+              // One breakout leg into each of two mono DIs: name them L and R in the order they were cabled
+              const legs = connList.filter(
+                (c) => c.cableType === 'breakout' && (c.fromInstanceId === otherGear.instanceId || c.toInstanceId === otherGear.instanceId)
+              );
+              const i = legs.findIndex((c) => c.fromInstanceId === gearItem.instanceId || c.toInstanceId === gearItem.instanceId);
+              return legs.length === 2 && gearItem.gearId === 'gear_di_box' ? `${name} ${i === 0 ? 'L' : 'R'}` : `${name} DI`;
+            }
           }
         }
         return gearItem.gearId === 'gear_di_stereo' ? 'ST DI' : 'DI BOX';

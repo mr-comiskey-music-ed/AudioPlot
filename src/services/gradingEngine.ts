@@ -6,7 +6,7 @@ import {
   RubricEvaluation,
   RubricCategoryScore,
 } from '../types';
-import { getGearById, isDiBoxId } from '../data/gearCatalog';
+import { getGearById, isBreakoutSourceId, isDiBoxId } from '../data/gearCatalog';
 import { getTaskById, givenInstrumentCounts } from '../data/challenges';
 import { getWorld, getPaZone, getItemCenter, StageSize } from '../components/canvas/stageGeometry';
 import { wedgesFedFromSnake } from '../components/canvas/monitorChain';
@@ -490,20 +490,25 @@ export function getInstrumentSignalChainStatus(
     return { valid: true, channelNumber: ch.channelNumber };
   }
 
-  // DJ Rig: XLR pair straight to the snake, or Stereo Breakout into a DI that is patched
-  if (inst.gearId === 'inst_dj_rig') {
+  // DJ Rig: XLR pair straight to the snake. DJ Rig or Laptop / Phone: Stereo Breakout into DI(s) that are patched
+  if (isBreakoutSourceId(inst.gearId)) {
     const direct = mixerChannels.find((c) => c.assignedGearInstanceId === inst.instanceId);
     if (direct) return { valid: true, channelNumber: direct.channelNumber };
-    const brk = connections.find(
+    const legs = connections.filter(
       (c) => (c.fromInstanceId === inst.instanceId || c.toInstanceId === inst.instanceId) && c.cableType === 'breakout'
     );
-    if (brk) {
+    for (const brk of legs) {
       const diId = brk.fromInstanceId === inst.instanceId ? brk.toInstanceId : brk.fromInstanceId;
       const ch = mixerChannels.find((c) => c.assignedGearInstanceId === diId);
       if (ch) return { valid: true, channelNumber: ch.channelNumber };
-      return { valid: false, error: 'DJ Rig DI is not patched to a snake channel' };
     }
-    return { valid: false, error: 'DJ Rig needs its XLR outs patched to the snake, or a Stereo Breakout into a DI' };
+    if (legs.length) return { valid: false, error: `${def.name} DI is not patched to a snake channel` };
+    return {
+      valid: false,
+      error: inst.gearId === 'inst_dj_rig'
+        ? 'DJ Rig needs its XLR outs patched to the snake, or a Stereo Breakout into a DI'
+        : 'Laptop / Phone needs the Stereo Breakout into a Stereo DI (or two DIs)',
+    };
   }
 
   // 5. Vocals and other acoustic instruments (Voice, Drums, Brass, Strings, Piano, etc.)

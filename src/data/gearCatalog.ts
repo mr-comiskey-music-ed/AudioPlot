@@ -87,6 +87,20 @@ export const GEAR_CATALOG: GearDefinition[] = [
     size: { width: 76, height: 56 },
   },
   {
+    id: 'inst_computer',
+    name: 'Laptop / Phone',
+    model: '',
+    category: 'instrument',
+    transducerType: 'none',
+    requiresPhantomPower: false,
+    idealSources: ['Stereo Breakout into a Stereo DI (or two mono DIs)'],
+    description: 'A laptop, phone or tablet playing tracks or backing music. Its only output is a 1/8" (3.5 mm) stereo headphone jack.',
+    specs: '1/8" TRS stereo headphone out (consumer line level). No XLR or 1/4" outputs.',
+    iconType: 'LaptopPhone',
+    color: '#587d8e',
+    size: { width: 70, height: 52 },
+  },
+  {
     id: 'inst_bass_guitar',
     name: 'Bass Guitar',
     model: '',
@@ -592,6 +606,8 @@ export const GEAR_CATALOG: GearDefinition[] = [
 export const isDiBoxId = (id?: string | null): boolean => id === 'gear_di_box' || id === 'gear_di_stereo';
 /** Gear that feeds two mixer channels (L and R). */
 export const isStereoGearId = (id?: string | null): boolean => id === 'gear_di_stereo' || id === 'inst_dj_rig';
+/** Sources with a 1/8" stereo out that the Stereo Breakout plugs into. */
+export const isBreakoutSourceId = (id?: string | null): boolean => id === 'inst_dj_rig' || id === 'inst_computer';
 
 export function getGearById(id: string): GearDefinition | undefined {
   if (id === 'mic_at2020') {
