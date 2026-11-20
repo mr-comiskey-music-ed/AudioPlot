@@ -135,7 +135,16 @@ const PlanRows: React.FC<{ scenario: QuizScenario; result: Combined }> = ({ scen
 
 /** Shown once the student has chosen to see it (or after their second pass). */
 const MissedList: React.FC<{ result: Combined }> = ({ result }) => {
-  const missed = result.items.filter((i) => i.credit < 1);
+  // A source is scored on several checks, and a source that isn't on the stage fails all of them with the
+  // same words, so show each line once.
+  const seen = new Set<string>();
+  const missed = result.items.filter((i) => {
+    if (i.credit >= 1) return false;
+    const key = `${i.missed}|${i.credit}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   if (!missed.length) return <div className="text-[13px] text-emerald-300 font-bold">Nothing missed. Nice work.</div>;
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
