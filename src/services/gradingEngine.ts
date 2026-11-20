@@ -494,7 +494,7 @@ export function getInstrumentSignalChainStatus(
     return { valid: true, channelNumber: ch.channelNumber };
   }
 
-  // DJ Rig: XLR pair straight to the snake. DJ Rig or Laptop / Phone: Stereo Breakout into DI(s) that are patched
+  // DJ Rig: XLR pair straight to the snake. DJ Rig 1/4" outs or Laptop / Phone Stereo Breakout into DI(s) that are patched
   if (isStereoOutSourceId(inst.gearId)) {
     // A stereo source: both sides (L and R) must reach the snake on their own XLR runs
     const legs = connections.filter(
