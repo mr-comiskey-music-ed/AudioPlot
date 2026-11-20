@@ -9,7 +9,8 @@
 import { CableConnection, CableType, MasterBusState, MixerChannelState, PlacedGear } from '../types';
 import { getGearById, isDiBoxId } from '../data/gearCatalog';
 import { evaluateStudioSetup, validateChannelSignalChain } from '../services/gradingEngine';
-import { getPaZones } from '../components/canvas/stageGeometry';
+import { getPaZones, getWorld } from '../components/canvas/stageGeometry';
+import { getGearBoxDimensions } from '../components/canvas/canvasMath';
 
 export interface QuizPlot {
   environment: 'live_stage';
@@ -433,9 +434,15 @@ export function evaluatePlan(p: QuizPlot, scenario: QuizScenario): PlanResult {
 
 /** PA and stage monitors, scored the way the live-stage grader scores them. */
 export function liveOutputsOf(p: QuizPlot): { pa: boolean; monitors: boolean } {
-  const ev = evaluateStudioSetup('live_stage', p.placedGear, p.connections, p.mixerChannels, 'open_live', 'standard');
   const full = (c?: { score: number; maxScore: number }) => !!c && c.maxScore > 0 && c.score >= c.maxScore;
-  return { pa: full(ev.categories.paSpeakerSetup), monitors: full(ev.categories.monitorSetup) };
+  // Part 1 is built on the Standard stage and Part 2 is laid out on the Large one (older Part 2 plots are
+  // Standard), so the PA zones count on whichever of the two the plot fits.
+  const standard = evaluateStudioSetup('live_stage', p.placedGear, p.connections, p.mixerChannels, 'open_live', 'standard');
+  const large = evaluateStudioSetup('live_stage', p.placedGear, p.connections, p.mixerChannels, 'open_live', 'large');
+  return {
+    pa: full(standard.categories.paSpeakerSetup) || full(large.categories.paSpeakerSetup),
+    monitors: full(standard.categories.monitorSetup) || full(large.categories.monitorSetup),
+  };
 }
 
 // ---------- Scored items, first try and "another pass" ----------
@@ -558,55 +565,102 @@ class Builder {
 /** Mic stand heights so the plot looks finished. */
 const STAND = { vocal: 'standing_vocal', amp: 'amp_low', seated: 'seated_instrument', kit: 'drum_overhead' } as const;
 
-/** A correct live setup for the scenario (the student never sees this one unbroken). */
+const isDrumSource = (gearId: string) => gearId.includes('drum') || gearId === 'gear_drum_kit';
+const boxOf = (g: PlacedGear) => getGearBoxDimensions(g.gearId, !!g.latchedSourceInstanceId, g.customScale, g.customWidth, g.customHeight);
+
+/**
+ * Where the app puts a mic once it is assigned to a source: centered right under it (a drum mic overlaps the
+ * front of the drum), several mics side by side. Part 2 uses the same spots so mics sit in front of their sources.
+ */
+export function micSpot(src: PlacedGear, n = 1, i = 0): { x: number; y: number } {
+  const sd = boxOf(src);
+  const onDrum = isDrumSource(src.gearId);
+  const md = getGearBoxDimensions('mic_sm57', true, undefined, undefined, undefined, onDrum);
+  const GAP = 8;
+  const total = md.width * n + GAP * (n - 1);
+  return {
+    x: Math.round(src.x + (sd.width - total) / 2 + i * (md.width + GAP)),
+    y: Math.round(onDrum ? src.y + sd.height * 0.85 : src.y + sd.height + 12),
+  };
+}
+
+/** Room between a source and its DI / amp: wide enough that the cable shows on both sides of the "assigned" tag. */
+const DEVICE_GAP = 90;
+
+/** A DI box sits beside its source with clear room for the cable between them (so a missing cable is easy to see). */
+export function diSpot(src: PlacedGear, i = 0): { x: number; y: number } {
+  const sd = boxOf(src);
+  return { x: Math.round(src.x + sd.width + DEVICE_GAP), y: Math.round(src.y + 4 + i * 80) };
+}
+
+/** Rough width each unit needs on the stage (instrument, its DI / amp / mics and the cable room). */
+const UNIT_W: Record<UnitKind, number> = {
+  vocal: 150, acoustic_guitar: 300, electric_guitar: 370, bass: 370, keys: 300, piano: 220, kit: 390, laptop: 300, dj_rig: 300,
+};
+
+/** A correct live setup for the scenario (the student never sees this one unbroken). Laid out for the Large stage. */
 export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
   const rng = makeRng((scenario.seed ^ 0x5bd1e995) >>> 0);
   const b = new Builder();
-  const slots = scenario.units.length;
-  const left = 70;
-  const span = 980 - left;
+  const world = getWorld('large');
+  const at = (id: string) => b.p.placedGear.find((g) => g.instanceId === id)!;
+  const n = scenario.units.length;
+  // Few sources: one row. Four or more: two rows, so nothing crowds and every cable and box is easy to see.
+  const perRow = n >= 4 ? Math.ceil(n / 2) : n;
+  const rowY = n >= 4 ? [255, 485] : [330];
+  const margin = 60;
   scenario.units.forEach((u, i) => {
-    const x = Math.round(left + (span * (i + 0.5)) / slots - 40);
-    const y = 360;
+    const row = Math.floor(i / perRow);
+    const inRow = scenario.units.slice(row * perRow, (row + 1) * perRow).length;
+    const slot = (world.width - margin * 2) / inRow;
+    const x = Math.round(margin + slot * (i - row * perRow) + (slot - UNIT_W[u]) / 2);
+    const y = rowY[row];
     const id = (s: string) => `quiz_${u}_${s}`;
     switch (u) {
       case 'vocal': {
-        const lead = b.add(id('inst'), 'inst_voice', x, y + 20, { label: 'Voice' });
+        const lead = b.add(id('inst'), 'inst_voice', x, y, { label: 'Voice' });
         const condenser = rng.next() < 0.35;
-        const m = b.add(id('mic'), condenser ? 'mic_c214' : 'mic_sm58', x + 70, y + 10, {
+        const m = b.add(id('mic'), condenser ? 'mic_c214' : 'mic_sm58', 0, 0, {
           latchedSourceInstanceId: lead, standHeight: STAND.vocal, hasPopFilter: condenser,
         });
+        Object.assign(at(m), micSpot(at(lead)));
         b.patch(m, 'VOX', { phantom: condenser });
         break;
       }
       case 'acoustic_guitar': {
         const g = b.add(id('inst'), 'inst_acoustic_guitar', x, y, { label: 'Acoustic Guitar' });
         if (rng.next() < 0.5) {
-          const di = b.add(id('di'), 'gear_di_box', x + 80, y + 10, { latchedSourceInstanceId: g });
+          const di = b.add(id('di'), 'gear_di_box', 0, 0, { latchedSourceInstanceId: g });
+          Object.assign(at(di), diSpot(at(g)));
           b.cable(g, di, 'quarter_inch');
           b.patch(di, 'A GUIT DI');
         } else {
-          const m = b.add(id('mic'), 'mic_sm81', x + 70, y - 20, { latchedSourceInstanceId: g, standHeight: STAND.seated });
+          const m = b.add(id('mic'), 'mic_sm81', 0, 0, { latchedSourceInstanceId: g, standHeight: STAND.seated });
+          Object.assign(at(m), micSpot(at(g)));
           b.patch(m, 'A GUIT', { phantom: true });
         }
         break;
       }
       case 'electric_guitar': {
-        const g = b.add(id('inst'), 'inst_electric_guitar', x, y + 40, { label: 'Electric Guitar' });
-        const amp = b.add(id('amp'), 'gear_guitar_amp', x, y - 110, { label: 'Guitar Amp' });
+        // The amp is on the left with its mic in front of it; the guitar stands beside it with the cable between
+        const amp = b.add(id('amp'), 'gear_guitar_amp', x, y, { label: 'Guitar Amp' });
+        const g = b.add(id('inst'), 'inst_electric_guitar', x + boxOf(at(amp)).width + DEVICE_GAP, y, { label: 'Electric Guitar' });
         b.cable(g, amp, 'quarter_inch');
-        const m = b.add(id('mic'), 'mic_sm57', x + 80, y - 110, { latchedSourceInstanceId: amp, standHeight: STAND.amp });
+        const m = b.add(id('mic'), 'mic_sm57', 0, 0, { latchedSourceInstanceId: amp, standHeight: STAND.amp });
+        Object.assign(at(m), micSpot(at(amp)));
         b.patch(m, 'GTR AMP');
         break;
       }
       case 'bass': {
-        const g = b.add(id('inst'), 'inst_bass_guitar', x, y + 40, { label: 'Bass Guitar' });
+        const g = b.add(id('inst'), 'inst_bass_guitar', x, y, { label: 'Bass Guitar' });
         if (rng.next() < 0.6) {
-          const di = b.add(id('di'), 'gear_di_box', x + 80, y + 50, { latchedSourceInstanceId: g });
+          const di = b.add(id('di'), 'gear_di_box', 0, 0, { latchedSourceInstanceId: g });
+          Object.assign(at(di), diSpot(at(g)));
           b.cable(g, di, 'quarter_inch');
           b.patch(di, 'BASS DI');
         } else {
-          const amp = b.add(id('amp'), 'gear_bass_amp', x, y - 110, { label: 'Bass Amp' });
+          const amp = b.add(id('amp'), 'gear_bass_amp', 0, 0, { label: 'Bass Amp' });
+          Object.assign(at(amp), diSpot(at(g)));
           b.cable(g, amp, 'quarter_inch');
           b.patch(amp, 'BASS AMP');
         }
@@ -614,14 +668,14 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
       }
       case 'keys': {
         const k = b.add(id('inst'), 'inst_keyboard', x, y, { label: 'Keyboard' });
-        if (rng.next() < 0.5) {
-          const di = b.add(id('di'), 'gear_di_stereo', x + 85, y + 10, { latchedSourceInstanceId: k });
-          b.cable(k, di, 'quarter_inch');
+        const stereo = rng.next() < 0.5;
+        const di = b.add(id('di'), stereo ? 'gear_di_stereo' : 'gear_di_box', 0, 0, { latchedSourceInstanceId: k });
+        Object.assign(at(di), diSpot(at(k)));
+        b.cable(k, di, 'quarter_inch');
+        if (stereo) {
           b.patch(di, 'KEYS DI L', { pan: -50 });
           b.patch(di, 'KEYS DI R', { pan: 50 });
         } else {
-          const di = b.add(id('di'), 'gear_di_box', x + 85, y + 10, { latchedSourceInstanceId: k });
-          b.cable(k, di, 'quarter_inch');
           b.patch(di, 'KEYS DI');
         }
         break;
@@ -629,20 +683,25 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
       case 'piano': {
         // The gig names an Acoustic Piano, so Part 2 always mics one (a pair of condensers).
         rng.next(); // was a coin toss (acoustic or digital); kept so the rest of the seeded setup stays the same
-        const pno = b.add(id('inst'), 'inst_acoustic_piano', x, y - 20, { label: 'Acoustic Piano' });
-        const m1 = b.add(id('mic_l'), 'mic_c214', x - 10, y - 110, { latchedSourceInstanceId: pno, standHeight: STAND.seated });
-        const m2 = b.add(id('mic_r'), 'mic_c214', x + 70, y - 110, { latchedSourceInstanceId: pno, standHeight: STAND.seated });
+        const pno = b.add(id('inst'), 'inst_acoustic_piano', x, y, { label: 'Acoustic Piano' });
+        const m1 = b.add(id('mic_l'), 'mic_c214', 0, 0, { latchedSourceInstanceId: pno, standHeight: STAND.seated });
+        const m2 = b.add(id('mic_r'), 'mic_c214', 0, 0, { latchedSourceInstanceId: pno, standHeight: STAND.seated });
+        Object.assign(at(m1), micSpot(at(pno), 2, 0));
+        Object.assign(at(m2), micSpot(at(pno), 2, 1));
         b.patch(m1, 'PIANO L', { phantom: true, pan: -50 });
         b.patch(m2, 'PIANO R', { phantom: true, pan: 50 });
         break;
       }
       case 'kit': {
-        const kick = b.add(id('kick'), 'inst_kick_drum', x + 20, y - 60, { label: 'Kick Drum' });
-        const snare = b.add(id('snare'), 'inst_snare_drum', x - 50, y + 10, { label: 'Snare Drum' });
-        const hat = b.add(id('hihat'), 'inst_hi_hat', x - 120, y - 40, { label: 'Hi-Hats' });
-        const mk = b.add(id('kick_mic'), 'mic_beta52a', x + 30, y + 30, { latchedSourceInstanceId: kick, standHeight: STAND.amp });
-        const ms = b.add(id('snare_mic'), 'mic_sm57', x - 30, y + 80, { latchedSourceInstanceId: snare, standHeight: 'clipped' });
-        const mh = b.add(id('hihat_mic'), 'mic_sm81', x - 130, y + 30, { latchedSourceInstanceId: hat, standHeight: STAND.kit });
+        const hat = b.add(id('hihat'), 'inst_hi_hat', x, y, { label: 'Hi-Hats' });
+        const snare = b.add(id('snare'), 'inst_snare_drum', x + 130, y, { label: 'Snare Drum' });
+        const kick = b.add(id('kick'), 'inst_kick_drum', x + 260, y, { label: 'Kick Drum' });
+        const mk = b.add(id('kick_mic'), 'mic_beta52a', 0, 0, { latchedSourceInstanceId: kick, standHeight: STAND.amp });
+        const ms = b.add(id('snare_mic'), 'mic_sm57', 0, 0, { latchedSourceInstanceId: snare, standHeight: 'clipped' });
+        const mh = b.add(id('hihat_mic'), 'mic_sm81', 0, 0, { latchedSourceInstanceId: hat, standHeight: STAND.kit });
+        Object.assign(at(mk), micSpot(at(kick)));
+        Object.assign(at(ms), micSpot(at(snare)));
+        Object.assign(at(mh), micSpot(at(hat)));
         b.patch(mk, 'KICK');
         b.patch(ms, 'SNARE');
         b.patch(mh, 'HI-HAT', { phantom: true });
@@ -651,13 +710,16 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
       case 'laptop': {
         const lap = b.add(id('inst'), 'inst_computer', x, y, { label: 'Laptop / Phone' });
         if (rng.next() < 0.5) {
-          const di = b.add(id('di'), 'gear_di_stereo', x + 90, y + 10, { latchedSourceInstanceId: lap });
+          const di = b.add(id('di'), 'gear_di_stereo', 0, 0, { latchedSourceInstanceId: lap });
+          Object.assign(at(di), diSpot(at(lap)));
           b.cable(lap, di, 'breakout');
           b.patch(di, 'LAPTOP DI L', { pan: -50 });
           b.patch(di, 'LAPTOP DI R', { pan: 50 });
         } else {
-          const l = b.add(id('di'), 'gear_di_box', x + 90, y - 20, { latchedSourceInstanceId: lap });
-          const r = b.add(id('di2'), 'gear_di_box', x + 90, y + 50, { latchedSourceInstanceId: lap });
+          const l = b.add(id('di'), 'gear_di_box', 0, 0, { latchedSourceInstanceId: lap });
+          const r = b.add(id('di2'), 'gear_di_box', 0, 0, { latchedSourceInstanceId: lap });
+          Object.assign(at(l), diSpot(at(lap), 0));
+          Object.assign(at(r), diSpot(at(lap), 1));
           b.cable(lap, l, 'breakout');
           b.cable(lap, r, 'breakout');
           b.patch(l, 'LAPTOP L', { pan: -50 });
@@ -671,7 +733,8 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
           b.patch(rig, 'DJ L', { gain: 54, pan: -50 });
           b.patch(rig, 'DJ R', { gain: 54, pan: 50 });
         } else {
-          const di = b.add(id('di'), 'gear_di_stereo', x + 90, y + 10, { latchedSourceInstanceId: rig });
+          const di = b.add(id('di'), 'gear_di_stereo', 0, 0, { latchedSourceInstanceId: rig });
+          Object.assign(at(di), diSpot(at(rig)));
           b.cable(rig, di, 'quarter_inch');
           b.patch(di, 'DJ DI L', { pan: -50 });
           b.patch(di, 'DJ DI R', { pan: 50 });
@@ -681,12 +744,12 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
     }
   });
   // Front of house and a wedge, so it is a whole gig
-  const zones = getPaZones('standard');
+  const zones = getPaZones('large');
   b.add('quiz_pa_l', 'gear_pa_speaker', zones.left.x + 70, zones.left.y + 60);
   b.add('quiz_pa_r', 'gear_pa_speaker', zones.right.x + 70, zones.right.y + 60);
   b.cable('snake_out_main_l', 'quiz_pa_l', 'xlr');
   b.cable('snake_out_main_r', 'quiz_pa_r', 'xlr');
-  b.add('quiz_wedge', 'gear_stage_monitor', 520, 560);
+  b.add('quiz_wedge', 'gear_stage_monitor', Math.round(world.width / 2 - 62), 730);
   b.cable('snake_out_mon1', 'quiz_wedge', 'xlr');
   return b.p;
 }
@@ -850,13 +913,13 @@ function inject(p: QuizPlot, e: InjectedError, scenario: QuizScenario) {
       if (!inst) break;
       if (key === 'electric_guitar') {
         const mic = p.placedGear.find((g) => ids.includes(g.instanceId) && isMic(g));
-        if (mic) Object.assign(mic, { latchedSourceInstanceId: inst.instanceId, x: inst.x + 80, y: inst.y, standHeight: 'seated_instrument' });
+        if (mic) Object.assign(mic, { latchedSourceInstanceId: inst.instanceId, ...micSpot(inst), standHeight: 'seated_instrument' });
       } else {
         // Keys: the DI is gone and a mic points at the keyboard instead
         const firstCh = chs[0]?.channelNumber;
         removeGear(p, ids);
         const micId = `quiz_${u}_wrongmic`;
-        p.placedGear.push({ instanceId: micId, gearId: 'mic_sm57', x: inst.x + 85, y: inst.y, rotation: 0, latchedSourceInstanceId: inst.instanceId, standHeight: 'seated_instrument', assignedChannel: firstCh });
+        p.placedGear.push({ instanceId: micId, gearId: 'mic_sm57', ...micSpot(inst), rotation: 0, latchedSourceInstanceId: inst.instanceId, standHeight: 'seated_instrument', assignedChannel: firstCh });
         const ch = p.mixerChannels.find((c) => c.channelNumber === firstCh);
         if (ch) Object.assign(ch, { assignedGearInstanceId: micId, label: 'KEYS' });
       }
@@ -871,7 +934,7 @@ function inject(p: QuizPlot, e: InjectedError, scenario: QuizScenario) {
       });
       inst.assignedChannel = undefined;
       const diId = `quiz_${u}_monodi`;
-      p.placedGear.push({ instanceId: diId, gearId: 'gear_di_box', x: inst.x + 90, y: inst.y + 10, rotation: 0, latchedSourceInstanceId: inst.instanceId, assignedChannel: firstCh });
+      p.placedGear.push({ instanceId: diId, gearId: 'gear_di_box', ...diSpot(inst), rotation: 0, latchedSourceInstanceId: inst.instanceId, assignedChannel: firstCh });
       const link: CableType = key === 'laptop' ? 'breakout' : 'quarter_inch';
       p.connections.push({ id: `quiz_cable_${p.connections.length}_wd`, fromInstanceId: inst.instanceId, toInstanceId: diId, cableType: link, color: CH_COLORS[link] });
       const ch = p.mixerChannels.find((c) => c.channelNumber === firstCh);

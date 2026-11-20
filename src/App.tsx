@@ -1126,9 +1126,11 @@ export default function App() {
   };
   const quizPlotNow = (): QuizPlot => ({ environment: 'live_stage', placedGear, connections, mixerChannels, masterBus });
   const emptyQuizPlot = (): QuizPlot => ({ environment: 'live_stage', placedGear: [], connections: [], mixerChannels: INITIAL_CHANNELS, masterBus: DEFAULT_MASTER_BUS });
-  const loadQuizPlot = (p: QuizPlot) => {
+  // Part 1 is built on the Standard stage; Part 2 (and what follows) is laid out on the Large one
+  const quizStageFor = (ph: string): StageSize => (ph.startsWith('fix') || ph === 'explain' || ph === 'done' ? 'large' : 'standard');
+  const loadQuizPlot = (p: QuizPlot, size: StageSize = 'standard') => {
     setEnvironment('live_stage');
-    setStageSize('standard');
+    setStageSize(size);
     setSelectedItemId(null);
     resetHistory({ placedGear: p.placedGear, connections: p.connections, mixerChannels: p.mixerChannels, masterBus: p.masterBus });
   };
@@ -1156,7 +1158,7 @@ export default function App() {
       // Part 3 and after work from the finished Part 2 plot (the saved plot may have been a "look back" view)
       const p2 = stored.rec.p2r ?? stored.rec.p2;
       const later = stored.rec.ph === 'explain' || stored.rec.ph === 'done';
-      loadQuizPlot(later && p2 ? unpackPlot(p2) : stored.plot ? unpackPlot(stored.plot) : emptyQuizPlot());
+      loadQuizPlot(later && p2 ? unpackPlot(p2) : stored.plot ? unpackPlot(stored.plot) : emptyQuizPlot(), quizStageFor(stored.rec.ph));
       if (stored.rec.ph === 'fix') setQuizMixerHint(true);
     } else {
       setQuizRec({ v: QUIZ_VERSION, sd: newQuizSeed(), tp: quizLink.template ?? undefined, ph: 'intro' });
@@ -1215,13 +1217,13 @@ export default function App() {
     updateQuiz({ ph: 'plan_revise' });
   };
   const handleQuizReviseFix = () => {
-    if (quizRec?.p2) loadQuizPlot(unpackPlot(quizRec.p2));
+    if (quizRec?.p2) loadQuizPlot(unpackPlot(quizRec.p2), 'large');
     setIsMixerCollapsed(false);
     updateQuiz({ ph: 'fix_revise' });
   };
   const handleQuizStartFix = () => {
     if (!quizFix) return;
-    loadQuizPlot(JSON.parse(JSON.stringify(quizFix.broken)));
+    loadQuizPlot(JSON.parse(JSON.stringify(quizFix.broken)), 'large');
     setIsMixerCollapsed(true);
     setQuizMixerHint(true);
     updateQuiz({ ph: 'fix' });
@@ -1229,7 +1231,7 @@ export default function App() {
   const handleQuizResetFix = () => {
     if (!quizFix || !window.confirm('Start Part 2 over? Your fixes so far are undone.')) return;
     stopAudio();
-    loadQuizPlot(JSON.parse(JSON.stringify(quizFix.broken)));
+    loadQuizPlot(JSON.parse(JSON.stringify(quizFix.broken)), 'large');
   };
   const handleQuizSubmitFix = () => {
     const second = quizRec?.ph === 'fix_revise';
@@ -1244,7 +1246,7 @@ export default function App() {
   const handleQuizView = (part: 1 | 2 | null) => {
     stopAudio();
     if (part === null) {
-      if (quizViewStash.current) loadQuizPlot(quizViewStash.current);
+      if (quizViewStash.current) loadQuizPlot(quizViewStash.current, 'large');
       quizViewStash.current = null;
       setQuizView(null);
       return;
@@ -1252,7 +1254,7 @@ export default function App() {
     const packed = part === 1 ? quizRec?.p1r ?? quizRec?.p1 : quizRec?.p2r ?? quizRec?.p2;
     if (!packed) return;
     if (quizView === null) quizViewStash.current = quizPlotNow();
-    loadQuizPlot(unpackPlot(packed));
+    loadQuizPlot(unpackPlot(packed), part === 2 ? 'large' : 'standard');
     setQuizView(part);
   };
   const handleQuizFinish = () => {
@@ -1297,7 +1299,8 @@ export default function App() {
     const entry = batchResult?.entries[order[pos]];
     if (!entry) return;
     const plot = entry.quiz && quizPart === 2 && entry.quiz.part2Plot ? entry.quiz.part2Plot : null;
-    handleLoadProject(plot ? { ...entry.project, ...plot } : entry.project);
+    // Part 1 is on the Standard stage, Part 2 on the Large one
+    handleLoadProject(plot ? { ...entry.project, ...plot, stageSize: 'large' } : entry.quiz ? { ...entry.project, stageSize: undefined } : entry.project);
     setReviewQuizPart(plot ? 2 : 1);
     setSelectedItemId(null);
     setReview({ order, pos });
