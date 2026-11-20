@@ -71,7 +71,7 @@ master bus → snake outputs (MAIN L/R, MON 1/2) → PA / monitors.
   source by `latchedSourceInstanceId` (an instance id, `'room'`, or
   `'drummer'`), or failing that by distance (within ~140px of an
   instrument or amp).
-- Cables are `xlr`, `quarter_inch` or `speaker`. Each cable is checked
+- Cables are `xlr`, `quarter_inch`, `speaker` or `breakout` (DJ Rig only). Each cable is checked
   as it's drawn (`src/components/canvas/signalValidation.ts`): e.g.
   electric guitar/bass/keys need 1/4" into an amp or DI; acoustic
   sources have no jack and need a mic; mics, DIs and bass-amp direct
@@ -184,6 +184,42 @@ challenges can reach 100%. Setups of 4+ score as before.
 - Finishing sets `learnDone`, which goes in the code (`ld`) and shows as
   "Learn done" in batch grading and the CSV.
 
+## Quiz Mode (`src/quiz/`, hidden link `/quiz`)
+- Nothing in the app links to it. `/quiz` draws a random gig; `/quiz?t=<id>` picks a named
+  one (`QUIZ_TEMPLATES`: wedding, coffeehouse, rock, worship, jazz, school-dance). Never
+  rename a template id or change the draw order: codes rebuild the gig from the seed.
+- Live stage only. Three parts: Plan it (build from scratch), Fix it (the same band set up
+  by "someone else" with 3-4 seeded faults), Explain it (two written answers). Weights
+  50 / 30 / 20; Part 3 is scored by the teacher in the batch view.
+- No coaching while it runs (`QuietChecksContext`): no "!" badges, no mixer chain warnings,
+  no signal-path HUD, and refused cables say only "That connection isn't possible."
+- Part 1 checklist per source (`evaluatePlan`): right input (mic / DI / direct), cabled to
+  the snake, 48V only where needed, stereo on two channels (DJ Rig; keys on one channel
+  are fine), own channel with no doubles, plus no extra/dead channels. Students see the
+  % and pass/fail per source only. "Piano" accepts an acoustic piano with mics or a
+  keyboard into a DI. The kit is kick + snare + hi-hat (3 sources).
+- Part 2 faults (`buildFixScenario`): muted, another channel soloed, gain at zero, fader
+  down, 48V off on a condenser, mono source panned hard, main level down, DJ Rig gain far
+  too high, DJ Rig through a mono DI, unpatched, wrong mic, no mic, mic on an electric
+  instrument, missing DI. One per source, one whole-mix fault at most. Score = faults
+  fixed + "left everything else working".
+- Kept in the browser as `audioplot:v1:quiz` (seed, part, frozen plots, answers; never the
+  name). The code's main plot is Part 1; `qz` holds the record with Part 2 packed inside.
+- Batch view: quiz codes show Part 1 · Part 2 %, a Part 3 box (in the tab only, goes into
+  the CSV), a class summary of the most-missed checks and faults, and a review panel with
+  the regenerated gig and a Part 1 / Part 2 plot switch (`QuizReviewPanel.tsx`).
+
+## DJ Rig, Stereo DI, Stereo Breakout
+- `inst_dj_rig`: laptop + controller, one stereo line-level source. Its XLR outs go straight
+  to two snake inputs (L/R); first patch sets gain to 54 since line level is ~12 dB hot
+  (`LINE_LEVEL_BOOST` in the audio engine). Its sound is built in the browser from the
+  kick, snare, bass and keys loops (`DERIVED_STEMS`), so no extra download.
+- `gear_di_stereo`: shows in the locker once keys or a DJ Rig is on the plot. Stereo gear
+  (`isStereoGearId`) can hold two mixer channels; the lower is labelled L, the higher R.
+- Cable type `breakout` (code letter `b`): Stereo Breakout, 1/8" TRS to two 1/4". Appears
+  under the 1/4" hook only while a DJ Rig is on the plot; it only goes DJ Rig -> DI (the
+  snake takes XLR). `isDiBoxId` treats the mono and stereo DI alike in every check.
+
 ## Code format (`src/services/submissionCodec.ts`)
 Format is frozen: changing keys, defaults, or the hash breaks old codes.
 - Student code = `LZString.compressToEncodedURIComponent(json)` + `.` +
@@ -206,6 +242,7 @@ Format is frozen: changing keys, defaults, or the hash breaks old codes.
   every code, decodes, and grades. `BatchGradeModal` + `BatchReviewBar`
   show results and step through each student's plot. CSV export.
 - `ld` = learnDone (added Nov 2026; older codes don't have it).
+- `qz` = Quiz Mode record; cable letter `b` = Stereo Breakout (both Nov 2026).
 - Adding fields: new optional fields are safe (unknown keys pass
   through). Never reuse a short key.
 

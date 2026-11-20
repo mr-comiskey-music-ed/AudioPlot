@@ -73,6 +73,20 @@ export const GEAR_CATALOG: GearDefinition[] = [
     size: { width: 68, height: 56 },
   },
   {
+    id: 'inst_dj_rig',
+    name: 'DJ Rig',
+    model: '',
+    category: 'instrument',
+    transducerType: 'none',
+    requiresPhantomPower: false,
+    idealSources: ['XLR pair (L/R) to the snake', 'Stereo Breakout to a Stereo DI'],
+    description: 'Laptop and DJ controller together, one stereo source. Line-level XLR outs (L and R) plus a 1/8" headphone/aux out.',
+    specs: 'Balanced XLR Main Out L/R (line level, no 48V). 1/8" TRS stereo aux out.',
+    iconType: 'DJRig',
+    color: '#8c5a3c',
+    size: { width: 76, height: 56 },
+  },
+  {
     id: 'inst_bass_guitar',
     name: 'Bass Guitar',
     model: '',
@@ -414,6 +428,21 @@ export const GEAR_CATALOG: GearDefinition[] = [
     size: { width: 48, height: 42 },
   },
   {
+    id: 'gear_di_stereo',
+    name: 'Stereo DI',
+    model: '',
+    category: 'di_box',
+    transducerType: 'di',
+    polarPattern: 'Direct',
+    requiresPhantomPower: false,
+    idealSources: ['Keyboard', 'DJ Rig'],
+    description: 'Two DIs in one box for stereo sources (keys, DJ Rig). Left and right 1/4" inputs, two balanced XLR outputs on two mixer channels.',
+    specs: '2x 1/4" TS In (L/R) -> 2x Balanced XLR Out. Ground Lift on each side for hum.',
+    iconType: 'DIBoxStereo',
+    color: '#536d46',
+    size: { width: 52, height: 42 },
+  },
+  {
     id: 'gear_guitar_amp',
     name: 'Guitar Amp',
     model: '',
@@ -558,6 +587,11 @@ export const GEAR_CATALOG: GearDefinition[] = [
     size: { width: 56, height: 58 },
   },
 ];
+
+/** Mono DI Box or Stereo DI. */
+export const isDiBoxId = (id?: string | null): boolean => id === 'gear_di_box' || id === 'gear_di_stereo';
+/** Gear that feeds two mixer channels (L and R). */
+export const isStereoGearId = (id?: string | null): boolean => id === 'gear_di_stereo' || id === 'inst_dj_rig';
 
 export function getGearById(id: string): GearDefinition | undefined {
   if (id === 'mic_at2020') {

@@ -83,7 +83,8 @@ export interface PlacedGear {
   customHeight?: number;
 }
 
-export type CableType = 'xlr' | 'quarter_inch' | 'speaker';
+// 'breakout' = Stereo Breakout: 1/8" (3.5 mm) TRS to two 1/4" TS plugs, L and R (DJ Rig only)
+export type CableType = 'xlr' | 'quarter_inch' | 'speaker' | 'breakout';
 
 export interface CableConnection {
   id: string;
@@ -179,6 +180,8 @@ export interface StudioProjectState {
   learnDone?: boolean;
   /** Room size chosen by the student; missing = standard. */
   stageSize?: 'standard' | 'large' | 'xl';
+  /** Quiz Mode record (src/quiz/quizEngine.ts QuizRecord), only in quiz codes. Key `qz`. */
+  quiz?: import('./quiz/quizEngine').QuizRecord;
   placedGear: PlacedGear[];
   connections: CableConnection[];
   mixerChannels: MixerChannelState[];

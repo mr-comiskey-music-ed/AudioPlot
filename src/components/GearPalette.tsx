@@ -80,6 +80,14 @@ export const GearPalette: React.FC<GearPaletteProps> = ({
       return false;
     }
 
+    // The Stereo DI shows up once a stereo source (keys or the DJ Rig) is on the plot
+    if (
+      item.id === 'gear_di_stereo' &&
+      !placedGear.some((g) => g.gearId === 'inst_keyboard' || g.gearId === 'inst_dj_rig' || g.gearId === 'gear_di_stereo')
+    ) {
+      return false;
+    }
+
     if (selectedTab === 'di_box') {
       if (item.category !== 'di_box' && item.category !== 'amplifier') return false;
     } else if (selectedTab !== 'all' && item.category !== selectedTab) {
@@ -109,12 +117,12 @@ export const GearPalette: React.FC<GearPaletteProps> = ({
               {isXlr ? (
                 <StudioIcon iconType="XlrConnector" size={20} />
               ) : (
-                <StudioIcon iconType="QuarterInchPlug" size={20} />
+                <StudioIcon iconType={activeCableTool === 'breakout' ? 'BreakoutCable' : 'QuarterInchPlug'} size={20} />
               )}
             </div>
             <div>
               <span className={`text-xs font-black uppercase tracking-wide ${accentText}`}>
-                {isXlr ? 'XLR Cable Active' : '1/4" Cable Active'}
+                {isXlr ? 'XLR Cable Active' : activeCableTool === 'breakout' ? 'Stereo Breakout Active' : '1/4" Cable Active'}
               </span>
             </div>
           </div>

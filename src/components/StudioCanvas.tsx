@@ -29,6 +29,7 @@ import { GearItemNode } from './canvas/GearItemNode';
 import { CanvasInspector } from './canvas/CanvasInspector';
 import { traceSignalPath, HighlightedSignalPath } from './canvas/signalPath';
 import { SignalFlowHUD } from './canvas/SignalFlowHUD';
+import { quietToast, useQuietChecks } from '../quiz/quietChecks';
 import { getWorld, StageSize } from './canvas/stageGeometry';
 import { PaZoneOverlay } from './canvas/PaZoneOverlay';
 import { StageSizeControl } from './canvas/StageSizeControl';
@@ -103,6 +104,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   onStageSizeChange,
   getLockedIds,
 }) => {
+  const quietChecks = useQuietChecks();
   const containerRef = useRef<HTMLDivElement>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const dragOriginRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -472,6 +474,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
     if (diBoxHighlightTimeoutRef.current) {
       window.clearTimeout(diBoxHighlightTimeoutRef.current);
     }
+    ({ title, message } = quietToast(quietChecks, title, message));
     setErrorNotification({ title, message });
 
     if (title === 'Select XLR Cable First') {
@@ -1088,7 +1091,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
             color: '#d9a441',
           };
           onUpdateConnections([...connections, newConnection], {
-            action: `Connect ${type === 'quarter_inch' ? '1/4" TS' : type.toUpperCase()} Cable`,
+            action: `Connect ${type === 'quarter_inch' ? '1/4" TS' : type === 'breakout' ? 'Stereo Breakout' : type.toUpperCase()} Cable`,
           });
         }
         return;
@@ -1118,11 +1121,11 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       fromInstanceId: fromId,
       toInstanceId: toId,
       cableType: type,
-      color: type === 'quarter_inch' ? '#8ec5d6' : type === 'xlr' ? '#d9a441' : '#698859',
+      color: type === 'quarter_inch' ? '#8ec5d6' : type === 'xlr' ? '#d9a441' : type === 'breakout' ? '#c08a6a' : '#698859',
     };
 
     onUpdateConnections([...connections, newConnection], {
-      action: `Connect ${type === 'quarter_inch' ? '1/4" TS' : type.toUpperCase()} Cable`,
+      action: `Connect ${type === 'quarter_inch' ? '1/4" TS' : type === 'breakout' ? 'Stereo Breakout' : type.toUpperCase()} Cable`,
     });
   };
 
@@ -1367,7 +1370,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       } else if (currentItem?.gearId === 'gear_iem_receiver' || currentItem?.gearId === 'gear_in_ear_monitors') {
         snappedX = Math.max(10, targetSource.x - itemDims.width - 12);
         snappedY = targetSource.y + 4;
-      } else if (currentItem?.gearId === 'gear_di_box') {
+      } else if (currentItem?.gearId === 'gear_di_box' || currentItem?.gearId === 'gear_di_stereo') {
         snappedX = Math.min(rect.width - itemDims.width - 10, targetSource.x + sourceDims.width + 12);
         snappedY = targetSource.y + 4;
       } else if (currentDef?.category === 'microphone') {
@@ -1698,6 +1701,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
       {/* Cable Hooks & Active Signal Flow Toast */}
       <CableHooks
+        showBreakout={placedGear.some((g) => g.gearId === 'inst_dj_rig')}
         activeCableTool={activeCableTool}
         onSelectCableTool={(type) => {
           setActiveCableTool(type);
@@ -1709,8 +1713,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         isQuarterInchHighlighted={isQuarterInchErrorHighlighted}
       />
 
-      {/* Signal Flow Path Tracing HUD */}
-      <SignalFlowHUD
+      {/* Signal Flow Path Tracing HUD (not during a quiz: it explains what is wrong) */}
+      {!quietChecks && <SignalFlowHUD
         highlightedPath={highlightedSignalPath}
         isHighlightEnabled={isHighlightSignalPathEnabled}
         onToggleHighlight={() => setIsHighlightSignalPathEnabled((prev) => !prev)}
@@ -1718,7 +1722,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         onUpdateChannel={onUpdateChannel}
         mixerChannels={mixerChannels}
         placedGear={placedGear}
-      />
+      />}
 
       {/* Multi-Selection Status Pill */}
       {selectedItemIds.length > 1 && !marqueeBox && !draggingId && (

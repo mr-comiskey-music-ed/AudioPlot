@@ -26,7 +26,7 @@ import {
 const DEFAULT_CHANNEL_COUNT = 8;
 const CH_DEFAULTS = { phantomPower: false, gain: 72, fader: 75, pan: 0, solo: false, muted: false };
 const MASTER_DEFAULTS: MasterBusState = { fader: 75, gain: 50, pan: 0, muted: false, dim: false, mono: false };
-const CABLE_COLORS: Record<CableType, string> = { xlr: '#d9a441', quarter_inch: '#8ec5d6', speaker: '#698859' };
+const CABLE_COLORS: Record<CableType, string> = { xlr: '#d9a441', quarter_inch: '#8ec5d6', speaker: '#698859', breakout: '#c08a6a' };
 const defaultLabel = (n: number) => `CH ${n}`;
 
 // ---------- Short keys ----------
@@ -39,11 +39,12 @@ const PROJECT_KEYS: Record<string, string> = {
   title: 't', studentName: 's', studentId: 'si', period: 'p', className: 'k',
   teacherName: 'tn', environment: 'e', activeChallengeId: 'a', notes: 'n', stageSize: 'z',
   learnDone: 'ld', // added Nov 2026; older codes simply don't have it
+  quiz: 'qz', // Quiz Mode record (src/quiz), added Nov 2026
 };
 const CHANNEL_KEYS: Record<string, string> = {
   label: 'l', phantomPower: 'p', gain: 'g', fader: 'f', pan: 'pn', solo: 'so', muted: 'mu',
 };
-const CABLE_CODES: Record<string, string> = { xlr: 'x', quarter_inch: 'q', speaker: 's' };
+const CABLE_CODES: Record<string, string> = { xlr: 'x', quarter_inch: 'q', speaker: 's', breakout: 'b' }; // 'b' added Nov 2026
 // Fields left out on purpose (rebuilt on unpack, or not needed to review the work).
 const DROPPED_PROJECT = new Set(['id', 'version', 'createdAt', 'updatedAt', 'placedGear', 'connections', 'mixerChannels', 'masterBus']);
 const HANDLED_GEAR = new Set(['instanceId', 'gearId', 'x', 'y']);

@@ -11,14 +11,14 @@ import {
   CableType,
   GearCategory,
 } from './types';
-import { getGearById } from './data/gearCatalog';
+import { getGearById, isDiBoxId, isStereoGearId } from './data/gearCatalog';
 import { evaluateStudioSetup } from './services/gradingEngine';
 import {
   deserializeStudioProject,
   printGradingReport,
   exportStudioPlotToPdf,
 } from './services/shareService';
-import { audioEngine } from './services/audioEngine';
+import { audioEngine, DJ_RIG_START_GAIN } from './services/audioEngine';
 
 import { StudioHeader } from './components/StudioHeader';
 import { GearPalette } from './components/GearPalette';
@@ -45,6 +45,14 @@ import { encodeSubmission, decodeSubmission } from './services/submissionCodec';
 import { slotFor, loadSaved, writeSaved, clearSaved, getLastSlot, setLastSlot, hasSaved, loadDone, markDone, clearDone } from './utils/autosave';
 import { SaveIndicator, RestorePrompt, type SaveStatus } from './components/AutosaveUI';
 import { getGearBoxDimensions } from './components/canvas/canvasMath';
+import { packProject, unpackProject } from './services/submissionCodec';
+import {
+  QuizRecord, QuizPlot, buildFixScenario, evaluateFix, evaluatePlan, explainSource, newQuizSeed, readQuizLink, scenarioFromRecord,
+} from './quiz/quizEngine';
+import { QuizPanel } from './quiz/QuizPanel';
+import { QuizReviewPanel } from './quiz/QuizReviewPanel';
+import { QuietChecksContext } from './quiz/quietChecks';
+import { loadQuiz, saveQuiz } from './quiz/quizStore';
 
 const INITIAL_CHANNELS: MixerChannelState[] = [
   { channelNumber: 1, assignedGearInstanceId: null, label: 'CH 1', phantomPower: false, gain: 72, fader: 75, pan: 0, solo: false, muted: false, meterValue: 0 },
@@ -85,6 +93,10 @@ export default function App() {
   const learnPartPlotsRef = useRef<{ studio?: LearnPlot; live?: LearnPlot }>({});
   // Room/stage size: bigger rooms give more floor for more musicians and gear.
   const [stageSize, setStageSize] = useState<StageSize>('standard');
+  // Quiz Mode: only at the hidden /quiz link. Its own plot and record; autosave and the tour stay off.
+  const quizLink = useMemo(() => readQuizLink(), []);
+  const [quizRec, setQuizRec] = useState<QuizRecord | null>(null);
+  const [quizCode, setQuizCode] = useState<string | null>(null);
 
   // Undo/Redo state management for placedGear, connections, mixerChannels, and masterBus
   const {
@@ -156,6 +168,7 @@ export default function App() {
   // First visit: open the How-To tour (it starts with the welcome and ends
   // with a choice of Studio / Live Stage / Learn).
   useEffect(() => {
+    if (quizLink) return; // the quiz starts straight in
     try {
       if (!localStorage.getItem('audioplot_tour_seen')) {
         setTimeout(() => setIsTourOpen(true), 150);
@@ -169,6 +182,7 @@ export default function App() {
   // Parse URL parameters on initial load and popstate
   useEffect(() => {
     const handleUrlLoad = () => {
+      if (readQuizLink()) return; // Quiz Mode sets up its own plot
       const params = new URLSearchParams(window.location.search);
       let plotParam = params.get('plot');
 
@@ -270,8 +284,10 @@ export default function App() {
         }
       }
 
+      if (gearItem.gearId === 'inst_dj_rig') return 'DJ';
+
       // 2. DI Box connected to instrument
-      if (gearItem.gearId === 'gear_di_box') {
+      if (isDiBoxId(gearItem.gearId)) {
         const conn = connList.find(
           (c) => c.fromInstanceId === gearItem.instanceId || c.toInstanceId === gearItem.instanceId
         );
@@ -284,9 +300,10 @@ export default function App() {
             if (otherGear.gearId === 'inst_electric_guitar') return 'E GUIT DI';
             if (otherGear.gearId === 'inst_acoustic_guitar') return 'A GUIT DI';
             if (otherGear.gearId === 'inst_double_bass') return 'UPRIGHT DI';
+            if (otherGear.gearId === 'inst_dj_rig') return 'DJ DI';
           }
         }
-        return 'DI BOX';
+        return gearItem.gearId === 'gear_di_stereo' ? 'ST DI' : 'DI BOX';
       }
 
       // 3. Mic near an instrument or amp
@@ -399,6 +416,7 @@ export default function App() {
   const autosaveSlot = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('plot') || window.location.hash.includes('plot=')) return null;
+    if (readQuizLink()) return null; // the quiz keeps its own record (quiz/quizStore.ts)
     const task = params.get('task');
     return task ? slotFor(task) : getLastSlot() ?? slotFor(null);
   }, []);
@@ -418,7 +436,7 @@ export default function App() {
   projectRef.current = currentProjectState;
   const reviewActiveRef = useRef(false);
   // Teacher review, shared views and Learn are not the student's own plot, so they are never autosaved.
-  reviewActiveRef.current = review !== null || isSharedView || learn !== null;
+  reviewActiveRef.current = review !== null || isSharedView || learn !== null || quizRec !== null;
 
   /** Has the student done anything beyond what a fresh sandbox or task already shows? */
   const hasWorkNow = () => {
@@ -532,6 +550,49 @@ export default function App() {
     const item = placedGear.find((g) => g.instanceId === gearInstanceId);
     const derivedLabel = item ? deriveChannelLabel(item, placedGear, connections) : 'INPUT';
 
+    // Stereo gear (Stereo DI, DJ Rig) feeds two channels: lower number is L, higher is R
+    if (item && isStereoGearId(item.gearId)) {
+      setBatchState(
+        {
+          mixerChannels: (prev) => {
+            const mine = prev.filter((c) => c.assignedGearInstanceId === gearInstanceId).map((c) => c.channelNumber);
+            let keep: number[];
+            if (mine.includes(channelNumber)) keep = mine.filter((n) => n !== channelNumber); // toggle off
+            else keep = [...mine.slice(-1), channelNumber]; // at most two sides
+            keep.sort((a, b) => a - b);
+            return prev.map((ch) => {
+              if (keep.includes(ch.channelNumber)) {
+                const side = keep.length === 2 ? (ch.channelNumber === keep[0] ? ' L' : ' R') : '';
+                const fresh = ch.assignedGearInstanceId !== gearInstanceId;
+                // Line-level DJ Rig outs: gain starts low when first patched
+                const gain = fresh && item.gearId === 'inst_dj_rig' && ch.gain === 72 ? DJ_RIG_START_GAIN : ch.gain;
+                return { ...ch, assignedGearInstanceId: gearInstanceId, label: `${derivedLabel}${side}`, gain };
+              }
+              if (ch.assignedGearInstanceId === gearInstanceId || ch.channelNumber === channelNumber) {
+                return { ...ch, assignedGearInstanceId: null, label: `CH ${ch.channelNumber}` };
+              }
+              return ch;
+            });
+          },
+          placedGear: (prev) =>
+            prev.map((g) => {
+              if (g.instanceId === gearInstanceId) {
+                const mine = mixerChannels.filter((c) => c.assignedGearInstanceId === gearInstanceId).map((c) => c.channelNumber);
+                const keep = mine.includes(channelNumber)
+                  ? mine.filter((n) => n !== channelNumber)
+                  : [...mine.slice(-1), channelNumber];
+                return { ...g, assignedChannel: keep.length ? Math.min(...keep) : undefined };
+              }
+              // Patching over another item's channel takes that channel away from it
+              if (g.assignedChannel === channelNumber) return { ...g, assignedChannel: undefined };
+              return g;
+            }),
+        },
+        { action: `Patch to CH ${channelNumber}` }
+      );
+      return;
+    }
+
     setBatchState(
       {
         mixerChannels: (prev) =>
@@ -570,12 +631,18 @@ export default function App() {
     const gearId = ch?.assignedGearInstanceId;
     setBatchState(
       {
-        placedGear: (prev) =>
-          gearId ? prev.map((g) => (g.instanceId === gearId ? { ...g, assignedChannel: undefined } : g)) : prev,
+        placedGear: (prev) => {
+          if (!gearId) return prev;
+          // Stereo gear keeps its other side
+          const other = mixerChannels.find((c) => c.assignedGearInstanceId === gearId && c.channelNumber !== channelNumber);
+          return prev.map((g) => (g.instanceId === gearId ? { ...g, assignedChannel: other?.channelNumber } : g));
+        },
         mixerChannels: (prev) =>
           prev.map((c) =>
             c.channelNumber === channelNumber
               ? { ...c, assignedGearInstanceId: null, label: `CH ${channelNumber}` }
+              : gearId && c.assignedGearInstanceId === gearId
+              ? { ...c, label: c.label.replace(/ [LR]$/, '') }
               : c
           ),
       },
@@ -1013,11 +1080,136 @@ export default function App() {
       return cat === 'instrument' || g?.gearId === 'gear_guitar_amp';
     });
 
+  // ---------- Quiz Mode (/quiz) ----------
+  const quizScenario = useMemo(() => (quizRec ? scenarioFromRecord(quizRec) : null), [quizRec?.sd, quizRec?.tp]);
+  const quizFix = useMemo(() => (quizScenario ? buildFixScenario(quizScenario) : null), [quizScenario]);
+  const packPlot = (p: QuizPlot) => packProject(p as unknown as StudioProjectState);
+  const unpackPlot = (packed: Record<string, unknown>): QuizPlot => {
+    const u = unpackProject(packed as Record<string, any>);
+    return { environment: 'live_stage', placedGear: u.placedGear, connections: u.connections, mixerChannels: u.mixerChannels, masterBus: u.masterBus || DEFAULT_MASTER_BUS };
+  };
+  const quizPlotNow = (): QuizPlot => ({ environment: 'live_stage', placedGear, connections, mixerChannels, masterBus });
+  const emptyQuizPlot = (): QuizPlot => ({ environment: 'live_stage', placedGear: [], connections: [], mixerChannels: INITIAL_CHANNELS, masterBus: DEFAULT_MASTER_BUS });
+  const loadQuizPlot = (p: QuizPlot) => {
+    setEnvironment('live_stage');
+    setStageSize('standard');
+    setSelectedItemId(null);
+    resetHistory({ placedGear: p.placedGear, connections: p.connections, mixerChannels: p.mixerChannels, masterBus: p.masterBus });
+  };
+  const stopAudio = () => {
+    if (isPlayingAudio) {
+      audioEngine.stop();
+      setIsPlayingAudio(false);
+    }
+  };
+
+  // Start (or pick up) the quiz once, on the hidden link
+  useEffect(() => {
+    if (!quizLink) return;
+    const stored = loadQuiz();
+    setProjectTitle('Quiz');
+    setActiveChallengeId(null);
+    if (stored && (stored.rec.tp ?? null) === quizLink.template) {
+      setQuizRec(stored.rec);
+      loadQuizPlot(stored.plot ? unpackPlot(stored.plot) : emptyQuizPlot());
+      if (stored.rec.ph === 'fix') setIsMixerCollapsed(false);
+    } else {
+      setQuizRec({ v: 1, sd: newQuizSeed(), tp: quizLink.template ?? undefined, ph: 'intro' });
+      loadQuizPlot(emptyQuizPlot());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep the quiz in this browser (no name) so a reload doesn't lose it
+  useEffect(() => {
+    if (!quizRec) return;
+    const t = window.setTimeout(() => {
+      saveQuiz({ rec: quizRec, plot: packPlot({ environment: 'live_stage', placedGear, connections, mixerChannels, masterBus }) });
+    }, 600);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizRec, placedGear, connections, mixerChannels, masterBus]);
+
+  const quizPlan = useMemo(
+    () => (quizRec?.p1 && quizScenario ? evaluatePlan(unpackPlot(quizRec.p1), quizScenario) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [quizRec?.p1, quizScenario]
+  );
+  const quizFixResult = useMemo(
+    () => (quizRec?.p2 && quizScenario && quizFix ? evaluateFix(unpackPlot(quizRec.p2), quizScenario, quizFix.errors) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [quizRec?.p2, quizScenario, quizFix]
+  );
+  const updateQuiz = (changes: Partial<QuizRecord>) => {
+    setQuizRec((r) => (r ? { ...r, ...changes } : r));
+    setQuizCode(null);
+  };
+
+  const handleQuizStart = () => {
+    loadQuizPlot(emptyQuizPlot());
+    updateQuiz({ ph: 'plan' });
+  };
+  const handleQuizSubmitPlan = () => {
+    if (!window.confirm('Submit Part 1? Your plot is locked in and checked, and you move on to Part 2.')) return;
+    stopAudio();
+    updateQuiz({ ph: 'plan_done', p1: packPlot(quizPlotNow()) });
+  };
+  const handleQuizStartFix = () => {
+    if (!quizFix) return;
+    loadQuizPlot(JSON.parse(JSON.stringify(quizFix.broken)));
+    setIsMixerCollapsed(false);
+    updateQuiz({ ph: 'fix' });
+  };
+  const handleQuizResetFix = () => {
+    if (!quizFix || !window.confirm('Start Part 2 over? Your fixes so far are undone.')) return;
+    stopAudio();
+    loadQuizPlot(JSON.parse(JSON.stringify(quizFix.broken)));
+  };
+  const handleQuizSubmitFix = () => {
+    if (!window.confirm('Submit Part 2? Your fixes are locked in and checked.')) return;
+    stopAudio();
+    updateQuiz({ ph: 'fix_done', p2: packPlot(quizPlotNow()) });
+  };
+  const handleQuizMakeCode = () => {
+    if (!quizRec?.p1 || !quizScenario) return;
+    const plan = unpackPlot(quizRec.p1);
+    // The code's main plot is Part 1; Part 2 and the written answers ride along in `quiz`.
+    setQuizCode(
+      encodeSubmission({
+        ...currentProjectState,
+        title: `Quiz: ${quizScenario.title}`,
+        studentName: studentName.trim(),
+        environment: 'live_stage',
+        activeChallengeId: 'quiz',
+        stageSize: undefined,
+        learnDone: undefined,
+        placedGear: plan.placedGear,
+        connections: plan.connections,
+        mixerChannels: plan.mixerChannels,
+        masterBus: plan.masterBus,
+        quiz: quizRec,
+      })
+    );
+  };
+  const handleQuizResetPlot = () => {
+    if (quizRec?.ph === 'plan') {
+      if (window.confirm('Clear the whole plot?')) loadQuizPlot(emptyQuizPlot());
+    } else if (quizRec?.ph === 'fix') {
+      handleQuizResetFix();
+    }
+  };
+  // In Part 2 the band's instruments and amps are given
+  const quizLockedIds = (ids: string[]) =>
+    quizRec?.ph === 'fix' || quizRec?.ph === 'fix_done' ? learnLockedIds(ids) : [];
+
   // ---------- Batch review ----------
-  const showReviewAt = (order: number[], pos: number) => {
+  const [reviewQuizPart, setReviewQuizPart] = useState<1 | 2>(1);
+  const showReviewAt = (order: number[], pos: number, quizPart: 1 | 2 = 1) => {
     const entry = batchResult?.entries[order[pos]];
     if (!entry) return;
-    handleLoadProject(entry.project);
+    const plot = entry.quiz && quizPart === 2 && entry.quiz.part2Plot ? entry.quiz.part2Plot : null;
+    handleLoadProject(plot ? { ...entry.project, ...plot } : entry.project);
+    setReviewQuizPart(plot ? 2 : 1);
     setSelectedItemId(null);
     setReview({ order, pos });
   };
@@ -1034,6 +1226,7 @@ export default function App() {
   const reviewEntry = review && batchResult ? batchResult.entries[review.order[review.pos]] : null;
 
   return (
+    <QuietChecksContext.Provider value={quizRec !== null}>
     <div className="flex flex-col h-screen w-screen bg-[#0c0c11] overflow-hidden text-stone-100 font-sans relative">
       {/* Ambient background illumination */}
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_0%,rgba(217,164,65,0.07),transparent_50%),radial-gradient(circle_at_85%_70%,rgba(95,159,184,0.06),transparent_40%),radial-gradient(circle_at_15%_90%,rgba(207,98,64,0.05),transparent_40%)]" />
@@ -1060,15 +1253,16 @@ export default function App() {
         onOpenLearn={handleEnterLearn}
         activeChallengeId={activeChallengeId}
         activeTaskLabel={currentChallenge ? currentChallenge.title.split(':').pop()!.trim() : null}
-        onResetPlot={learn ? () => learn.step < LEARN_STEPS.length && handleLearnRestartStep(learn.step) : handleResetPlot}
+        onResetPlot={quizRec ? handleQuizResetPlot : learn ? () => learn.step < LEARN_STEPS.length && handleLearnRestartStep(learn.step) : handleResetPlot}
         onUndo={undo}
         onRedo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
-        statusSlot={<SaveIndicator status={saveStatus} savedAt={savedAt} pending={savePending} />}
+        statusSlot={quizRec ? null : <SaveIndicator status={saveStatus} savedAt={savedAt} pending={savePending} />}
+        quizLabel={quizRec ? 'Quiz · Live Stage' : null}
       />
 
-      {restoreOffer && !learn && (
+      {restoreOffer && !learn && !quizRec && (
         <RestorePrompt savedAt={restoreOffer.savedAt} onRestore={handleRestoreSaved} onStartFresh={handleStartFresh} />
       )}
 
@@ -1117,13 +1311,47 @@ export default function App() {
             stageSize={stageSize}
             onStageSizeChange={handleStageSizeChange}
             getLockedIds={
-              review ? undefined : learn ? learnLockedIds : (ids) => lockedGivenInstruments(currentChallenge, placedGear, ids)
+              review ? undefined : quizRec ? quizLockedIds : learn ? learnLockedIds : (ids) => lockedGivenInstruments(currentChallenge, placedGear, ids)
             }
           />
         </div>
 
-        {/* Right: the Learn guide while in Learn, otherwise the live rubric panel */}
-        {learn ? (
+        {/* Right: the quiz, the Learn guide while in Learn, otherwise the live rubric panel */}
+        {review && reviewEntry?.quiz ? (
+          <QuizReviewPanel
+            grade={reviewEntry.quiz}
+            part={reviewQuizPart}
+            onPart={(p) => showReviewAt(review.order, review.pos, p)}
+          />
+        ) : quizRec && quizScenario ? (
+          <QuizPanel
+            phase={quizRec.ph}
+            scenario={quizScenario}
+            planResult={quizPlan}
+            fixResult={quizFixResult}
+            explainAbout={explainSource(quizScenario)}
+            why={quizRec.w1 ?? ''}
+            fixNote={quizRec.w2 ?? ''}
+            studentName={studentName}
+            code={quizCode}
+            isPlayingAudio={isPlayingAudio}
+            onToggleSoundcheck={handleToggleAudio}
+            onStart={handleQuizStart}
+            onSubmitPlan={handleQuizSubmitPlan}
+            onStartFix={handleQuizStartFix}
+            onSubmitFix={handleQuizSubmitFix}
+            onStartExplain={() => updateQuiz({ ph: 'explain' })}
+            onWhyChange={(v) => updateQuiz({ w1: v })}
+            onFixNoteChange={(v) => updateQuiz({ w2: v })}
+            onFinish={() => updateQuiz({ ph: 'done' })}
+            onNameChange={(v) => {
+              setStudentName(v);
+              setQuizCode(null);
+            }}
+            onMakeCode={handleQuizMakeCode}
+            onResetFix={handleQuizResetFix}
+          />
+        ) : learn ? (
           <LearnPanel
             stepIndex={learn.step}
             plot={{ environment, placedGear, connections, mixerChannels, masterBus }}
@@ -1324,5 +1552,6 @@ export default function App() {
       {/* Mobile Device Optimization Pop-up Notice */}
       <MobileDeviceNotice />
     </div>
+    </QuietChecksContext.Provider>
   );
 }

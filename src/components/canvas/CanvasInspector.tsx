@@ -142,7 +142,8 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
         selectedItem.gearId === 'gear_in_ear_monitors' ||
         selectedItem.gearId === 'gear_studio_headphones' ||
         selectedItem.gearId === 'gear_stage_monitor' ||
-        selectedItem.gearId === 'gear_di_box') && (
+        selectedItem.gearId === 'gear_di_box' ||
+        selectedItem.gearId === 'gear_di_stereo') && (
         <div className="flex items-center gap-1.5 w-full pt-1 border-t border-white/10">
           <span className="w-[62px] text-[10px] font-bold text-amber-400 flex items-center gap-1 shrink-0">
             <Target className="w-3 h-3" />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useQuietChecks } from '../quiz/quietChecks';
 import {
   Sliders,
   Zap,
@@ -301,6 +302,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
   isCollapsed: propIsCollapsed,
   onToggleCollapse,
 }) => {
+  const quietChecks = useQuietChecks();
   const [internalCollapsed, setInternalCollapsed] = useState(true);
   const isCollapsed = propIsCollapsed !== undefined ? propIsCollapsed : internalCollapsed;
   const setIsCollapsed = (val: boolean | ((prev: boolean) => boolean)) => {
@@ -538,7 +540,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
                 const meterSegments = 8;
                 const activeSegments = Math.round((level / 100) * meterSegments);
 
-                const hasChainError = assignedGear && !channelSignal.hasSignal;
+                const hasChainError = !quietChecks && assignedGear && !channelSignal.hasSignal;
 
                 return (
                   <div

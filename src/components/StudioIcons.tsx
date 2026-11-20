@@ -673,6 +673,78 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
         </svg>
       );
 
+    case 'DJRig':
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
+          {/* Laptop: screen behind, propped up */}
+          <path d="M14 10H42L44 30H12Z" fill="#2a2118" stroke="#66584a" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M16.5 13H39.5L41 27.5H15Z" fill="#587d8e" opacity="0.85" />
+          {/* Waveforms on screen */}
+          <path d="M18 18.5h2l1-2 1.5 4 1.5-5 1.5 6 1-3h3" stroke="#d9a441" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M18 24h3l1-1.5 1.5 3 1.5-4 1.5 5 1-2.5h3" stroke="#ddd0bc" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+          {/* Laptop base */}
+          <path d="M9 30H47L49 33H7Z" fill="#4d3f31" stroke="#66584a" strokeWidth="1" strokeLinejoin="round" />
+          {/* DJ controller in front */}
+          <rect x="4" y="34" width="56" height="22" rx="3" fill="#3a2f24" stroke="#8c5a3c" strokeWidth="1.5" />
+          {/* Two jog wheels */}
+          <circle cx="15" cy="45" r="7" fill="#2a2118" stroke="#b0a08a" strokeWidth="1.2" />
+          <circle cx="15" cy="45" r="2.2" fill="#d9a441" />
+          <circle cx="49" cy="45" r="7" fill="#2a2118" stroke="#b0a08a" strokeWidth="1.2" />
+          <circle cx="49" cy="45" r="2.2" fill="#d9a441" />
+          {/* Mixer section: channel faders and crossfader */}
+          <rect x="27" y="38" width="1.6" height="9" rx="0.8" fill="#140f0a" />
+          <rect x="35.4" y="38" width="1.6" height="9" rx="0.8" fill="#140f0a" />
+          <rect x="25.8" y="41" width="4" height="2.4" rx="0.6" fill="#ddd0bc" />
+          <rect x="34.2" y="43" width="4" height="2.4" rx="0.6" fill="#ddd0bc" />
+          <rect x="26" y="51" width="12" height="1.6" rx="0.8" fill="#140f0a" />
+          <rect x="30.5" y="50" width="3" height="3.6" rx="0.6" fill="#ddd0bc" />
+        </svg>
+      );
+
+    case 'DIBoxStereo':
+      return (
+        <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>
+          {/* Wider chassis: two DIs in one box */}
+          <rect x="4" y="12" width="56" height="40" rx="4" fill="#536d46" stroke="#536d46" strokeWidth="2" />
+          <line x1="32" y1="15" x2="32" y2="49" stroke="#3a4f31" strokeWidth="1.2" />
+          {/* L side: 1/4" in, XLR out */}
+          <circle cx="12" cy="24" r="3.6" fill="#3a2f24" stroke="#a3bcc6" strokeWidth="1.3" />
+          <circle cx="12" cy="24" r="1.5" fill="#587d8e" />
+          <circle cx="23" cy="38" r="5" fill="#3a2f24" stroke="#d9a441" strokeWidth="1.3" />
+          <circle cx="21.4" cy="36.6" r="0.8" fill="#fbe58a" />
+          <circle cx="24.6" cy="36.6" r="0.8" fill="#fbe58a" />
+          <circle cx="23" cy="40.4" r="0.8" fill="#fbe58a" />
+          {/* R side */}
+          <circle cx="41" cy="24" r="3.6" fill="#3a2f24" stroke="#a3bcc6" strokeWidth="1.3" />
+          <circle cx="41" cy="24" r="1.5" fill="#587d8e" />
+          <circle cx="52" cy="38" r="5" fill="#3a2f24" stroke="#d9a441" strokeWidth="1.3" />
+          <circle cx="50.4" cy="36.6" r="0.8" fill="#fbe58a" />
+          <circle cx="53.6" cy="36.6" r="0.8" fill="#fbe58a" />
+          <circle cx="52" cy="40.4" r="0.8" fill="#fbe58a" />
+          {/* L / R marks */}
+          <text x="12" y="44" textAnchor="middle" fontSize="8" fontWeight="900" fill="#efe6d8">L</text>
+          <text x="41" y="44" textAnchor="middle" fontSize="8" fontWeight="900" fill="#efe6d8">R</text>
+        </svg>
+      );
+
+    case 'BreakoutCable':
+      return (
+        <svg width={size} height={size} viewBox="0 0 40 40" fill="none" className={className}>
+          {/* 1/8" stereo plug on the left */}
+          <path d="M2 20h4" stroke="#ddd0bc" strokeWidth="1.6" strokeLinecap="round" />
+          <rect x="3.2" y="19.1" width="0.7" height="1.8" fill="#140f0a" />
+          <rect x="6" y="17.5" width="6" height="5" rx="1" fill="#3a2f24" stroke="#8a7a65" strokeWidth="0.6" />
+          {/* Cable splits in two */}
+          <path d="M12 20H17C21 20 22 11 27 11" stroke="#c08a6a" strokeWidth="2" strokeLinecap="round" fill="none" />
+          <path d="M17 20C21 20 22 29 27 29" stroke="#c08a6a" strokeWidth="2" strokeLinecap="round" fill="none" />
+          {/* Two 1/4" plugs */}
+          <rect x="27" y="8.5" width="6" height="5" rx="1" fill="#3a2f24" stroke="#8a7a65" strokeWidth="0.6" />
+          <path d="M33 11h5" stroke="#ddd0bc" strokeWidth="2.2" strokeLinecap="round" />
+          <rect x="27" y="26.5" width="6" height="5" rx="1" fill="#3a2f24" stroke="#8a7a65" strokeWidth="0.6" />
+          <path d="M33 29h5" stroke="#ddd0bc" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      );
+
     case 'DIBox':
       return (
         <svg width={size} height={size} viewBox="0 0 64 64" fill="none" className={className}>

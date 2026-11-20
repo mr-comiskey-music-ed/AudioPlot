@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useQuietChecks } from '../../quiz/quietChecks';
 import { CableConnection, EnvironmentMode, MixerChannelState, PlacedGear } from '../../types';
 import { getGearById } from '../../data/gearCatalog';
 import { StudioIcon } from '../StudioIcons';
@@ -121,14 +122,15 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
   );
 
   // Setup warnings
-  const itemIssues = getGearIssues(item, placedGear, mixerChannels, connections, environment, stageSize);
+  const quietChecks = useQuietChecks();
+  const itemIssues = quietChecks ? [] : getGearIssues(item, placedGear, mixerChannels, connections, environment, stageSize);
 
   // Cable connection check
   const isCabled = (() => {
     if (def.category === 'microphone') {
       return assignedChannel !== undefined;
     }
-    if (item.gearId === 'gear_di_box') {
+    if (item.gearId === 'gear_di_box' || item.gearId === 'gear_di_stereo') {
       const hasInput = connections.some(
         (c) => c.fromInstanceId === item.instanceId || c.toInstanceId === item.instanceId
       );

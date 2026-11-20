@@ -6,7 +6,7 @@ import {
   PlacedGear,
 } from '../../types';
 import { wedgesFedFromSnake } from './monitorChain';
-import { getGearById } from '../../data/gearCatalog';
+import { getGearById, isDiBoxId } from '../../data/gearCatalog';
 import { isAcousticInstrument } from './canvasMath';
 import { getPaZone, StageSize } from './stageGeometry';
 
@@ -53,10 +53,34 @@ export function validateGearToGearConnection(
     return { valid: true };
   }
 
+  // DJ Rig to a DI: the Stereo Breakout (1/8" TRS to two 1/4" plugs) from the rig's aux out
+  const isDjToDI =
+    (fromItem.gearId === 'inst_dj_rig' && isDiBoxId(toItem.gearId)) ||
+    (toItem.gearId === 'inst_dj_rig' && isDiBoxId(fromItem.gearId));
+  if (isDjToDI) {
+    if (type !== 'breakout') {
+      return {
+        valid: false,
+        title: 'Incorrect Cable for DJ Rig to DI',
+        error: 'The DJ Rig\'s aux out is a 1/8" stereo jack. Use the Stereo Breakout (1/8" to two 1/4" plugs) into the DI.',
+      };
+    }
+    return { valid: true };
+  }
+
+  // The Stereo Breakout only fits the DJ Rig's 1/8" aux out
+  if (type === 'breakout') {
+    return {
+      valid: false,
+      title: 'Stereo Breakout',
+      error: 'The Stereo Breakout\'s 1/8" end plugs into the DJ Rig. Its two 1/4" ends go into a DI.',
+    };
+  }
+
   // Check acoustic guitar to DI box (Valid with 1/4" cable)
   const isAcousticGtrToDI =
-    (fromItem.gearId === 'inst_acoustic_guitar' && toItem.gearId === 'gear_di_box') ||
-    (toItem.gearId === 'inst_acoustic_guitar' && fromItem.gearId === 'gear_di_box');
+    (fromItem.gearId === 'inst_acoustic_guitar' && isDiBoxId(toItem.gearId)) ||
+    (toItem.gearId === 'inst_acoustic_guitar' && isDiBoxId(fromItem.gearId));
 
   if (isAcousticGtrToDI) {
     if (type !== 'quarter_inch') {
@@ -71,8 +95,8 @@ export function validateGearToGearConnection(
 
   // Check double bass to DI box (Valid with 1/4" cable - piezo pickup)
   const isDoubleBassToDI =
-    (fromItem.gearId === 'inst_double_bass' && toItem.gearId === 'gear_di_box') ||
-    (toItem.gearId === 'inst_double_bass' && fromItem.gearId === 'gear_di_box');
+    (fromItem.gearId === 'inst_double_bass' && isDiBoxId(toItem.gearId)) ||
+    (toItem.gearId === 'inst_double_bass' && isDiBoxId(fromItem.gearId));
 
   if (isDoubleBassToDI) {
     if (type !== 'quarter_inch') {
@@ -129,8 +153,8 @@ export function validateGearToGearConnection(
 
   // 2. Electric Guitar to DI Box (Valid with 1/4")
   const isElectricToDI =
-    (fromItem.gearId === 'inst_electric_guitar' && toItem.gearId === 'gear_di_box') ||
-    (toItem.gearId === 'inst_electric_guitar' && fromItem.gearId === 'gear_di_box');
+    (fromItem.gearId === 'inst_electric_guitar' && isDiBoxId(toItem.gearId)) ||
+    (toItem.gearId === 'inst_electric_guitar' && isDiBoxId(fromItem.gearId));
 
   if (isElectricToDI) {
     if (type !== 'quarter_inch') {
@@ -161,8 +185,8 @@ export function validateGearToGearConnection(
 
   // 4. Bass Guitar to DI Box (Valid with 1/4")
   const isBassToDI =
-    (fromItem.gearId === 'inst_bass_guitar' && toItem.gearId === 'gear_di_box') ||
-    (toItem.gearId === 'inst_bass_guitar' && fromItem.gearId === 'gear_di_box');
+    (fromItem.gearId === 'inst_bass_guitar' && isDiBoxId(toItem.gearId)) ||
+    (toItem.gearId === 'inst_bass_guitar' && isDiBoxId(fromItem.gearId));
 
   if (isBassToDI) {
     if (type !== 'quarter_inch') {
@@ -177,8 +201,8 @@ export function validateGearToGearConnection(
 
   // 5. Keyboard to DI Box (Valid with 1/4")
   const isKeyboardToDI =
-    (fromItem.gearId === 'inst_keyboard' && toItem.gearId === 'gear_di_box') ||
-    (toItem.gearId === 'inst_keyboard' && fromItem.gearId === 'gear_di_box');
+    (fromItem.gearId === 'inst_keyboard' && isDiBoxId(toItem.gearId)) ||
+    (toItem.gearId === 'inst_keyboard' && isDiBoxId(fromItem.gearId));
 
   if (isKeyboardToDI) {
     if (type !== 'quarter_inch') {
@@ -193,8 +217,8 @@ export function validateGearToGearConnection(
 
   // 6. Bass Amp Thru/Direct to DI Box (Valid with 1/4")
   const isBassAmpToDI =
-    (fromItem.gearId === 'gear_bass_amp' && toItem.gearId === 'gear_di_box') ||
-    (toItem.gearId === 'gear_bass_amp' && fromItem.gearId === 'gear_di_box');
+    (fromItem.gearId === 'gear_bass_amp' && isDiBoxId(toItem.gearId)) ||
+    (toItem.gearId === 'gear_bass_amp' && isDiBoxId(fromItem.gearId));
 
   if (isBassAmpToDI) {
     return { valid: true };
@@ -286,6 +310,18 @@ export function validateGearToSnakeConnection(
     };
   }
 
+  // DJ Rig: balanced XLR main outs go straight to the snake (one per side)
+  if (item.gearId === 'inst_dj_rig') {
+    if (type !== 'xlr') {
+      return {
+        valid: false,
+        title: 'Snake Inputs Take XLR',
+        error: 'Snake inputs are XLR. Use the DJ Rig\'s XLR outs (L and R), or run the Stereo Breakout into a Stereo DI first.',
+      };
+    }
+    return { valid: true };
+  }
+
   // 2. Electric Guitar directly to snake
   if (item.gearId === 'inst_electric_guitar') {
     return {
@@ -367,7 +403,7 @@ export function validateGearToSnakeConnection(
   }
 
   // 9. DI Box to snake
-  if (item.gearId === 'gear_di_box') {
+  if (isDiBoxId(item.gearId)) {
     if (type !== 'xlr') {
       return {
         valid: false,
@@ -491,10 +527,10 @@ export function getGearIssues(
   }
 
   // ================= 2. DI BOXES =================
-  if (item.gearId === 'gear_di_box') {
+  if (isDiBoxId(item.gearId)) {
     const hasInputConn = connections.some(
       (c) =>
-        c.cableType === 'quarter_inch' &&
+        (c.cableType === 'quarter_inch' || c.cableType === 'breakout') &&
         (c.fromInstanceId === item.instanceId || c.toInstanceId === item.instanceId)
     );
     if (!hasInputConn) {
@@ -553,7 +589,17 @@ export function getGearIssues(
 
   // ================= 5. INSTRUMENTS =================
   if (def.category === 'instrument') {
-    if (item.gearId === 'inst_electric_guitar') {
+    if (item.gearId === 'inst_dj_rig') {
+      const direct = mixerChannels.filter((ch) => ch.assignedGearInstanceId === item.instanceId).length;
+      const hasBreakout = connections.some(
+        (c) => c.cableType === 'breakout' && (c.fromInstanceId === item.instanceId || c.toInstanceId === item.instanceId)
+      );
+      if (!direct && !hasBreakout) {
+        issues.push('DJ Rig needs its XLR outs (L and R) patched to the snake, or a Stereo Breakout into a Stereo DI');
+      } else if (direct === 1) {
+        issues.push('DJ Rig is stereo: patch both XLR outs (L and R) to two snake channels');
+      }
+    } else if (item.gearId === 'inst_electric_guitar') {
       const hasCable = connections.some(
         (c) =>
           c.cableType === 'quarter_inch' &&
@@ -585,7 +631,7 @@ export function getGearIssues(
         (c) =>
           c.cableType === 'quarter_inch' &&
           (c.fromInstanceId === item.instanceId || c.toInstanceId === item.instanceId) &&
-          placedGear.find((g) => (g.instanceId === c.fromInstanceId || g.instanceId === c.toInstanceId) && g.instanceId !== item.instanceId)?.gearId === 'gear_di_box'
+          isDiBoxId(placedGear.find((g) => (g.instanceId === c.fromInstanceId || g.instanceId === c.toInstanceId) && g.instanceId !== item.instanceId)?.gearId)
       );
       const hasMic = placedGear.some((g) => {
         const gDef = getGearById(g.gearId);
@@ -605,7 +651,7 @@ export function getGearIssues(
             (g) =>
               (g.instanceId === c.fromInstanceId || g.instanceId === c.toInstanceId) &&
               g.instanceId !== item.instanceId &&
-              (g.gearId === 'gear_di_box' || g.gearId === 'gear_bass_amp')
+              (isDiBoxId(g.gearId) || g.gearId === 'gear_bass_amp')
           )
       );
       const hasMic = placedGear.some((g) => {

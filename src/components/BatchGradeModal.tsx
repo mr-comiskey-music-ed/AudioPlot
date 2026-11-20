@@ -13,6 +13,8 @@ import {
   Lock,
 } from 'lucide-react';
 import { BatchParseResult, BatchEntry, classPatterns, downloadBatchCsv } from '../services/batchGrading';
+import { quizPatterns, quizTotal } from '../quiz/quizBatch';
+import { QuizBatchDetails } from '../quiz/QuizReviewPanel';
 
 type SortKey = 'name' | 'score' | 'period';
 
@@ -52,6 +54,9 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
   const [periodFilter, setPeriodFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showPatterns, setShowPatterns] = useState(true);
+  // Part 3 of a quiz is read and scored by the teacher. Kept in this tab only (goes into the CSV).
+  const [part3, setPart3] = useState<Map<number, number>>(new Map());
+  const scoreOf = (e: BatchEntry) => (e.quiz ? quizTotal(e.quiz, part3.get(e.id)) ?? e.evaluation.percentage : e.evaluation.percentage);
 
   const entries = result?.entries ?? [];
   const periods = useMemo(
@@ -65,18 +70,26 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
   const visible: BatchEntry[] = useMemo(() => {
     const list = entries.filter((e) => periodFilter === 'all' || (e.project.period || '—') === periodFilter);
     return [...list].sort((a, b) => {
-      if (sortKey === 'score') return b.evaluation.percentage - a.evaluation.percentage;
+      if (sortKey === 'score') return scoreOf(b) - scoreOf(a);
       if (sortKey === 'period')
         return (a.project.period || '').localeCompare(b.project.period || '', undefined, { numeric: true }) ||
           lastName(a.project.studentName).localeCompare(lastName(b.project.studentName));
       return lastName(a.project.studentName).localeCompare(lastName(b.project.studentName));
     });
-  }, [entries, sortKey, periodFilter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, sortKey, periodFilter, part3]);
 
-  const patterns = useMemo(() => classPatterns(visible), [visible]);
+  const patterns = useMemo(
+    () =>
+      [...classPatterns(visible.filter((e) => !e.quiz)), ...quizPatterns(visible.flatMap((e) => (e.quiz ? [e.quiz] : [])))].sort(
+        // Most students first (what to reteach), then the highest share
+        (a, b) => b.studentsMissing - a.studentsMissing || b.studentsMissing / b.totalApplicable - a.studentsMissing / a.totalApplicable
+      ),
+    [visible]
+  );
   // Sandbox submissions are not graded, so they stay out of the class average.
   const graded = visible.filter((e) => !e.evaluation.isSandbox);
-  const average = graded.length ? Math.round(graded.reduce((s, e) => s + e.evaluation.percentage, 0) / graded.length) : 0;
+  const average = graded.length ? Math.round(graded.reduce((s, e) => s + scoreOf(e), 0) / graded.length) : 0;
   const letterCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const e of visible) m.set(e.evaluation.gradeLetter, (m.get(e.evaluation.gradeLetter) || 0) + 1);
@@ -153,7 +166,7 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
               ))}
               <div className="ml-auto flex gap-2">
                 <button
-                  onClick={() => downloadBatchCsv(visible)}
+                  onClick={() => downloadBatchCsv(visible, part3)}
                   disabled={!visible.length}
                   className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-stone-200 font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
                 >
@@ -210,7 +223,7 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                     </button>
                     {showPatterns && (
                       <div className="mt-2 space-y-1.5">
-                        {patterns.slice(0, 6).map((p) => {
+                        {patterns.slice(0, 8).map((p) => {
                           const pct = Math.round((100 * p.studentsMissing) / p.totalApplicable);
                           return (
                             <div key={p.name} className="flex items-center gap-2 text-[11px]">
@@ -271,10 +284,10 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
 
                 {/* Table */}
                 <div className="border border-white/10 rounded-2xl overflow-hidden">
-                  <div className="grid grid-cols-[1fr_60px_1fr_70px_60px_96px] gap-2 px-3 py-2 bg-white/5 text-[10px] font-black uppercase tracking-wider text-stone-400">
+                  <div className="grid grid-cols-[1fr_60px_1fr_92px_60px_96px] gap-2 px-3 py-2 bg-white/5 text-[10px] font-black uppercase tracking-wider text-stone-400">
                     <span>Student</span>
                     <span>Period</span>
-                    <span>Challenge</span>
+                    <span>Challenge / Quiz</span>
                     <span className="text-right">Score</span>
                     <span className="text-center">Grade</span>
                     <span />
@@ -286,7 +299,7 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                       <div key={e.id} className="border-t border-white/5">
                         <div
                           onClick={() => setExpandedId(open ? null : e.id)}
-                          className="grid grid-cols-[1fr_60px_1fr_70px_60px_96px] gap-2 px-3 py-2 items-center text-xs hover:bg-white/5 cursor-pointer"
+                          className="grid grid-cols-[1fr_60px_1fr_92px_60px_96px] gap-2 px-3 py-2 items-center text-xs hover:bg-white/5 cursor-pointer"
                         >
                           <span className="font-bold text-stone-100 truncate flex items-center gap-1.5">
                             {open ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
@@ -307,10 +320,24 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                           </span>
                           <span className="text-stone-300">{e.project.period || '—'}</span>
                           <span className="text-stone-300 truncate">{e.challengeTitle}</span>
-                          <span className="text-right text-stone-200">
-                            {e.evaluation.totalScore}/{e.evaluation.maxTotalScore}
+                          <span className="text-right text-stone-200" title={e.quiz ? 'Quiz Part 1 and Part 2' : undefined}>
+                            {e.quiz
+                              ? `${e.quiz.plan.percentage}% · ${e.quiz.fix ? `${e.quiz.fix.percentage}%` : '—'}`
+                              : `${e.evaluation.totalScore}/${e.evaluation.maxTotalScore}`}
                           </span>
-                          {e.evaluation.isSandbox ? (
+                          {e.quiz ? (
+                            (() => {
+                              const total = quizTotal(e.quiz, part3.get(e.id));
+                              return (
+                                <span
+                                  className={`text-center font-black rounded-full border px-1.5 py-0.5 ${total == null ? 'text-stone-300 border-white/20 border-dashed' : gradeColor(total)}`}
+                                  title={total == null ? 'Parts 1 and 2 only. Open the row to score Part 3.' : 'Parts 1-3 (50 / 30 / 20)'}
+                                >
+                                  {total == null ? `${e.evaluation.percentage}%*` : `${total}%`}
+                                </span>
+                              );
+                            })()
+                          ) : e.evaluation.isSandbox ? (
                             <span className="text-center font-black rounded-full border px-1.5 py-0.5 text-stone-400 border-white/15" title="Built in the sandbox, not graded">
                               N/G
                             </span>
@@ -329,7 +356,21 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                             <Eye className="w-3.5 h-3.5" /> View plot
                           </button>
                         </div>
-                        {open && (
+                        {open && e.quiz && (
+                          <QuizBatchDetails
+                            grade={e.quiz}
+                            part3={part3.get(e.id)}
+                            onPart3={(v) =>
+                              setPart3((m) => {
+                                const next = new Map(m);
+                                if (v == null) next.delete(e.id);
+                                else next.set(e.id, v);
+                                return next;
+                              })
+                            }
+                          />
+                        )}
+                        {open && !e.quiz && (
                           <div className="px-4 pb-3 pt-1 space-y-2 bg-white/[0.02]">
                             {e.evaluation.criticalIssues.length > 0 && (
                               <ul className="pl-4 list-disc text-[11px] text-rose-200 space-y-0.5">

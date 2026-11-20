@@ -2,6 +2,7 @@ import { StudioProjectState, RubricEvaluation } from '../types';
 import { decodeSubmission } from './submissionCodec';
 import { evaluateStudioSetup } from './gradingEngine';
 import { resolveTaskId, taskTitle } from '../data/challenges';
+import { QuizGrade, gradeQuiz, quizEvaluation, quizTotal } from '../quiz/quizBatch';
 
 export interface BatchEntry {
   id: number;
@@ -10,6 +11,8 @@ export interface BatchEntry {
   challengeTitle: string;
   /** True when the same student name appears with more than one different code. */
   hasMultipleSubmissions: boolean;
+  /** Quiz Mode codes: the regenerated gig, both parts' checks and the written answers. */
+  quiz?: QuizGrade;
 }
 
 export interface BatchParseResult {
@@ -158,12 +161,14 @@ export function parseBatch(text: string): BatchParseResult {
       continue;
     }
     seen.add(found.code);
+    const quiz = gradeQuiz(found.project) ?? undefined;
     entries.push({
       id: entries.length,
       project: found.project,
-      evaluation: gradeProject(found.project),
-      challengeTitle: challengeTitle(found.project),
+      evaluation: quiz ? quizEvaluation(quiz) : gradeProject(found.project),
+      challengeTitle: quiz ? `Quiz: ${quiz.scenario.title}` : challengeTitle(found.project),
       hasMultipleSubmissions: false,
+      quiz,
     });
   }
 
@@ -204,7 +209,7 @@ export function classPatterns(entries: BatchEntry[]): ClassPattern[] {
 }
 
 /** Gradebook CSV, downloaded straight to the teacher's computer. */
-export function downloadBatchCsv(entries: BatchEntry[]) {
+export function downloadBatchCsv(entries: BatchEntry[], quizPart3: Map<number, number> = new Map()) {
   const categoryNames: string[] = [];
   for (const e of entries) {
     for (const cat of Object.values(e.evaluation.categories)) {
@@ -215,7 +220,9 @@ export function downloadBatchCsv(entries: BatchEntry[]) {
     const s = String(v ?? '');
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const header = ['Student', 'Period', 'Challenge', 'Mode', 'Learn Done', 'Score', 'Max Score', 'Percent', 'Letter', 'Issues', ...categoryNames];
+  const hasQuiz = entries.some((e) => e.quiz);
+  const quizHeader = hasQuiz ? ['Quiz Part 1 %', 'Quiz Part 2 %', 'Quiz Part 3 % (teacher)', 'Quiz Total %', 'Quiz Why', 'Quiz Fix Explained'] : [];
+  const header = ['Student', 'Period', 'Challenge', 'Mode', 'Learn Done', 'Score', 'Max Score', 'Percent', 'Letter', 'Issues', ...categoryNames, ...quizHeader];
   const rows = entries.map((e) => {
     const cats = Object.values(e.evaluation.categories);
     return [
@@ -233,6 +240,18 @@ export function downloadBatchCsv(entries: BatchEntry[]) {
         const c = cats.find((x) => x?.name === n);
         return !c || c.status === 'not_applicable' ? 'N/A' : `${c.score}/${c.maxScore}`;
       }),
+      ...(hasQuiz
+        ? e.quiz
+          ? [
+              e.quiz.plan.percentage,
+              e.quiz.fix?.percentage ?? '',
+              quizPart3.get(e.id) ?? '',
+              quizTotal(e.quiz, quizPart3.get(e.id)) ?? '',
+              e.quiz.why,
+              e.quiz.fixNote,
+            ]
+          : ['', '', '', '', '', '']
+        : []),
     ].map(esc).join(',');
   });
   const blob = new Blob([[header.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8' });

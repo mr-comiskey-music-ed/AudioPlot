@@ -6,7 +6,7 @@ import {
   RubricEvaluation,
   RubricCategoryScore,
 } from '../types';
-import { getGearById } from '../data/gearCatalog';
+import { getGearById, isDiBoxId } from '../data/gearCatalog';
 import { getTaskById, givenInstrumentCounts } from '../data/challenges';
 import { getWorld, getPaZone, getItemCenter, StageSize } from '../components/canvas/stageGeometry';
 import { wedgesFedFromSnake } from '../components/canvas/monitorChain';
@@ -184,7 +184,7 @@ export function validateChannelSignalChain(
     const quarterConn = connections.find(
       (c) =>
         (c.fromInstanceId === assignedGear.instanceId || c.toInstanceId === assignedGear.instanceId) &&
-        c.cableType === 'quarter_inch'
+        (c.cableType === 'quarter_inch' || c.cableType === 'breakout')
     );
     if (!quarterConn) {
       return {
@@ -289,7 +289,7 @@ export function getInstrumentSignalChainStatus(
         return { valid: false, error: `Guitar Amp mic (${micDef.name}) requires +48V Phantom Power on CH ${ch.channelNumber}` };
       }
       return { valid: true, channelNumber: ch.channelNumber };
-    } else if (targetGear.gearId === 'gear_di_box') {
+    } else if (isDiBoxId(targetGear.gearId)) {
       const ch = mixerChannels.find(
         (c) => c.assignedGearInstanceId === targetGear.instanceId || c.channelNumber === targetGear.assignedChannel
       );
@@ -342,7 +342,7 @@ export function getInstrumentSignalChainStatus(
         }
       }
       return { valid: true, channelNumber: activeCh.channelNumber };
-    } else if (targetGear.gearId === 'gear_di_box') {
+    } else if (isDiBoxId(targetGear.gearId)) {
       const ch = mixerChannels.find(
         (c) => c.assignedGearInstanceId === targetGear.instanceId || c.channelNumber === targetGear.assignedChannel
       );
@@ -366,7 +366,7 @@ export function getInstrumentSignalChainStatus(
     }
     const targetId = quarterConn.fromInstanceId === inst.instanceId ? quarterConn.toInstanceId : quarterConn.fromInstanceId;
     const targetGear = placedGear.find((g) => g.instanceId === targetId);
-    if (!targetGear || targetGear.gearId !== 'gear_di_box') {
+    if (!targetGear || !isDiBoxId(targetGear.gearId)) {
       return { valid: false, error: 'Keyboard must plug into a DI Box' };
     }
     const ch = mixerChannels.find(
@@ -388,7 +388,7 @@ export function getInstrumentSignalChainStatus(
     if (quarterConn) {
       const targetId = quarterConn.fromInstanceId === inst.instanceId ? quarterConn.toInstanceId : quarterConn.fromInstanceId;
       const targetGear = placedGear.find((g) => g.instanceId === targetId);
-      if (targetGear?.gearId === 'gear_di_box') {
+      if (isDiBoxId(targetGear?.gearId)) {
         const ch = mixerChannels.find(
           (c) => c.assignedGearInstanceId === targetGear.instanceId || c.channelNumber === targetGear.assignedChannel
         );
@@ -431,7 +431,7 @@ export function getInstrumentSignalChainStatus(
     if (quarterConn) {
       const targetId = quarterConn.fromInstanceId === inst.instanceId ? quarterConn.toInstanceId : quarterConn.fromInstanceId;
       const targetGear = placedGear.find((g) => g.instanceId === targetId);
-      if (targetGear?.gearId === 'gear_di_box') {
+      if (isDiBoxId(targetGear?.gearId)) {
         const ch = mixerChannels.find(
           (c) => c.assignedGearInstanceId === targetGear.instanceId || c.channelNumber === targetGear.assignedChannel
         );
@@ -488,6 +488,22 @@ export function getInstrumentSignalChainStatus(
       return { valid: false, error: `${micDef.name} requires +48V Phantom Power turned ON on Ch ${ch.channelNumber}` };
     }
     return { valid: true, channelNumber: ch.channelNumber };
+  }
+
+  // DJ Rig: XLR pair straight to the snake, or Stereo Breakout into a DI that is patched
+  if (inst.gearId === 'inst_dj_rig') {
+    const direct = mixerChannels.find((c) => c.assignedGearInstanceId === inst.instanceId);
+    if (direct) return { valid: true, channelNumber: direct.channelNumber };
+    const brk = connections.find(
+      (c) => (c.fromInstanceId === inst.instanceId || c.toInstanceId === inst.instanceId) && c.cableType === 'breakout'
+    );
+    if (brk) {
+      const diId = brk.fromInstanceId === inst.instanceId ? brk.toInstanceId : brk.fromInstanceId;
+      const ch = mixerChannels.find((c) => c.assignedGearInstanceId === diId);
+      if (ch) return { valid: true, channelNumber: ch.channelNumber };
+      return { valid: false, error: 'DJ Rig DI is not patched to a snake channel' };
+    }
+    return { valid: false, error: 'DJ Rig needs its XLR outs patched to the snake, or a Stereo Breakout into a DI' };
   }
 
   // 5. Vocals and other acoustic instruments (Voice, Drums, Brass, Strings, Piano, etc.)

@@ -227,6 +227,8 @@ export const formatShortGearName = (name?: string, gearId?: string): string => {
   if (gearId === 'gear_bass_amp' || name.toLowerCase().includes('bass amp')) {
     return 'Bass Amp';
   }
+  if (gearId === 'gear_di_stereo') return 'Stereo DI';
+  if (gearId === 'inst_dj_rig') return 'DJ Rig';
   if (gearId === 'gear_di_box' || name.toLowerCase().includes('di box')) {
     return 'DI Box';
   }
@@ -319,6 +321,7 @@ export const getGearBoxDimensions = (
     gearId === 'gear_iem_receiver' ||
     gearId === 'gear_in_ear_monitors' ||
     gearId === 'gear_di_box' ||
+    gearId === 'gear_di_stereo' ||
     gearId === 'gear_iem_transmitter'
   ) {
     if (isAssigned) {

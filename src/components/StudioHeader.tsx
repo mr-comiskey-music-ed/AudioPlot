@@ -40,6 +40,8 @@ interface StudioHeaderProps {
   canRedo?: boolean;
   /** Small status element (autosave indicator) shown beside the Clear button. */
   statusSlot?: React.ReactNode;
+  /** Quiz Mode: shows this label and hides the stage switch, Tasks, Learn and Share. */
+  quizLabel?: string | null;
 }
 
 export const StudioHeader: React.FC<StudioHeaderProps> = ({
@@ -66,6 +68,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   canUndo = false,
   canRedo = false,
   statusSlot,
+  quizLabel,
 }) => {
   const appName = 'AudioPlot';
 
@@ -99,8 +102,17 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
         {/* Right: In-line Environment Switcher + Action Controls */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {quizLabel && (
+            <span
+              id="quiz-header-label"
+              className="px-3 py-1 rounded-full text-xs font-bold bg-purple-600 text-white shadow-md flex items-center gap-1"
+            >
+              <Radio className="w-3.5 h-3.5" />
+              {quizLabel}
+            </span>
+          )}
           {/* Environment Toggle (Recording Studio vs Live Stage) */}
-          <div className="flex items-center bg-black/50 p-0.5 rounded-full border border-white/10 backdrop-blur-md shadow-inner">
+          {!quizLabel && <div className="flex items-center bg-black/50 p-0.5 rounded-full border border-white/10 backdrop-blur-md shadow-inner">
             <button
               id="btn-env-studio"
               onClick={() => onEnvironmentChange('recording_studio')}
@@ -129,7 +141,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               <span className="min-[1440px]:hidden">Stage</span>
               <span className="hidden min-[1440px]:inline">Live Stage</span>
             </button>
-          </div>
+          </div>}
 
           <div className="h-4 w-px bg-white/10 mx-0.5 hidden md:block" />
 
@@ -180,7 +192,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           </button>
 
           {/* Task / Sandbox Pill Button */}
-          {onOpenChallengeModal && (
+          {onOpenChallengeModal && !quizLabel && (
             <button
               id="btn-open-challenges"
               onClick={onOpenChallengeModal}
@@ -199,7 +211,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           )}
 
           {/* Learn: the four questions behind any setup */}
-          <button
+          {!quizLabel && <button
             id="btn-learn"
             onClick={onOpenLearn || onOpenGuideModal}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-500/40 backdrop-blur-md transition-all text-xs font-bold"
@@ -207,7 +219,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           >
             <GraduationCap className="w-3.5 h-3.5" />
             <span>Learn</span>
-          </button>
+          </button>}
 
           {/* Quick How-To Tour Walkthrough */}
           {onOpenTour && (
@@ -230,7 +242,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           <div className="hidden lg:flex w-[68px] 2xl:w-[112px] justify-end shrink-0">{statusSlot}</div>
 
           {/* Share / Export Modal */}
-          <button
+          {!quizLabel && <button
             id="btn-share-submit"
             onClick={onOpenShareModal}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-sky-700 hover:bg-sky-600 text-white shadow-lg shadow-black/30 transition-all cursor-pointer"
@@ -238,7 +250,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>Share & Submit</span>
-          </button>
+          </button>}
         </div>
       </div>
     </header>

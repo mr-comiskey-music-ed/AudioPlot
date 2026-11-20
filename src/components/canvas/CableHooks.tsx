@@ -8,6 +8,8 @@ interface CableHooksProps {
   onSelectCableTool: (type: CableType | null) => void;
   isXlrHighlighted?: boolean;
   isQuarterInchHighlighted?: boolean;
+  /** The Stereo Breakout (1/8" to two 1/4") shows only while a DJ Rig is on the plot */
+  showBreakout?: boolean;
 }
 
 export const CableHooks: React.FC<CableHooksProps> = ({
@@ -15,6 +17,7 @@ export const CableHooks: React.FC<CableHooksProps> = ({
   onSelectCableTool,
   isXlrHighlighted = false,
   isQuarterInchHighlighted = false,
+  showBreakout = false,
 }) => {
   return (
     <div className="absolute top-4 left-4 z-30 flex flex-row-reverse items-start gap-2.5">
@@ -65,6 +68,29 @@ export const CableHooks: React.FC<CableHooksProps> = ({
           </div>
           <span>{activeCableTool === 'quarter_inch' ? '1/4" in hand' : '1/4" Cable'}</span>
         </button>
+
+        {showBreakout && (
+          <button
+            id="btn-cable-hook-breakout"
+            onClick={() => {
+              onSelectCableTool(activeCableTool === 'breakout' ? null : 'breakout');
+            }}
+            className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center gap-2 transition-all backdrop-blur-md cursor-pointer ${
+              activeCableTool === 'breakout'
+                ? 'bg-purple-500 border-purple-300 text-stone-950 shadow-2xl shadow-purple-500/80 ring-4 ring-purple-400'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-purple-300 hover:border-purple-400/40'
+            }`}
+            title='Stereo Breakout: 1/8" (3.5 mm) stereo plug to two 1/4" plugs (L and R). From the DJ Rig aux out into a DI.'
+          >
+            <div className="w-5 h-5 flex items-center justify-center shrink-0">
+              <StudioIcon iconType="BreakoutCable" size={20} />
+            </div>
+            <span className="text-left leading-tight">
+              {activeCableTool === 'breakout' ? 'Breakout in hand' : 'Stereo Breakout'}
+              <span className="block text-[9px] font-semibold opacity-70">1/8" → 2× 1/4"</span>
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

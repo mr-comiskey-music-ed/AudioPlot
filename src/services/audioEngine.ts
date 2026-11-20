@@ -29,6 +29,18 @@ export const INSTRUMENT_AUDIO_FILES: Record<string, string> = {
   inst_choir: '/audio/Choir.mp3',
 };
 
+/**
+ * Stems built in the browser from other loops instead of a new file (keeps the download small).
+ * The DJ Rig plays a "track": drums, bass and keys summed, each at its own balanced level.
+ */
+const DERIVED_STEMS: Record<string, string[]> = {
+  inst_dj_rig: ['inst_kick_drum', 'inst_snare_drum', 'inst_bass_guitar', 'inst_keyboard'],
+};
+// +12 dB: a DJ Rig's line-level XLR outs into a mic preamp. Trim 54 (-12 dB) brings it back to normal.
+export const LINE_LEVEL_BOOST = Math.pow(10, 12 / 20);
+export const DJ_RIG_START_GAIN = 54;
+const ALL_STEM_IDS = [...Object.keys(INSTRUMENT_AUDIO_FILES), ...Object.keys(DERIVED_STEMS)];
+
 interface ActiveTrackNode {
   source: AudioBufferSourceNode;
   gainNode: GainNode;
@@ -349,6 +361,27 @@ class StudioAudioEngine {
     return this.isPlaying;
   }
 
+  /** Sum a derived stem's parts (each brought to its balanced level) once they have all loaded. */
+  private getDerivedBuffer(gearId: string): AudioBuffer | undefined {
+    const parts = DERIVED_STEMS[gearId];
+    if (!parts || !this.ctx) return undefined;
+    const bufs = parts.map((id) => this.audioBuffers.get(id));
+    if (bufs.some((b) => !b)) return undefined;
+    const ready = bufs as AudioBuffer[];
+    const length = Math.min(...ready.map((b) => b.length));
+    const mixed = this.ctx.createBuffer(2, length, ready[0].sampleRate);
+    ready.forEach((b, i) => {
+      const k = this.getNormFactor(parts[i], b);
+      for (let c = 0; c < 2; c++) {
+        const src = b.getChannelData(Math.min(c, b.numberOfChannels - 1));
+        const out = mixed.getChannelData(c);
+        for (let j = 0; j < length; j++) out[j] += src[j] * k;
+      }
+    });
+    this.audioBuffers.set(gearId, mixed);
+    return mixed;
+  }
+
   private spawnTrack(gearId: string, startTime: number, offset = 0) {
     if (!this.ctx || !this.masterGainNode || this.activeTracks.has(gearId)) return;
     let buffer = this.audioBuffers.get(gearId);
@@ -362,6 +395,7 @@ class StudioAudioEngine {
         }
       }
     }
+    if (!buffer) buffer = this.getDerivedBuffer(gearId);
     if (!buffer) return;
 
     const source = this.ctx.createBufferSource();
@@ -487,7 +521,7 @@ class StudioAudioEngine {
     this.startTime = commonStartTime;
 
     // Spawn and synchronize all 17 audio tracks
-    Object.entries(INSTRUMENT_AUDIO_FILES).forEach(([gearId]) => {
+    ALL_STEM_IDS.forEach((gearId) => {
       this.spawnTrack(gearId, commonStartTime);
     });
 
@@ -509,9 +543,9 @@ class StudioAudioEngine {
       const now = Tone.now();
 
       // Catch any track buffer that finished decoding late and spawn it in loop sync
-      Object.keys(INSTRUMENT_AUDIO_FILES).forEach((gearId) => {
+      ALL_STEM_IDS.forEach((gearId) => {
         if (!this.activeTracks.has(gearId)) {
-          let buffer = this.audioBuffers.get(gearId);
+          let buffer = this.audioBuffers.get(gearId) ?? this.getDerivedBuffer(gearId);
           if (!buffer && this.toneAudioBuffers?.has(gearId)) {
             const toneBuf = this.toneAudioBuffers.get(gearId);
             if (toneBuf && toneBuf.loaded) {
@@ -920,6 +954,9 @@ class StudioAudioEngine {
             const db = ((rawTrim - UNITY_VAL) / (100 - UNITY_VAL)) * 12;
             preampGain = Math.pow(10, db / 20);
           }
+
+          // Line level straight into a mic preamp (DJ Rig XLR outs, no DI) is about 12 dB hotter, so its trim must come down
+          if (val.sourceGear?.gearId === 'inst_dj_rig') preampGain *= LINE_LEVEL_BOOST;
 
           // Fader: the same dB law as the label (utils/faderLaw.ts), so -15 dB on the fader is -15 dB in the audio
           const faderGain = faderPositionToGain(ch.fader);
