@@ -243,8 +243,8 @@ export function downloadBatchCsv(entries: BatchEntry[], quizPart3: Map<number, n
       ...(hasQuiz
         ? e.quiz
           ? [
-              e.quiz.plan.percentage,
-              e.quiz.fix?.percentage ?? '',
+              e.quiz.planC.percentage,
+              e.quiz.fixC?.percentage ?? '',
               quizPart3.get(e.id) ?? '',
               quizTotal(e.quiz, quizPart3.get(e.id)) ?? '',
               e.quiz.why,

@@ -2,15 +2,21 @@ import { RubricEvaluation, StudioProjectState } from '../types';
 import { unpackProject } from '../services/submissionCodec';
 import { DEFAULT_MASTER_BUS } from '../hooks/useUndoRedo';
 import {
-  CHECK_LABELS, CheckId, ERROR_LABELS, FixResult, PlanResult, QuizPlot, QuizRecord, QuizScenario, QuizSource,
-  QUIZ_WEIGHTS, buildFixScenario, evaluateFix, evaluatePlan, explainQuestion, explainSource, scenarioFromRecord, FIX_QUESTION,
+  CombinedResult, PlanResult, QuizPlot, QuizRecord, QuizScenario, QuizSource, QUIZ_WEIGHTS, SOURCE_LABELS,
+  buildFixScenario, combineAttempts, evaluateFix, evaluatePlan, explainQuestion, explainSource, fixItems, planItems,
+  scenarioFromRecord, FIX_QUESTION,
 } from './quizEngine';
 
 /** Everything the teacher sees for one quiz code, rebuilt from the seed in the code. */
 export interface QuizGrade {
   scenario: QuizScenario;
+  /** First Part 1 attempt (channels, which sources were found) */
   plan: PlanResult;
-  fix: FixResult | null;
+  /** Part 1 and Part 2 scores: first try in full, second-pass fixes at half */
+  planC: CombinedResult;
+  fixC: CombinedResult | null;
+  /** Sources the student ticked in the Part 2 line check (not graded) */
+  lineChecked: string[];
   explainAbout: QuizSource;
   whyQuestion: string;
   fixQuestion: string;
@@ -39,11 +45,20 @@ export function gradeQuiz(project: StudioProjectState): QuizGrade | null {
   const part1Plot = rec.p1 ? toPlot(unpackProject(rec.p1 as Record<string, any>)) : toPlot(project);
   const part2Plot = rec.p2 ? toPlot(unpackProject(rec.p2 as Record<string, any>)) : null;
   const plan = evaluatePlan(part1Plot, scenario);
-  const fix = part2Plot ? evaluateFix(part2Plot, scenario, buildFixScenario(scenario).errors) : null;
+  const planRev = rec.p1r ? evaluatePlan(toPlot(unpackProject(rec.p1r as Record<string, any>)), scenario) : null;
+  const planC = combineAttempts(planItems(plan), planRev && planItems(planRev));
+  const errors = buildFixScenario(scenario).errors;
+  const fixC = part2Plot
+    ? combineAttempts(
+        fixItems(evaluateFix(part2Plot, scenario, errors)),
+        rec.p2r ? fixItems(evaluateFix(toPlot(unpackProject(rec.p2r as Record<string, any>)), scenario, errors)) : null
+      )
+    : null;
   const explainAbout = explainSource(scenario);
-  const autoPoints = Math.round(((plan.percentage * QUIZ_WEIGHTS.plan) + ((fix?.percentage ?? 0) * QUIZ_WEIGHTS.fix)) / 100);
+  const autoPoints = Math.round(((planC.percentage * QUIZ_WEIGHTS.plan) + ((fixC?.percentage ?? 0) * QUIZ_WEIGHTS.fix)) / 100);
   return {
-    scenario, plan, fix, explainAbout,
+    scenario, plan, planC, fixC, explainAbout,
+    lineChecked: rec.lc ?? [],
     whyQuestion: explainQuestion(explainAbout),
     fixQuestion: FIX_QUESTION,
     why: rec.w1 ?? '',
@@ -84,7 +99,7 @@ export interface MissPattern {
   totalApplicable: number;
 }
 
-/** Quiz items ranked by how many students missed them: each source check, then each Part 2 fault. */
+/** Quiz items ranked by how many students missed them (anything short of full credit on the first try counts). */
 export function quizPatterns(grades: QuizGrade[]): MissPattern[] {
   const by = new Map<string, MissPattern>();
   const count = (name: string, missed: boolean) => {
@@ -94,16 +109,14 @@ export function quizPatterns(grades: QuizGrade[]): MissPattern[] {
     by.set(name, p);
   };
   for (const g of grades) {
-    for (const s of g.plan.sources) {
-      for (const [id, ok] of Object.entries(s.checks)) count(`Plan · ${s.label}: ${CHECK_LABELS[id as CheckId]}`, !ok);
-    }
-    count('Plan · No extra or dead channels', !g.plan.extraChannelsOk);
-    if (g.fix) {
-      for (const e of g.fix.errors) count(`Fix · ${ERROR_LABELS[e.kind]}`, !e.fixed);
-      count('Fix · Left the rest working', !g.fix.restOk);
+    for (const it of g.planC.items) count(`Plan · ${it.label}`, it.credit < 1);
+    for (const it of g.fixC?.items ?? []) {
+      // Fault names without the source, so the same fault on different instruments adds up
+      const name = it.source ? it.label.replace(`${SOURCE_LABELS[it.source]}: `, '') : it.label;
+      count(`Fix · ${name}`, it.credit < 1);
     }
   }
   return [...by.values()]
     .filter((p) => p.studentsMissing > 0)
-    .sort((a, b) => b.studentsMissing / b.totalApplicable - a.studentsMissing / a.totalApplicable || b.studentsMissing - a.studentsMissing);
+    .sort((a, b) => b.studentsMissing - a.studentsMissing || b.studentsMissing / b.totalApplicable - a.studentsMissing / a.totalApplicable);
 }

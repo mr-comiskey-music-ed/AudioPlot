@@ -8,7 +8,7 @@
  */
 import { CableConnection, CableType, MasterBusState, MixerChannelState, PlacedGear } from '../types';
 import { getGearById, isDiBoxId } from '../data/gearCatalog';
-import { validateChannelSignalChain } from '../services/gradingEngine';
+import { evaluateStudioSetup, validateChannelSignalChain } from '../services/gradingEngine';
 import { getPaZones } from '../components/canvas/stageGeometry';
 
 export interface QuizPlot {
@@ -282,6 +282,10 @@ export interface SourceResult {
 export interface PlanResult {
   sources: SourceResult[];
   extraChannelsOk: boolean;
+  /** PA speakers in the PA zones on MAIN L/R (same check as the live grader) */
+  pa: boolean;
+  /** Wedge or IEM fed from MON 1/2 */
+  monitors: boolean;
   earned: number;
   possible: number;
   percentage: number;
@@ -362,15 +366,106 @@ export function evaluatePlan(p: QuizPlot, scenario: QuizScenario): PlanResult {
   const sources = scenario.sources.map((s) => evalSource(p, s, matched.get(s.key)));
   const owned = new Set(sources.flatMap((r) => r.channels));
   const extraChannelsOk = p.mixerChannels.every((ch) => !ch.assignedGearInstanceId || owned.has(ch.channelNumber));
-  let earned = extraChannelsOk ? 1 : 0;
-  let possible = 1;
+  const outs = liveOutputsOf(p);
+  let earned = (extraChannelsOk ? 1 : 0) + (outs.pa ? 1 : 0) + (outs.monitors ? 1 : 0);
+  let possible = 3;
   sources.forEach((r) => {
     Object.values(r.checks).forEach((ok) => {
       possible += 1;
       if (ok) earned += 1;
     });
   });
-  return { sources, extraChannelsOk, earned, possible, percentage: Math.round((earned / possible) * 100) };
+  return { sources, extraChannelsOk, ...outs, earned, possible, percentage: Math.round((earned / possible) * 100) };
+}
+
+/** PA and stage monitors, scored the way the live-stage grader scores them. */
+export function liveOutputsOf(p: QuizPlot): { pa: boolean; monitors: boolean } {
+  const ev = evaluateStudioSetup('live_stage', p.placedGear, p.connections, p.mixerChannels, 'open_live', 'standard');
+  const full = (c?: { score: number; maxScore: number }) => !!c && c.maxScore > 0 && c.score >= c.maxScore;
+  return { pa: full(ev.categories.paSpeakerSetup), monitors: full(ev.categories.monitorSetup) };
+}
+
+// ---------- Scored items, first try and "another pass" ----------
+
+/** One thing the quiz checks. Its id is stable so a revised attempt can be matched to the first. */
+export interface ScoredItem {
+  id: string;
+  label: string;
+  /** Plain words for "what you missed" (shown only after the student chooses to see it). */
+  missed: string;
+  source?: SourceKind;
+  ok: boolean;
+}
+
+export type Credit = 0 | 0.5 | 1;
+export interface CombinedResult {
+  items: Array<ScoredItem & { credit: Credit }>;
+  earned: number;
+  possible: number;
+  percentage: number;
+  revised: boolean;
+}
+
+const MISSED_CHECK: Record<CheckId, string> = {
+  input: 'not the right mic or DI for it',
+  cable: 'not cabled all the way to the snake',
+  phantom: '48V set wrong (it should be on only for condensers)',
+  stereo: 'a stereo source needs both sides (L and R) on two channels',
+  channel: 'should be on its own channel, without doubling up',
+};
+
+export function planItems(r: PlanResult): ScoredItem[] {
+  const items: ScoredItem[] = [];
+  r.sources.forEach((s) => {
+    (Object.entries(s.checks) as [CheckId, boolean][]).forEach(([id, ok]) =>
+      items.push({
+        id: `${s.key}:${id}`,
+        label: `${s.label}: ${CHECK_LABELS[id]}`,
+        missed: s.found ? `${s.label}: ${MISSED_CHECK[id]}` : `${s.label}: not on the stage`,
+        source: s.key,
+        ok,
+      })
+    );
+  });
+  items.push({ id: 'extra', label: 'No extra or dead channels', missed: 'A channel is patched to something that isn\'t part of the band, or has no signal', ok: r.extraChannelsOk });
+  items.push({ id: 'pa', label: 'PA speakers on MAIN L/R', missed: 'The PA speakers (in both PA zones, on MAIN L and MAIN R) weren\'t set up', ok: r.pa });
+  items.push({ id: 'monitors', label: 'Stage monitors on MON 1/2', missed: 'No stage monitors (wedge or IEM) on MON 1 or MON 2', ok: r.monitors });
+  return items;
+}
+
+export function fixItems(r: FixResult): ScoredItem[] {
+  return [
+    ...r.errors.map((e) => {
+      const where = e.source ? `${SOURCE_LABELS[e.source]}: ` : '';
+      return {
+        id: `${e.kind}:${e.source ?? 'mix'}`,
+        label: `${where}${ERROR_LABELS[e.kind]}`,
+        missed: `${where}${ERROR_LABELS[e.kind].toLowerCase()} (not fixed)`,
+        source: e.source,
+        ok: e.fixed,
+      };
+    }),
+    { id: 'rest', label: 'Left everything else working', missed: 'Something that was working got broken while fixing', ok: r.restOk },
+  ];
+}
+
+/** First try counts in full; anything fixed on the second pass earns half. */
+export function combineAttempts(first: ScoredItem[], second?: ScoredItem[] | null): CombinedResult {
+  const items = first.map((it) => {
+    const later = second?.find((x) => x.id === it.id);
+    const credit: Credit = it.ok ? 1 : later?.ok ? 0.5 : 0;
+    return { ...it, ok: it.ok || !!later?.ok, credit };
+  });
+  const earned = items.reduce((n, i) => n + i.credit, 0);
+  return { items, earned, possible: items.length, percentage: items.length ? Math.round((earned / items.length) * 100) : 0, revised: !!second };
+}
+
+export type SourceStatus = 'pass' | 'partial' | 'missed';
+/** Green when every check got full credit, red when none got any, yellow in between. */
+export function statusOf(items: Array<{ credit: Credit }>): SourceStatus {
+  if (items.every((i) => i.credit === 1)) return 'pass';
+  if (items.every((i) => i.credit === 0)) return 'missed';
+  return 'partial';
 }
 
 // ---------- Part 2: a working setup, then broken ----------
@@ -534,7 +629,11 @@ export function buildWorkingSetup(scenario: QuizScenario): QuizPlot {
 
 export type ErrorKind =
   | 'muted' | 'solo_other' | 'gain_zero' | 'fader_down' | 'phantom_off' | 'pan_hard' | 'main_down'
-  | 'dj_gain_high' | 'wrong_di' | 'unpatched' | 'wrong_mic' | 'no_mic' | 'mic_on_instrument' | 'missing_di';
+  | 'dj_gain_high' | 'wrong_di' | 'unpatched' | 'wrong_mic' | 'no_mic' | 'mic_on_instrument' | 'missing_di'
+  | 'unplugged' | 'pa_unplugged' | 'monitor_unplugged';
+
+/** Faults that live on the mixer. Part 2 uses one (or two of four), never the majority; the rest are on the plot. */
+export const MIXER_FAULTS: ErrorKind[] = ['muted', 'solo_other', 'gain_zero', 'fader_down', 'phantom_off', 'pan_hard', 'main_down', 'dj_gain_high'];
 
 export interface InjectedError {
   kind: ErrorKind;
@@ -556,6 +655,9 @@ export const ERROR_LABELS: Record<ErrorKind, string> = {
   no_mic: 'No mic on the source',
   mic_on_instrument: 'Mic placed on an electric instrument',
   missing_di: 'Needs a DI but has none',
+  unplugged: 'Instrument cable unplugged',
+  pa_unplugged: 'A PA speaker unplugged from MAIN',
+  monitor_unplugged: 'Stage monitor unplugged from MON',
 };
 
 /** The gear in the working setup that feeds this source. */
@@ -584,7 +686,7 @@ function removeGear(p: QuizPlot, ids: string[]) {
 
 /** Which errors make sense for this working setup. */
 function candidates(p: QuizPlot, scenario: QuizScenario): InjectedError[] {
-  const out: InjectedError[] = [{ kind: 'main_down' }, { kind: 'solo_other' }];
+  const out: InjectedError[] = [{ kind: 'main_down' }, { kind: 'solo_other' }, { kind: 'pa_unplugged' }, { kind: 'monitor_unplugged' }];
   scenario.sources.forEach((s) => {
     const u = unitOf(s.key);
     const ids = feedIds(p, u, s.key);
@@ -596,6 +698,10 @@ function candidates(p: QuizPlot, scenario: QuizScenario): InjectedError[] {
     if (!stereo) out.push({ kind: 'pan_hard', source: s.key });
     if (gear.some(needs48)) out.push({ kind: 'phantom_off', source: s.key });
     if (hasMic && s.key !== 'piano') out.push({ kind: 'wrong_mic', source: s.key }, { kind: 'no_mic', source: s.key });
+    const inst = p.placedGear.find((g) => g.instanceId === (u === 'kit' ? `quiz_kit_${s.key}` : `quiz_${u}_inst`));
+    if (inst && p.connections.some((c) => (c.cableType === 'quarter_inch' || c.cableType === 'breakout') && touches(c, inst.instanceId))) {
+      out.push({ kind: 'unplugged', source: s.key });
+    }
     if (s.key === 'electric_guitar') out.push({ kind: 'mic_on_instrument', source: s.key });
     if (s.key === 'keys') out.push({ kind: 'mic_on_instrument', source: s.key }, { kind: 'missing_di', source: s.key });
     if ((s.key === 'bass' || s.key === 'acoustic_guitar') && gear.some((g) => isDiBoxId(g.gearId))) out.push({ kind: 'missing_di', source: s.key });
@@ -621,6 +727,15 @@ function inject(p: QuizPlot, e: InjectedError, scenario: QuizScenario) {
   switch (e.kind) {
     case 'main_down':
       p.masterBus = { ...p.masterBus, fader: 8 };
+      break;
+    case 'pa_unplugged':
+      p.connections = p.connections.filter((c) => !(touches(c, 'snake_out_main_r') && touches(c, 'quiz_pa_r')));
+      break;
+    case 'monitor_unplugged':
+      p.connections = p.connections.filter((c) => !touches(c, 'snake_out_mon1'));
+      break;
+    case 'unplugged':
+      if (inst) p.connections = p.connections.filter((c) => !((c.cableType === 'quarter_inch' || c.cableType === 'breakout') && touches(c, inst.instanceId)));
       break;
     case 'solo_other': {
       const ch = p.mixerChannels.find((c) => c.assignedGearInstanceId);
@@ -715,20 +830,35 @@ export function buildFixScenario(scenario: QuizScenario): FixScenario {
   const pool = rng.shuffle(candidates(working, scenario));
   const errors: InjectedError[] = [];
   const usedSources = new Set<string>();
-  for (const e of pool) {
-    if (errors.length >= want) break;
+  const isMixer = (e: InjectedError) => MIXER_FAULTS.includes(e.kind);
+  const take = (e: InjectedError) => {
     const slot = e.source ?? `global:${e.kind}`;
-    if (usedSources.has(slot)) continue;
-    // Only one whole-mix error, so the other faults can still be heard and found
-    if (!e.source && errors.some((x) => !x.source)) continue;
+    if (usedSources.has(slot)) return false;
+    // At most one whole-stage fault on the plot and one on the mixer
+    if (!e.source && errors.some((x) => !x.source && isMixer(x) === isMixer(e))) return false;
     // Not every fault on the same kind of problem
-    if (errors.filter((x) => x.kind === e.kind).length >= 1) continue;
+    if (errors.some((x) => x.kind === e.kind)) return false;
     errors.push(e);
     usedSources.add(slot);
+    return true;
+  };
+  // Mostly plot problems (the app's main job): one on the mixer, or two when there are four
+  const mixerWant = want === 4 && rng.next() < 0.5 ? 2 : 1;
+  for (const e of pool.filter(isMixer)) {
+    if (errors.length >= mixerWant) break;
+    take(e);
+  }
+  for (const e of pool.filter((x) => !isMixer(x))) {
+    if (errors.length >= want) break;
+    take(e);
+  }
+  for (const e of pool.filter(isMixer)) {
+    if (errors.length >= want) break; // only if the plot ran out of distinct faults
+    take(e);
   }
   const broken: QuizPlot = JSON.parse(JSON.stringify(working));
   // Structural faults first, then mixer settings
-  const structural: ErrorKind[] = ['no_mic', 'missing_di', 'mic_on_instrument', 'wrong_di', 'wrong_mic', 'unpatched'];
+  const structural: ErrorKind[] = ['no_mic', 'missing_di', 'mic_on_instrument', 'wrong_di', 'wrong_mic', 'unpatched', 'unplugged', 'pa_unplugged', 'monitor_unplugged'];
   [...errors]
     .sort((a, b) => Number(structural.includes(b.kind)) - Number(structural.includes(a.kind)))
     .forEach((e) => inject(broken, e, scenario));
@@ -772,6 +902,8 @@ export function evaluateFix(p: QuizPlot, scenario: QuizScenario, errors: Injecte
   const fixedOne = (e: InjectedError): boolean => {
     if (e.kind === 'main_down') return mainOk;
     if (e.kind === 'solo_other') return noSolo;
+    if (e.kind === 'pa_unplugged') return plan.pa;
+    if (e.kind === 'monitor_unplugged') return plan.monitors;
     const r = e.source ? bySource.get(e.source) : undefined;
     if (!r || !e.source) return false;
     const mix = mixOk(p, r, e.source, matched.get(e.source));
@@ -799,7 +931,9 @@ export function evaluateFix(p: QuizPlot, scenario: QuizScenario, errors: Injecte
         return r.passed && m.unmuted && m.gain && m.fader && m.pan && m.djGain;
       }) &&
     (globalBroken.has('solo_other') || noSolo) &&
-    (globalBroken.has('main_down') || mainOk);
+    (globalBroken.has('main_down') || mainOk) &&
+    (globalBroken.has('pa_unplugged') || plan.pa) &&
+    (globalBroken.has('monitor_unplugged') || plan.monitors);
   const earned = results.filter((r) => r.fixed).length + (restOk ? 1 : 0);
   const possible = results.length + 1;
   return { errors: results, restOk, earned, possible, percentage: Math.round((earned / possible) * 100) };
@@ -827,7 +961,13 @@ export const FIX_QUESTION = 'Explain one fix you made in Part 2.';
 
 export const QUIZ_WEIGHTS = { plan: 50, fix: 30, explain: 20 };
 
-export type QuizPhase = 'intro' | 'plan' | 'plan_done' | 'fix' | 'fix_done' | 'explain' | 'done';
+/**
+ * plan -> plan_done (score shown; choose another pass or see what was missed) -> plan_revise -> plan_final
+ * fix  -> fix_done  (same choice)                                           -> fix_revise  -> fix_final
+ */
+export type QuizPhase =
+  | 'intro' | 'plan' | 'plan_done' | 'plan_revise' | 'plan_final'
+  | 'fix' | 'fix_done' | 'fix_revise' | 'fix_final' | 'explain' | 'done';
 
 /** Saved in the student's code under `qz`. Short keys; never reuse one. */
 export interface QuizRecord {
@@ -837,6 +977,9 @@ export interface QuizRecord {
   ph: QuizPhase;
   p1?: Record<string, unknown>; // packed Part 1 plot, frozen at submit
   p2?: Record<string, unknown>; // packed Part 2 plot, frozen at submit
+  p1r?: Record<string, unknown>; // Part 1 after "another pass" (fixes earn half)
+  p2r?: Record<string, unknown>; // Part 2 after "another pass"
+  lc?: string[]; // Part 2 line check: sources the student ticked as heard on the mixer (not graded)
   w1?: string; // Part 3: why this mic / DI
   w2?: string; // Part 3: one fix explained
 }

@@ -322,7 +322,7 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                           <span className="text-stone-300 truncate">{e.challengeTitle}</span>
                           <span className="text-right text-stone-200" title={e.quiz ? 'Quiz Part 1 and Part 2' : undefined}>
                             {e.quiz
-                              ? `${e.quiz.plan.percentage}% · ${e.quiz.fix ? `${e.quiz.fix.percentage}%` : '—'}`
+                              ? `${e.quiz.planC.percentage}% · ${e.quiz.fixC ? `${e.quiz.fixC.percentage}%` : '—'}`
                               : `${e.evaluation.totalScore}/${e.evaluation.maxTotalScore}`}
                           </span>
                           {e.quiz ? (

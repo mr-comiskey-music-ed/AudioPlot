@@ -196,19 +196,31 @@ challenges can reach 100%. Setups of 4+ score as before.
   no signal-path HUD, and refused cables say only "That connection isn't possible."
 - Part 1 checklist per source (`evaluatePlan`): right input (mic / DI / direct), cabled to
   the snake, 48V only where needed, stereo on two channels (DJ Rig; keys on one channel
-  are fine), own channel with no doubles, plus no extra/dead channels. Students see the
-  % and pass/fail per source only. "Piano" accepts an acoustic piano with mics or a
+  are fine), own channel with no doubles, plus no extra/dead channels, PA speakers on MAIN
+  L/R and stage monitors on MON 1/2 (submitting without either gets a reminder first).
+  Students see the % and Pass / Partly / Missed (green / yellow / red) per source, no reasons.
+- After each part's submit: "Take another pass (half credit for fixes)" or "Show me what I
+  missed". First try counts in full, anything fixed on the second pass earns half
+  (`combineAttempts`); either way they then see what they missed in plain words. Second
+  attempts ride in the code as `p1r` / `p2r`. "Piano" accepts an acoustic piano with mics or a
   keyboard into a DI. The kit is kick + snare + hi-hat (3 sources).
-- Part 2 faults (`buildFixScenario`): muted, another channel soloed, gain at zero, fader
-  down, 48V off on a condenser, mono source panned hard, main level down, DJ Rig gain far
-  too high, DJ Rig through a mono DI, unpatched, wrong mic, no mic, mic on an electric
-  instrument, missing DI. One per source, one whole-mix fault at most. Score = faults
-  fixed + "left everything else working".
+- Part 2 faults (`buildFixScenario`): mostly on the plot (unpatched, wrong mic, no mic, mic
+  on an electric instrument, missing DI, DJ Rig half connected, instrument cable unplugged,
+  a PA speaker or the monitor unplugged); the mixer gets one fault, or two of four, never the
+  majority (`MIXER_FAULTS`: muted, soloed, gain zero, fader down, 48V off, panned hard, main
+  down, DJ gain too high). One per source. Score = faults fixed + "left everything else
+  working". Part 2 has a Line check: students tick each source once they hear it on its own
+  channel (their own tick, not graded; unticked ones get a reminder at submit; kept as `lc`).
 - Kept in the browser as `audioplot:v1:quiz` (seed, part, frozen plots, answers; never the
   name). The code's main plot is Part 1; `qz` holds the record with Part 2 packed inside.
 - Batch view: quiz codes show Part 1 · Part 2 %, a Part 3 box (in the tab only, goes into
   the CSV), a class summary of the most-missed checks and faults, and a review panel with
   the regenerated gig and a Part 1 / Part 2 plot switch (`QuizReviewPanel.tsx`).
+
+## Live soundcheck needs somewhere to hear it
+On the live stage, soundcheck is silent until a PA speaker is cabled to MAIN L/R or a wedge /
+IEM transmitter to MON 1/2 (`hasLiveOutputs`). The mixer still runs (meters move); the audio
+engine's output gate is closed and a notice explains why. Learn is exempt (its PA comes later).
 
 ## DJ Rig, Stereo DI, Stereo Breakout
 - `inst_dj_rig`: laptop + controller, one stereo line-level source. Its XLR outs go straight

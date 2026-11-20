@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Check, ClipboardCheck, Copy, Headphones, ListChecks, Play, RotateCcw, Square, Wrench, X, PencilLine, Send } from 'lucide-react';
-import { FixResult, PlanResult, QuizPhase, QuizScenario, QuizSource, QUIZ_WEIGHTS, explainQuestion } from './quizEngine';
+import { ClipboardCheck, Copy, Eye, Headphones, ListChecks, Play, RotateCcw, Square, Wrench, PencilLine, Send } from 'lucide-react';
+import { CombinedResult, QuizPhase, QuizScenario, QuizSource, QUIZ_WEIGHTS, SourceStatus, explainQuestion, statusOf } from './quizEngine';
 
 interface QuizPanelProps {
   phase: QuizPhase;
   scenario: QuizScenario;
-  planResult: PlanResult | null;
-  fixResult: FixResult | null;
+  plan: CombinedResult | null;
+  fix: CombinedResult | null;
   explainAbout: QuizSource;
   why: string;
   fixNote: string;
@@ -25,6 +25,12 @@ interface QuizPanelProps {
   onNameChange: (v: string) => void;
   onMakeCode: () => void;
   onResetFix: () => void;
+  onRevisePlan: () => void;
+  onRevealPlan: () => void;
+  onReviseFix: () => void;
+  onRevealFix: () => void;
+  lineChecked: string[];
+  onLineCheck: (key: string, on: boolean) => void;
 }
 
 const PARTS: { id: 'plan' | 'fix' | 'explain'; label: string }[] = [
@@ -34,7 +40,7 @@ const PARTS: { id: 'plan' | 'fix' | 'explain'; label: string }[] = [
 ];
 
 const partOf = (phase: QuizPhase) =>
-  phase === 'intro' || phase === 'plan' || phase === 'plan_done' ? 'plan' : phase === 'fix' || phase === 'fix_done' ? 'fix' : 'explain';
+  phase === 'intro' || phase.startsWith('plan') ? 'plan' : phase.startsWith('fix') ? 'fix' : 'explain';
 
 const Btn: React.FC<{ id?: string; onClick: () => void; children: React.ReactNode; disabled?: boolean; tone?: 'primary' | 'plain' }> = ({
   id, onClick, children, disabled, tone = 'primary',
@@ -72,8 +78,114 @@ const Lineup: React.FC<{ scenario: QuizScenario }> = ({ scenario }) => (
   </div>
 );
 
+type Combined = CombinedResult;
+
+const STATUS_STYLE: Record<SourceStatus, { text: string; cls: string }> = {
+  pass: { text: 'Pass', cls: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40' },
+  partial: { text: 'Partly', cls: 'text-yellow-300 bg-yellow-500/15 border-yellow-500/40' },
+  missed: { text: 'Missed', cls: 'text-rose-300 bg-rose-500/15 border-rose-500/40' },
+};
+
+const StatusChip: React.FC<{ status: SourceStatus }> = ({ status }) => (
+  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${STATUS_STYLE[status].cls}`}>{STATUS_STYLE[status].text}</span>
+);
+
+/** Rows for Part 1: one per source, then the stage-wide items. No reasons until the student asks. */
+const PlanRows: React.FC<{ scenario: QuizScenario; result: Combined }> = ({ scenario, result }) => {
+  const rows: { key: string; label: string; status: SourceStatus }[] = scenario.sources.map((s) => ({
+    key: s.key,
+    label: s.label,
+    status: statusOf(result.items.filter((i) => i.source === s.key)),
+  }));
+  const global = (id: string, label: string) => {
+    const it = result.items.find((i) => i.id === id);
+    if (it) rows.push({ key: id, label, status: statusOf([it]) });
+  };
+  global('pa', 'PA speakers');
+  global('monitors', 'Stage monitors');
+  global('extra', 'Channels (nothing extra)');
+  return (
+    <ul className="space-y-1">
+      {rows.map((r) => (
+        <li key={r.key} className="flex items-center justify-between text-[13px] px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/5">
+          <span>{r.label}</span>
+          <StatusChip status={r.status} />
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+/** Shown once the student has chosen to see it (or after their second pass). */
+const MissedList: React.FC<{ result: Combined }> = ({ result }) => {
+  const missed = result.items.filter((i) => i.credit < 1);
+  if (!missed.length) return <div className="text-[13px] text-emerald-300 font-bold">Nothing missed. Nice work.</div>;
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+      <div className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-1.5">What you missed</div>
+      <ul className="space-y-1.5">
+        {missed.map((i) => (
+          <li key={i.id} className="text-[12.5px] leading-snug flex gap-2">
+            <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${i.credit === 0.5 ? 'bg-yellow-400' : 'bg-rose-400'}`} />
+            <span className="text-stone-200">
+              {i.missed}
+              {i.credit === 0.5 && <span className="text-yellow-300"> · fixed on your second pass (half credit)</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+/**
+ * Part 2's line check, the way it's done at a real gig: go through every source in the show and make sure
+ * its signal comes up on its own mixer channel. The student ticks each one; nothing here checks or hints.
+ */
+const LineCheck: React.FC<{ scenario: QuizScenario; checked: string[]; onCheck: (key: string, on: boolean) => void }> = ({ scenario, checked, onCheck }) => (
+  <div className="rounded-xl border border-sky-500/30 bg-sky-500/[0.06] p-3">
+    <div className="flex items-center justify-between">
+      <div className="text-[10px] font-black uppercase tracking-wider text-sky-300">Line check</div>
+      <div className="text-[11px] text-stone-400">{scenario.sources.filter((s) => checked.includes(s.key)).length} of {scenario.sources.length}</div>
+    </div>
+    <p className="text-[11.5px] text-stone-300 leading-snug mt-1 mb-2">
+      Run soundcheck and solo each channel. Tick a source once you hear it coming through its own channel on the mixer. Don't leave a whole instrument out of the show.
+    </p>
+    <ul className="space-y-1">
+      {scenario.sources.map((s) => (
+        <li key={s.key}>
+          <label className="flex items-center gap-2 text-[13px] text-stone-200 cursor-pointer">
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-sky-500"
+              checked={checked.includes(s.key)}
+              onChange={(e) => onCheck(s.key, e.target.checked)}
+            />
+            {s.label}
+          </label>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
+/** After a first submit: keep working for half credit on what gets fixed, or see what was missed. */
+const Choice: React.FC<{ onRevise: () => void; onReveal: () => void; idRevise: string; idReveal: string }> = ({ onRevise, onReveal, idRevise, idReveal }) => (
+  <div className="space-y-2">
+    <Btn id={idRevise} onClick={onRevise}>
+      <RotateCcw className="w-4 h-4" /> Take another pass (half credit for fixes)
+    </Btn>
+    <Btn id={idReveal} tone="plain" onClick={onReveal}>
+      <Eye className="w-4 h-4" /> Show me what I missed
+    </Btn>
+    <div className="text-[11px] text-stone-500 leading-snug">
+      Another pass: go back to your setup and fix what you can. Anything you fix earns half credit, then you see what you missed.
+    </div>
+  </div>
+);
+
 export const QuizPanel: React.FC<QuizPanelProps> = (props) => {
-  const { phase, scenario, planResult, fixResult } = props;
+  const { phase, scenario, plan, fix } = props;
   const [copied, setCopied] = useState(false);
   const current = partOf(phase);
 
@@ -82,6 +194,11 @@ export const QuizPanel: React.FC<QuizPanelProps> = (props) => {
       {props.isPlayingAudio ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
       {props.isPlayingAudio ? 'Stop soundcheck' : 'Soundcheck'}
     </Btn>
+  );
+  const secondPassNote = (
+    <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/[0.07] p-3 text-[12.5px] text-yellow-100 leading-snug">
+      <b>Second pass.</b> Fix what you can, then submit again. Anything you fix now earns half credit.
+    </div>
   );
 
   return (
@@ -118,7 +235,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = (props) => {
           <>
             <Lineup scenario={scenario} />
             <div className="text-[13px] text-stone-300 leading-relaxed space-y-2">
-              <p><b>Part 1, Plan it:</b> put every source on the stage and get each one into the mixer: mics or DIs, cables, snake channels and 48V. Nothing is checked until you submit.</p>
+              <p><b>Part 1, Plan it:</b> put every source on the stage and get each one into the mixer: mics or DIs, cables, snake channels and 48V. Set up the PA and stage monitors too. Nothing is checked until you submit.</p>
               <p><b>Part 2, Fix it:</b> someone else set up this band and some things are wrong. Find and fix them.</p>
               <p><b>Part 3, Explain it:</b> two short written answers.</p>
             </div>
@@ -126,68 +243,86 @@ export const QuizPanel: React.FC<QuizPanelProps> = (props) => {
           </>
         )}
 
-        {phase === 'plan' && (
+        {(phase === 'plan' || phase === 'plan_revise') && (
           <>
+            {phase === 'plan_revise' && secondPassNote}
             <Lineup scenario={scenario} />
-            <div className="text-[12px] text-stone-400 leading-relaxed">
-              Build the whole input setup for this band. You can soundcheck any time. When you submit, Part 1 is locked.
-            </div>
+            {phase === 'plan' && (
+              <div className="text-[12px] text-stone-400 leading-relaxed">
+                Build the whole setup for this band, including the PA and stage monitors. You can soundcheck any time.
+              </div>
+            )}
             {soundcheck}
             <Btn id="btn-quiz-submit-plan" onClick={props.onSubmitPlan}>
-              <Send className="w-4 h-4" /> Submit Part 1
+              <Send className="w-4 h-4" /> {phase === 'plan' ? 'Submit Part 1' : 'Submit my second pass'}
             </Btn>
           </>
         )}
 
-        {phase === 'plan_done' && planResult && (
+        {(phase === 'plan_done' || phase === 'plan_final') && plan && (
           <>
-            <ScoreCard title="Part 1 score" pct={planResult.percentage} />
-            <ul className="space-y-1">
-              {planResult.sources.map((s) => (
-                <li key={s.key} className="flex items-center justify-between text-[13px] px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/5">
-                  <span>{s.label}</span>
-                  {s.passed ? (
-                    <span className="flex items-center gap-1 text-emerald-300 font-bold text-[12px]"><Check className="w-3.5 h-3.5" /> Pass</span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-rose-300 font-bold text-[12px]"><X className="w-3.5 h-3.5" /> Not yet</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <Btn id="btn-quiz-start-fix" onClick={props.onStartFix}>
-              <Wrench className="w-4 h-4" /> Go to Part 2
-            </Btn>
+            <ScoreCard title={plan.revised ? 'Part 1 score (with second pass)' : 'Part 1 score'} pct={plan.percentage} />
+            <PlanRows scenario={scenario} result={plan} />
+            {phase === 'plan_done' && plan.percentage < 100 ? (
+              <Choice idRevise="btn-quiz-revise-plan" idReveal="btn-quiz-reveal-plan" onRevise={props.onRevisePlan} onReveal={props.onRevealPlan} />
+            ) : (
+              <>
+                <MissedList result={plan} />
+                <Btn id="btn-quiz-start-fix" onClick={props.onStartFix}>
+                  <Wrench className="w-4 h-4" /> Go to Part 2
+                </Btn>
+              </>
+            )}
           </>
         )}
 
-        {phase === 'fix' && (
+        {(phase === 'fix' || phase === 'fix_revise') && (
           <>
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-3 text-[13px] text-stone-200 leading-relaxed">
-              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1">
-                <Headphones className="w-3.5 h-3.5" /> Something is wrong
+            {phase === 'fix_revise' ? (
+              secondPassNote
+            ) : (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-3 text-[13px] text-stone-200 leading-relaxed">
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1">
+                  <Headphones className="w-3.5 h-3.5" /> Something is wrong
+                </div>
+                Another engineer set up this gig (<b>{scenario.title}</b>), and there are a few problems, mostly on the stage, maybe on the mixer too. Find them and fix them. Use soundcheck and look closely.
               </div>
-              Another engineer set up this gig (<b>{scenario.title}</b>), and there are a few problems in the setup and the mixer. Find them and fix them. Use soundcheck and look closely.
-            </div>
-            <Lineup scenario={scenario} />
+            )}
+            <LineCheck scenario={scenario} checked={props.lineChecked} onCheck={props.onLineCheck} />
             {soundcheck}
             <Btn id="btn-quiz-submit-fix" onClick={props.onSubmitFix}>
-              <Send className="w-4 h-4" /> Submit Part 2
+              <Send className="w-4 h-4" /> {phase === 'fix' ? 'Submit Part 2' : 'Submit my second pass'}
             </Btn>
-            <button onClick={props.onResetFix} className="w-full text-[11px] text-stone-500 hover:text-stone-300 flex items-center justify-center gap-1">
-              <RotateCcw className="w-3 h-3" /> Start Part 2 over
-            </button>
+            {phase === 'fix' && (
+              <button onClick={props.onResetFix} className="w-full text-[11px] text-stone-500 hover:text-stone-300 flex items-center justify-center gap-1">
+                <RotateCcw className="w-3 h-3" /> Start Part 2 over
+              </button>
+            )}
           </>
         )}
 
-        {phase === 'fix_done' && fixResult && (
+        {(phase === 'fix_done' || phase === 'fix_final') && fix && (
           <>
-            <ScoreCard title="Part 2 score" pct={fixResult.percentage} />
-            <div className="text-[13px] text-stone-300">
-              You fixed {fixResult.errors.filter((e) => e.fixed).length} of {fixResult.errors.length} problems.
+            <ScoreCard title={fix.revised ? 'Part 2 score (with second pass)' : 'Part 2 score'} pct={fix.percentage} />
+            <div className="text-[13px] text-stone-300 flex items-center justify-between">
+              <span>
+                Problems fixed: {fix.items.filter((i) => i.id !== 'rest' && i.credit === 1).length} of {fix.items.filter((i) => i.id !== 'rest').length}
+                {fix.items.some((i) => i.id !== 'rest' && i.credit === 0.5) && (
+                  <span className="text-yellow-300"> (+{fix.items.filter((i) => i.id !== 'rest' && i.credit === 0.5).length} on the second pass)</span>
+                )}
+              </span>
+              <StatusChip status={statusOf(fix.items)} />
             </div>
-            <Btn id="btn-quiz-start-explain" onClick={props.onStartExplain}>
-              <PencilLine className="w-4 h-4" /> Go to Part 3
-            </Btn>
+            {phase === 'fix_done' && fix.percentage < 100 ? (
+              <Choice idRevise="btn-quiz-revise-fix" idReveal="btn-quiz-reveal-fix" onRevise={props.onReviseFix} onReveal={props.onRevealFix} />
+            ) : (
+              <>
+                <MissedList result={fix} />
+                <Btn id="btn-quiz-start-explain" onClick={props.onStartExplain}>
+                  <PencilLine className="w-4 h-4" /> Go to Part 3
+                </Btn>
+              </>
+            )}
           </>
         )}
 
@@ -226,8 +361,8 @@ export const QuizPanel: React.FC<QuizPanelProps> = (props) => {
         {phase === 'done' && (
           <>
             <div className="grid grid-cols-2 gap-2">
-              <ScoreCard title="Part 1" pct={planResult?.percentage ?? 0} small />
-              <ScoreCard title="Part 2" pct={fixResult?.percentage ?? 0} small />
+              <ScoreCard title="Part 1" pct={plan?.percentage ?? 0} small />
+              <ScoreCard title="Part 2" pct={fix?.percentage ?? 0} small />
             </div>
             <div className="text-[12px] text-stone-400">
               Part 3 is scored by your teacher. Parts weigh {QUIZ_WEIGHTS.plan}% / {QUIZ_WEIGHTS.fix}% / {QUIZ_WEIGHTS.explain}%.

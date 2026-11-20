@@ -22,3 +22,18 @@ export function wedgesFedFromSnake(placedGear: PlacedGear[], connections: CableC
   }
   return fed;
 }
+
+/**
+ * Live stage: is the show heard anywhere? True when a PA speaker is cabled to MAIN L/R or a wedge /
+ * IEM transmitter to MON 1/2. Without one, soundcheck is silent (the mixer still shows the signal).
+ */
+export function hasLiveOutputs(connections: CableConnection[], placedGear: PlacedGear[]): boolean {
+  const gearOf = (id: string) => placedGear.find((g) => g.instanceId === id)?.gearId;
+  return connections.some((c) => {
+    const port = c.fromInstanceId.startsWith('snake_out_') ? c.fromInstanceId : c.toInstanceId.startsWith('snake_out_') ? c.toInstanceId : null;
+    if (!port) return false;
+    const other = gearOf(port === c.fromInstanceId ? c.toInstanceId : c.fromInstanceId);
+    if (port.startsWith('snake_out_main')) return other === 'gear_pa_speaker';
+    return other === 'gear_stage_monitor' || other === 'gear_iem_transmitter';
+  });
+}

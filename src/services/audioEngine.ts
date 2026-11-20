@@ -80,6 +80,10 @@ class StudioAudioEngine {
   private stemLoudness = new Map<string, { lufs: number; gainDb: number }>();
   private masterBalanceNode: StereoPannerNode | null = null;
   private masterAnalyserNode: AnalyserNode | null = null;
+  // Last stop before the speakers. Closed on a live stage with no PA or monitors cabled: the mixer
+  // (meters, scopes) still runs, but nothing reaches the room.
+  private outputGateNode: GainNode | null = null;
+  private outputsConnected = true;
   private masterSplitterNode: ChannelSplitterNode | null = null;
   private masterLeftAnalyser: AnalyserNode | null = null;
   private masterRightAnalyser: AnalyserNode | null = null;
@@ -135,6 +139,12 @@ class StudioAudioEngine {
 
   public getMasterBusState(): MasterBusState {
     return { ...this.masterBusState };
+  }
+
+  /** Live stage: is anything (PA or monitors) cabled to hear the show through? Off = silent but still metering. */
+  public setOutputsConnected(connected: boolean) {
+    this.outputsConnected = connected;
+    if (this.ctx && this.outputGateNode) this.outputGateNode.gain.setTargetAtTime(connected ? 1 : 0, Tone.now(), 0.02);
   }
 
   private applyMasterGainDirectly() {
@@ -513,7 +523,10 @@ class StudioAudioEngine {
       this.masterAnalyserNode.connect(this.masterRightAnalyser);
     }
 
-    this.masterAnalyserNode.connect(this.ctx.destination);
+    this.outputGateNode = this.ctx.createGain();
+    this.outputGateNode.gain.value = this.outputsConnected ? 1 : 0;
+    this.masterAnalyserNode.connect(this.outputGateNode);
+    this.outputGateNode.connect(this.ctx.destination);
 
     // Apply current master gain state
     this.applyMasterGainDirectly();
@@ -656,6 +669,14 @@ class StudioAudioEngine {
         // Ignore disconnect errors
       }
       this.masterAnalyserNode = null;
+    }
+    if (this.outputGateNode) {
+      try {
+        this.outputGateNode.disconnect();
+      } catch {
+        // Ignore disconnect errors
+      }
+      this.outputGateNode = null;
     }
     if (this.masterSplitterNode) {
       try {

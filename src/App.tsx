@@ -45,9 +45,11 @@ import { encodeSubmission, decodeSubmission } from './services/submissionCodec';
 import { slotFor, loadSaved, writeSaved, clearSaved, getLastSlot, setLastSlot, hasSaved, loadDone, markDone, clearDone } from './utils/autosave';
 import { SaveIndicator, RestorePrompt, type SaveStatus } from './components/AutosaveUI';
 import { getGearBoxDimensions } from './components/canvas/canvasMath';
+import { hasLiveOutputs } from './components/canvas/monitorChain';
 import { packProject, unpackProject } from './services/submissionCodec';
 import {
   QuizRecord, QuizPlot, buildFixScenario, evaluateFix, evaluatePlan, explainSource, newQuizSeed, readQuizLink, scenarioFromRecord,
+  combineAttempts, fixItems, liveOutputsOf, planItems,
 } from './quiz/quizEngine';
 import { QuizPanel } from './quiz/QuizPanel';
 import { QuizReviewPanel } from './quiz/QuizReviewPanel';
@@ -701,10 +703,31 @@ export default function App() {
   }, [placedGear, mixerChannels, connections, environment, masterBus]);
 
   // Soundcheck toggle
+  // Live stage: with no PA or monitors cabled, nobody can hear the show. Soundcheck still runs on the
+  // mixer (meters move) but nothing comes out, and the student is told why. Learn builds its PA later, so it is exempt.
+  const liveSilent = environment === 'live_stage' && !learn && !hasLiveOutputs(connections, placedGear);
+  const [soundNotice, setSoundNotice] = useState<string | null>(null);
+  const soundNoticeTimer = useRef<number | null>(null);
+  const showSoundNotice = (msg: string) => {
+    setSoundNotice(msg);
+    if (soundNoticeTimer.current) window.clearTimeout(soundNoticeTimer.current);
+    soundNoticeTimer.current = window.setTimeout(() => setSoundNotice(null), 6000);
+  };
+  const LIVE_SILENT_MSG =
+    'No sound: nothing is hooked up to hear the show. Cable PA speakers to MAIN L/R or stage monitors to MON 1/2. The mixer still shows the signal.';
+  useEffect(() => {
+    audioEngine.setOutputsConnected(!liveSilent);
+    if (liveSilent && isPlayingAudio) showSoundNotice(LIVE_SILENT_MSG);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveSilent]);
+
   const handleToggleAudio = useCallback(() => {
     const isPlaying = audioEngine.togglePlayback(placedGear, mixerChannels, connections);
     setIsPlayingAudio(isPlaying);
-  }, [placedGear, mixerChannels, connections]);
+    if (isPlaying && liveSilent) showSoundNotice(LIVE_SILENT_MSG);
+    if (!isPlaying) setSoundNotice(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placedGear, mixerChannels, connections, liveSilent]);
 
   // Spacebar shortcut to toggle Soundcheck playback (unless typing in text box/input)
   useEffect(() => {
@@ -1138,16 +1161,21 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizRec, placedGear, connections, mixerChannels, masterBus]);
 
-  const quizPlan = useMemo(
-    () => (quizRec?.p1 && quizScenario ? evaluatePlan(unpackPlot(quizRec.p1), quizScenario) : null),
+  // First try counts in full; a second pass earns half for whatever it fixes
+  const quizPlan = useMemo(() => {
+    if (!quizRec?.p1 || !quizScenario) return null;
+    const first = planItems(evaluatePlan(unpackPlot(quizRec.p1), quizScenario));
+    const second = quizRec.p1r ? planItems(evaluatePlan(unpackPlot(quizRec.p1r), quizScenario)) : null;
+    return combineAttempts(first, second);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [quizRec?.p1, quizScenario]
-  );
-  const quizFixResult = useMemo(
-    () => (quizRec?.p2 && quizScenario && quizFix ? evaluateFix(unpackPlot(quizRec.p2), quizScenario, quizFix.errors) : null),
+  }, [quizRec?.p1, quizRec?.p1r, quizScenario]);
+  const quizFixResult = useMemo(() => {
+    if (!quizRec?.p2 || !quizScenario || !quizFix) return null;
+    const first = fixItems(evaluateFix(unpackPlot(quizRec.p2), quizScenario, quizFix.errors));
+    const second = quizRec.p2r ? fixItems(evaluateFix(unpackPlot(quizRec.p2r), quizScenario, quizFix.errors)) : null;
+    return combineAttempts(first, second);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [quizRec?.p2, quizScenario, quizFix]
-  );
+  }, [quizRec?.p2, quizRec?.p2r, quizScenario, quizFix]);
   const updateQuiz = (changes: Partial<QuizRecord>) => {
     setQuizRec((r) => (r ? { ...r, ...changes } : r));
     setQuizCode(null);
@@ -1158,9 +1186,24 @@ export default function App() {
     updateQuiz({ ph: 'plan' });
   };
   const handleQuizSubmitPlan = () => {
-    if (!window.confirm('Submit Part 1? Your plot is locked in and checked, and you move on to Part 2.')) return;
+    const second = quizRec?.ph === 'plan_revise';
+    // Easy to forget on a live stage: remind (not required) before submitting without a PA or monitors
+    const outs = liveOutputsOf(quizPlotNow());
+    const forgot = [!outs.pa && 'PA speakers (MAIN L/R)', !outs.monitors && 'stage monitors (MON 1/2)'].filter(Boolean);
+    const reminder = forgot.length ? `Heads up: your stage has no ${forgot.join(' and no ')} set up. The audience and the band need to hear the show.\n\n` : '';
+    const ask = second ? 'Submit your second pass?' : 'Submit Part 1? Your plot is checked and you get your score.';
+    if (!window.confirm(reminder + ask)) return;
     stopAudio();
-    updateQuiz({ ph: 'plan_done', p1: packPlot(quizPlotNow()) });
+    updateQuiz(second ? { ph: 'plan_final', p1r: packPlot(quizPlotNow()) } : { ph: 'plan_done', p1: packPlot(quizPlotNow()) });
+  };
+  const handleQuizRevisePlan = () => {
+    if (quizRec?.p1) loadQuizPlot(unpackPlot(quizRec.p1));
+    updateQuiz({ ph: 'plan_revise' });
+  };
+  const handleQuizReviseFix = () => {
+    if (quizRec?.p2) loadQuizPlot(unpackPlot(quizRec.p2));
+    setIsMixerCollapsed(false);
+    updateQuiz({ ph: 'fix_revise' });
   };
   const handleQuizStartFix = () => {
     if (!quizFix) return;
@@ -1174,9 +1217,13 @@ export default function App() {
     loadQuizPlot(JSON.parse(JSON.stringify(quizFix.broken)));
   };
   const handleQuizSubmitFix = () => {
-    if (!window.confirm('Submit Part 2? Your fixes are locked in and checked.')) return;
+    const second = quizRec?.ph === 'fix_revise';
+    // The line check is the student's own: remind them about any source they haven't ticked
+    const unchecked = quizScenario ? quizScenario.sources.filter((s) => !(quizRec?.lc ?? []).includes(s.key)).map((s) => s.label) : [];
+    const reminder = !second && unchecked.length ? `You haven't line-checked: ${unchecked.join(', ')}.\n\n` : '';
+    if (!window.confirm(reminder + (second ? 'Submit your second pass?' : 'Submit Part 2? Your fixes are checked and you get your score.'))) return;
     stopAudio();
-    updateQuiz({ ph: 'fix_done', p2: packPlot(quizPlotNow()) });
+    updateQuiz(second ? { ph: 'fix_final', p2r: packPlot(quizPlotNow()) } : { ph: 'fix_done', p2: packPlot(quizPlotNow()) });
   };
   const handleQuizMakeCode = () => {
     if (!quizRec?.p1 || !quizScenario) return;
@@ -1200,7 +1247,7 @@ export default function App() {
     );
   };
   const handleQuizResetPlot = () => {
-    if (quizRec?.ph === 'plan') {
+    if (quizRec?.ph === 'plan' || quizRec?.ph === 'plan_revise') {
       if (window.confirm('Clear the whole plot?')) loadQuizPlot(emptyQuizPlot());
     } else if (quizRec?.ph === 'fix') {
       handleQuizResetFix();
@@ -1208,7 +1255,7 @@ export default function App() {
   };
   // In Part 2 the band's instruments and amps are given
   const quizLockedIds = (ids: string[]) =>
-    quizRec?.ph === 'fix' || quizRec?.ph === 'fix_done' ? learnLockedIds(ids) : [];
+    quizRec?.ph.startsWith('fix') ? learnLockedIds(ids) : [];
 
   // ---------- Batch review ----------
   const [reviewQuizPart, setReviewQuizPart] = useState<1 | 2>(1);
@@ -1335,8 +1382,16 @@ export default function App() {
           <QuizPanel
             phase={quizRec.ph}
             scenario={quizScenario}
-            planResult={quizPlan}
-            fixResult={quizFixResult}
+            plan={quizPlan}
+            fix={quizFixResult}
+            onRevisePlan={handleQuizRevisePlan}
+            onRevealPlan={() => updateQuiz({ ph: 'plan_final' })}
+            onReviseFix={handleQuizReviseFix}
+            onRevealFix={() => updateQuiz({ ph: 'fix_final' })}
+            lineChecked={quizRec.lc ?? []}
+            onLineCheck={(key, on) =>
+              updateQuiz({ lc: on ? [...new Set([...(quizRec.lc ?? []), key])] : (quizRec.lc ?? []).filter((k) => k !== key) })
+            }
             explainAbout={explainSource(quizScenario)}
             why={quizRec.w1 ?? ''}
             fixNote={quizRec.w2 ?? ''}
@@ -1556,6 +1611,17 @@ export default function App() {
         }}
         percentage={evaluation.percentage}
       />
+
+      {soundNotice && (
+        <div
+          id="soundcheck-notice"
+          role="alert"
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] max-w-md w-[calc(100vw-32px)] px-4 py-3 rounded-2xl bg-stone-950/95 border-2 border-rose-500/70 text-rose-100 text-[13px] leading-snug shadow-2xl backdrop-blur-xl flex items-start gap-2"
+        >
+          <span className="w-5 h-5 rounded-full bg-rose-600 text-white font-black text-xs flex items-center justify-center shrink-0">!</span>
+          <span>{soundNotice}</span>
+        </div>
+      )}
 
       {/* Mobile Device Optimization Pop-up Notice */}
       <MobileDeviceNotice />
