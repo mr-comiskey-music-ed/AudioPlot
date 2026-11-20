@@ -217,6 +217,9 @@ challenges can reach 100%. Setups of 4+ score as before.
   kick, snare, bass and keys loops (`DERIVED_STEMS`), so no extra download.
 - `gear_di_stereo`: shows in the locker once keys or a DJ Rig is on the plot. Stereo gear
   (`isStereoGearId`) can hold two mixer channels; the lower is labelled L, the higher R.
+  Its badge on the plot shows both ("CH 3 & 4"). A stereo source only counts as wired when
+  both sides reach the snake on their own XLR runs (Stereo DI: both outputs; DJ Rig / Laptop:
+  two channels in total). Keys on one mono DI stay fine.
 - `inst_computer` (Laptop / Phone): only a 1/8" headphone out, so it works ONLY through the
   Stereo Breakout into a Stereo DI or into two mono DIs (one leg each). Plays a backing
   track built from the piano, bass and acoustic guitar loops. Not in the quiz pool.

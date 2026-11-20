@@ -120,6 +120,12 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
   const assignedChannel = mixerChannels.find(
     (ch) => ch.assignedGearInstanceId === item.instanceId || ch.channelNumber === item.assignedChannel
   );
+  // Stereo gear (Stereo DI, DJ Rig) can sit on two channels: show both ("CH 3 & 4")
+  const channelNumbers = mixerChannels
+    .filter((ch) => ch.assignedGearInstanceId === item.instanceId)
+    .map((ch) => ch.channelNumber)
+    .sort((a, b) => a - b);
+  const channelText = channelNumbers.length > 1 ? `CH ${channelNumbers.join(' & ')}` : `CH ${assignedChannel?.channelNumber}`;
 
   // Setup warnings
   const quietChecks = useQuietChecks();
@@ -424,10 +430,10 @@ export const GearItemNode: React.FC<GearItemNodeProps> = ({
               ? 'bg-cyan-400 text-stone-950 border border-cyan-200 shadow-cyan-950/80 ring-1 ring-cyan-300 animate-pulse'
               : 'bg-emerald-500 text-stone-950 border border-emerald-300 shadow-emerald-950/70'
           }`}
-          title={`Patched to Snake Channel ${assignedChannel.channelNumber}`}
+          title={channelNumbers.length > 1 ? `Patched to Snake Channels ${channelNumbers.join(' & ')}` : `Patched to Snake Channel ${assignedChannel.channelNumber}`}
         >
           <Cable className="w-2.5 h-2.5 stroke-[2.5]" />
-          <span>CH {assignedChannel.channelNumber}</span>
+          <span>{channelText}</span>
         </div>
       ) : isCabled ? (
         <div

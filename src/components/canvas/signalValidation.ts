@@ -556,6 +556,8 @@ export function getGearIssues(
     }
     if (!assignedChannel) {
       issues.push('DI Box XLR output not patched to snake');
+    } else if (item.gearId === 'gear_di_stereo' && mixerChannels.filter((ch) => ch.assignedGearInstanceId === item.instanceId).length < 2) {
+      issues.push('Stereo DI has two outputs (L and R): run an XLR from each one to its own snake input');
     }
   }
 

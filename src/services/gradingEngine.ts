@@ -375,6 +375,10 @@ export function getInstrumentSignalChainStatus(
     if (!ch) {
       return { valid: false, error: 'Keyboard DI Box is not patched to a snake channel' };
     }
+    // Keys on a mono DI are fine; a Stereo DI needs both outputs run to the snake
+    if (targetGear.gearId === 'gear_di_stereo' && mixerChannels.filter((c) => c.assignedGearInstanceId === targetGear.instanceId).length < 2) {
+      return { valid: false, error: 'Stereo DI needs an XLR from both outputs (L and R) to two snake inputs' };
+    }
     return { valid: true, channelNumber: ch.channelNumber };
   }
 
@@ -492,15 +496,15 @@ export function getInstrumentSignalChainStatus(
 
   // DJ Rig: XLR pair straight to the snake. DJ Rig or Laptop / Phone: Stereo Breakout into DI(s) that are patched
   if (isBreakoutSourceId(inst.gearId)) {
-    const direct = mixerChannels.find((c) => c.assignedGearInstanceId === inst.instanceId);
-    if (direct) return { valid: true, channelNumber: direct.channelNumber };
+    // A stereo source: both sides (L and R) must reach the snake on their own XLR runs
     const legs = connections.filter(
       (c) => (c.fromInstanceId === inst.instanceId || c.toInstanceId === inst.instanceId) && c.cableType === 'breakout'
     );
-    for (const brk of legs) {
-      const diId = brk.fromInstanceId === inst.instanceId ? brk.toInstanceId : brk.fromInstanceId;
-      const ch = mixerChannels.find((c) => c.assignedGearInstanceId === diId);
-      if (ch) return { valid: true, channelNumber: ch.channelNumber };
+    const fedBy = new Set([inst.instanceId, ...legs.map((brk) => (brk.fromInstanceId === inst.instanceId ? brk.toInstanceId : brk.fromInstanceId))]);
+    const sides = mixerChannels.filter((c) => c.assignedGearInstanceId && fedBy.has(c.assignedGearInstanceId));
+    if (sides.length >= 2) return { valid: true, channelNumber: sides[0].channelNumber };
+    if (sides.length === 1) {
+      return { valid: false, error: `${def.name} is stereo: run XLR from both sides (L and R) to two snake inputs` };
     }
     if (legs.length) return { valid: false, error: `${def.name} DI is not patched to a snake channel` };
     return {
