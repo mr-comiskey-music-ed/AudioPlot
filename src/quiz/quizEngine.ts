@@ -95,7 +95,7 @@ export const QUIZ_TEMPLATES: QuizTemplate[] = [
   { id: 'rock', title: 'Rock trio', blurb: 'Loud and simple: drums, guitar, bass.', units: ['kit', 'electric_guitar', 'bass'] },
   { id: 'worship', title: 'Sunday service band', blurb: 'A singer leads a full band.', units: ['vocal', 'acoustic_guitar', 'piano', 'bass', 'electric_guitar'] },
   { id: 'jazz', title: 'Jazz trio', blurb: 'Piano, bass and a small kit in a lounge.', units: ['piano', 'bass', 'kit'] },
-  { id: 'school-dance', title: 'School dance', blurb: 'A DJ plus a singer and keys for the live set.', units: ['dj_rig', 'vocal', 'keys', 'electric_guitar'] },
+  { id: 'school-dance', title: 'School dance', blurb: 'A DJ with a live drummer playing along.', units: ['dj_rig', 'kit'] },
 ];
 
 export interface QuizScenario {
