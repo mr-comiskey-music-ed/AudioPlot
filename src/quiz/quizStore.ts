@@ -7,6 +7,9 @@ import { QuizRecord } from './quizEngine';
  */
 const KEY = 'audioplot:v1:quiz';
 
+/** How long a finished quiz stays on this browser before /quiz starts a new one */
+export const QUIZ_DONE_KEEP_MS = 12 * 60 * 60 * 1000;
+
 export interface StoredQuiz {
   rec: QuizRecord;
   plot?: Record<string, unknown>;

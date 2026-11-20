@@ -54,7 +54,7 @@ import {
 import { QuizPanel } from './quiz/QuizPanel';
 import { QuizReviewPanel } from './quiz/QuizReviewPanel';
 import { QuietChecksContext } from './quiz/quietChecks';
-import { loadQuiz, saveQuiz } from './quiz/quizStore';
+import { loadQuiz, saveQuiz, clearQuiz, QUIZ_DONE_KEEP_MS } from './quiz/quizStore';
 
 const INITIAL_CHANNELS: MixerChannelState[] = [
   { channelNumber: 1, assignedGearInstanceId: null, label: 'CH 1', phantomPower: false, gain: 72, fader: 75, pan: 0, solo: false, muted: false, meterValue: 0 },
@@ -1139,7 +1139,13 @@ export default function App() {
   // Start (or pick up) the quiz once, on the hidden link
   useEffect(() => {
     if (!quizLink) return;
-    const stored = loadQuiz();
+    let stored = loadQuiz();
+    // A finished quiz comes back for 12 hours (time to copy the code); after that, or with no finish
+    // time, the next visit starts a new gig, so a shared Chromebook doesn't hand over the last student's quiz.
+    if (stored && stored.rec.ph === 'done' && !(typeof stored.rec.fn === 'number' && Date.now() - stored.rec.fn < QUIZ_DONE_KEEP_MS)) {
+      clearQuiz();
+      stored = null;
+    }
     setProjectTitle('Quiz');
     setActiveChallengeId(null);
     if (stored && (stored.rec.tp ?? null) === quizLink.template) {

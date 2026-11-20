@@ -223,7 +223,8 @@ challenges can reach 100%. Setups of 4+ score as before.
   view and CSV show both and the minutes taken, to help spot retakes in another window
   (there is no way to block them without logins). Random `/quiz` gives a retake a new gig.
 - Kept in the browser as `audioplot:v1:quiz` (seed, part, frozen plots, answers; never the
-  name). The code's main plot is Part 1; `qz` holds the record with Part 2 packed inside.
+  name). A finished quiz comes back for 12 hours
+  (`QUIZ_DONE_KEEP_MS`), then the next `/quiz` visit starts a new gig (shared Chromebooks). The code's main plot is Part 1; `qz` holds the record with Part 2 packed inside.
 - Batch view: quiz codes show Part 1 · Part 2 %, a Part 3 box (in the tab only, goes into
   the CSV), a class summary of the most-missed checks and faults, and a review panel with
   the regenerated gig and a Part 1 / Part 2 plot switch (`QuizReviewPanel.tsx`).
