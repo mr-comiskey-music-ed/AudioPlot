@@ -499,8 +499,8 @@ export function fixItems(r: FixResult): ScoredItem[] {
       const where = e.source ? `${SOURCE_LABELS[e.source]}: ` : '';
       return {
         id: `${e.kind}:${e.source ?? 'mix'}`,
-        label: `${where}${ERROR_LABELS[e.kind]}`,
-        missed: `${where}${ERROR_LABELS[e.kind].toLowerCase()} (not fixed)`,
+        label: `${where}${errorLabel(e.kind, e.source)}`,
+        missed: e.note ? `${where}${e.note} (not fixed)` : `${where}${errorLabel(e.kind, e.source).toLowerCase()} (not fixed)`,
         source: e.source,
         ok: e.fixed,
       };
@@ -530,7 +530,7 @@ export function statusOf(items: Array<{ credit: Credit }>): SourceStatus {
 
 // ---------- Part 2: a working setup, then broken ----------
 
-const CH_COLORS: Record<CableType, string> = { xlr: '#d9a441', quarter_inch: '#8ec5d6', speaker: '#698859', breakout: '#c08a6a' };
+const CH_COLORS: Record<CableType, string> = { xlr: '#d9a441', quarter_inch: '#8ec5d6', speaker: '#698859', breakout: '#8aa34f' };
 
 const freshChannels = (): MixerChannelState[] =>
   Array.from({ length: 8 }, (_, i) => ({
@@ -767,6 +767,16 @@ export interface InjectedError {
   source?: SourceKind; // missing for the whole-mix errors
 }
 
+/** The fault in words for this source: an electric guitar's mic goes on its amp, never on the guitar. */
+export function errorLabel(kind: ErrorKind, source?: SourceKind): string {
+  if (source === 'electric_guitar') {
+    if (kind === 'no_mic') return 'No mic on the guitar amp';
+    if (kind === 'wrong_mic') return 'Wrong mic on the guitar amp';
+    if (kind === 'mic_on_instrument') return 'Mic placed directly on the electric guitar (it belongs on the amp)';
+  }
+  return ERROR_LABELS[kind];
+}
+
 export const ERROR_LABELS: Record<ErrorKind, string> = {
   muted: 'Channel muted',
   solo_other: 'Another channel soloed (the rest went silent)',
@@ -938,7 +948,7 @@ function inject(p: QuizPlot, e: InjectedError, scenario: QuizScenario) {
       const link: CableType = key === 'laptop' ? 'breakout' : 'quarter_inch';
       p.connections.push({ id: `quiz_cable_${p.connections.length}_wd`, fromInstanceId: inst.instanceId, toInstanceId: diId, cableType: link, color: CH_COLORS[link] });
       const ch = p.mixerChannels.find((c) => c.channelNumber === firstCh);
-      if (ch) Object.assign(ch, { assignedGearInstanceId: diId, label: key === 'laptop' ? 'LAPTOP DI' : 'DJ DI', pan: 0 });
+      if (ch) Object.assign(ch, { assignedGearInstanceId: diId, label: key === 'laptop' ? 'LAPTOP L' : 'DJ L', pan: 0 });
       break;
     }
   }
@@ -997,7 +1007,7 @@ export function buildFixScenario(scenario: QuizScenario): FixScenario {
 // ---------- Part 2 scoring ----------
 
 export interface FixResult {
-  errors: Array<InjectedError & { fixed: boolean }>;
+  errors: Array<InjectedError & { fixed: boolean; note?: string }>;
   restOk: boolean;
   earned: number;
   possible: number;
@@ -1019,6 +1029,18 @@ function mixOk(p: QuizPlot, r: SourceResult, key: SourceKind, matched: PlacedGea
     pan: chs.length !== 1 || Math.abs(chs[0].pan) <= PAN_MAX,
     djGain: key !== 'dj_rig' || !direct || chs.every((c) => c.gain <= DJ_GAIN_MAX),
   };
+}
+
+/** For an unfixed mic / DI fault: say what is still wrong with it, so "No mic" never reads as "put one on the guitar". */
+function micNote(p: QuizPlot, e: InjectedError, inst: PlacedGear | undefined): string | undefined {
+  if (!e.source || !inst || !['wrong_mic', 'no_mic', 'mic_on_instrument'].includes(e.kind)) return undefined;
+  const caps = capturesOf(p, inst).filter((c) => c.kind === 'mic');
+  if (e.source === 'electric_guitar') {
+    if (caps.some((c) => c.onInstrument)) return 'A mic can\'t go directly on an electric guitar; it goes on the amp';
+    if (caps.length) return 'The amp has a mic, but it isn\'t a good choice for a guitar amp';
+    return cabledTo(p, inst, ['quarter_inch']).some((g) => g.gearId === 'gear_guitar_amp') ? 'The guitar amp still needs a mic' : 'The guitar isn\'t cabled into the amp';
+  }
+  return caps.length ? 'There is a mic, but it isn\'t a good choice for this source' : 'It still needs the right mic';
 }
 
 export function evaluateFix(p: QuizPlot, scenario: QuizScenario, errors: InjectedError[]): FixResult {
@@ -1048,7 +1070,10 @@ export function evaluateFix(p: QuizPlot, scenario: QuizScenario, errors: Injecte
     }
   };
 
-  const results = errors.map((e) => ({ ...e, fixed: fixedOne(e) }));
+  const results = errors.map((e) => {
+    const fixed = fixedOne(e);
+    return { ...e, fixed, note: fixed ? undefined : micNote(p, e, matched.get(e.source as SourceKind)) };
+  });
   const broken = new Set(errors.map((e) => e.source).filter(Boolean));
   const globalBroken = new Set(errors.filter((e) => !e.source).map((e) => e.kind));
   // Everything that was not broken still works (students should not break the rest while fixing)

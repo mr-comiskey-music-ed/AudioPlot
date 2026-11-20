@@ -1139,7 +1139,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       fromInstanceId: fromId,
       toInstanceId: toId,
       cableType: type,
-      color: type === 'quarter_inch' ? '#8ec5d6' : type === 'xlr' ? '#d9a441' : type === 'breakout' ? '#c08a6a' : '#698859',
+      color: type === 'quarter_inch' ? '#8ec5d6' : type === 'xlr' ? '#d9a441' : type === 'breakout' ? '#8aa34f' : '#698859',
     };
 
     onUpdateConnections([...connections, newConnection], {

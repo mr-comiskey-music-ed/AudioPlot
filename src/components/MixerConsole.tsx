@@ -436,12 +436,13 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
         <div
           id="quiz-mixer-hint"
           onClick={() => setIsCollapsed(false)}
-          className="absolute right-4 bottom-full mb-1.5 z-40 cursor-pointer animate-bounce"
+          className="absolute right-1 bottom-full mb-3 z-40 cursor-pointer animate-bounce"
         >
-          <div className="max-w-[240px] rounded-2xl bg-amber-400 text-stone-950 px-3.5 py-2 text-[12.5px] font-bold leading-snug shadow-xl shadow-black/50">
+          {/* One shape: the tail is a rotated square of the same color, tucked into the box so only a clean point shows, centered over the expand button */}
+          <div className="relative max-w-[240px] rounded-2xl rounded-br-lg bg-amber-400 text-stone-950 px-3.5 py-2 text-[12.5px] font-bold leading-snug shadow-xl shadow-black/40">
             The mixer is down here. Some problems may be hiding in it. Tap to open.
+            <span aria-hidden className="absolute right-[18px] -bottom-[5px] w-4 h-4 rotate-45 rounded-[2px] bg-amber-400" />
           </div>
-          <div className="mr-[5px] ml-auto w-0 h-0 border-x-[9px] border-x-transparent border-t-[10px] border-t-amber-400" />
         </div>
       )}
       {/* Console Top Header Strip */}

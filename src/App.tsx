@@ -311,7 +311,8 @@ export default function App() {
                   (c.fromInstanceId === otherGear.instanceId || c.toInstanceId === otherGear.instanceId)
               );
               const i = legs.findIndex((c) => c.fromInstanceId === gearItem.instanceId || c.toInstanceId === gearItem.instanceId);
-              return legs.length === 2 && gearItem.gearId === 'gear_di_box' ? `${name} ${i === 0 ? 'L' : 'R'}` : `${name} DI`;
+              // A mono DI on a Laptop / DJ Rig is one side of a stereo pair, so say which side even when only one is cabled
+              return gearItem.gearId === 'gear_di_box' && i >= 0 ? `${name} ${i === 0 ? 'L' : 'R'}` : `${name} DI`;
             }
           }
         }
@@ -574,7 +575,10 @@ export default function App() {
             keep.sort((a, b) => a - b);
             return prev.map((ch) => {
               if (keep.includes(ch.channelNumber)) {
-                const side = keep.length === 2 ? (ch.channelNumber === keep[0] ? ' L' : ' R') : '';
+                // One channel of a stereo Laptop / DJ Rig is only the left side: label it so the missing R stands out
+                // (keys on a Stereo DI can be a lone mono channel, so those stay unlabelled)
+                const lonely = /^(LAPTOP|DJ)\b/.test(derivedLabel) ? ' L' : '';
+                const side = keep.length === 2 ? (ch.channelNumber === keep[0] ? ' L' : ' R') : lonely;
                 const fresh = ch.assignedGearInstanceId !== gearInstanceId;
                 // Line-level DJ Rig outs: gain starts low when first patched
                 const gain = fresh && item.gearId === 'inst_dj_rig' && ch.gain === 72 ? DJ_RIG_START_GAIN : ch.gain;

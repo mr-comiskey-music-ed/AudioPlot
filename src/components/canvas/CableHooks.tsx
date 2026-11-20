@@ -77,8 +77,8 @@ export const CableHooks: React.FC<CableHooksProps> = ({
             }}
             className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center gap-2 transition-all backdrop-blur-md cursor-pointer ${
               activeCableTool === 'breakout'
-                ? 'bg-purple-500 border-purple-300 text-stone-950 shadow-2xl shadow-purple-500/80 ring-4 ring-purple-400'
-                : 'bg-white/5 hover:bg-white/10 border-white/10 text-purple-300 hover:border-purple-400/40'
+                ? 'bg-emerald-500 border-emerald-300 text-stone-950 shadow-2xl shadow-emerald-500/80 ring-4 ring-emerald-400'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-emerald-300 hover:border-emerald-400/40'
             }`}
             title='Stereo Breakout: 1/8" (3.5 mm) stereo plug to two 1/4" plugs (L and R). From a Laptop / Phone headphone out into a DI.'
           >

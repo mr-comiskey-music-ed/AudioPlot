@@ -295,7 +295,7 @@ export const CableLayer: React.FC<CableLayerProps> = ({
               : `${mousePos.x} ${mousePos.y}`
           } Q ${mousePos.x} ${mousePos.y + 40} ${mousePos.x} ${mousePos.y}`}
           fill="none"
-          stroke={cableTypeToConnect === 'quarter_inch' ? '#2f5f7a' : cableTypeToConnect === 'breakout' ? '#8a5a3c' : '#a4501f'}
+          stroke={cableTypeToConnect === 'quarter_inch' ? '#2f5f7a' : cableTypeToConnect === 'breakout' ? '#5d7430' : '#a4501f'}
           strokeWidth="3.5"
           strokeDasharray="6 4"
           className="animate-pulse"

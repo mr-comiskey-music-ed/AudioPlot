@@ -720,7 +720,7 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <circle cx="49" cy="40.5" r="1.6" fill="#ddd0bc" />
           {/* 1/8" headphone jack and its cable */}
           <rect x="50" y="51" width="3" height="3" rx="0.6" fill="#ddd0bc" />
-          <path d="M51.5 54V60" stroke="#c08a6a" strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M51.5 54V60" stroke="#8aa34f" strokeWidth="1.6" strokeLinecap="round" />
         </svg>
       );
 
@@ -758,8 +758,8 @@ export const StudioIcon: React.FC<StudioIconProps> = ({
           <rect x="3.2" y="19.1" width="0.7" height="1.8" fill="#140f0a" />
           <rect x="6" y="17.5" width="6" height="5" rx="1" fill="#3a2f24" stroke="#8a7a65" strokeWidth="0.6" />
           {/* Cable splits in two */}
-          <path d="M12 20H17C21 20 22 11 27 11" stroke="#c08a6a" strokeWidth="2" strokeLinecap="round" fill="none" />
-          <path d="M17 20C21 20 22 29 27 29" stroke="#c08a6a" strokeWidth="2" strokeLinecap="round" fill="none" />
+          <path d="M12 20H17C21 20 22 11 27 11" stroke="#8aa34f" strokeWidth="2" strokeLinecap="round" fill="none" />
+          <path d="M17 20C21 20 22 29 27 29" stroke="#8aa34f" strokeWidth="2" strokeLinecap="round" fill="none" />
           {/* Two 1/4" plugs */}
           <rect x="27" y="8.5" width="6" height="5" rx="1" fill="#3a2f24" stroke="#8a7a65" strokeWidth="0.6" />
           <path d="M33 11h5" stroke="#ddd0bc" strokeWidth="2.2" strokeLinecap="round" />
