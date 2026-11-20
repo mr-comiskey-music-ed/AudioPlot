@@ -2,7 +2,7 @@ import { StudioProjectState, RubricEvaluation } from '../types';
 import { decodeSubmission } from './submissionCodec';
 import { evaluateStudioSetup } from './gradingEngine';
 import { resolveTaskId, taskTitle } from '../data/challenges';
-import { QuizGrade, gradeQuiz, quizEvaluation, quizTotal } from '../quiz/quizBatch';
+import { QuizGrade, formatQuizTime, gradeQuiz, quizEvaluation, quizMinutes, quizTotal } from '../quiz/quizBatch';
 
 export interface BatchEntry {
   id: number;
@@ -221,7 +221,7 @@ export function downloadBatchCsv(entries: BatchEntry[], quizPart3: Map<number, n
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const hasQuiz = entries.some((e) => e.quiz);
-  const quizHeader = hasQuiz ? ['Quiz Part 1 %', 'Quiz Part 2 %', 'Quiz Part 3 % (teacher)', 'Quiz Total %', 'Quiz Why', 'Quiz Fix Explained'] : [];
+  const quizHeader = hasQuiz ? ['Quiz Part 1 %', 'Quiz Part 2 %', 'Quiz Part 3 % (teacher)', 'Quiz Total %', 'Quiz Why', 'Quiz Fix Explained', 'Quiz Started', 'Quiz Finished', 'Quiz Minutes'] : [];
   const header = ['Student', 'Period', 'Challenge', 'Mode', 'Learn Done', 'Score', 'Max Score', 'Percent', 'Letter', 'Issues', ...categoryNames, ...quizHeader];
   const rows = entries.map((e) => {
     const cats = Object.values(e.evaluation.categories);
@@ -249,8 +249,11 @@ export function downloadBatchCsv(entries: BatchEntry[], quizPart3: Map<number, n
               quizTotal(e.quiz, quizPart3.get(e.id)) ?? '',
               e.quiz.why,
               e.quiz.fixNote,
+              formatQuizTime(e.quiz.startedAt),
+              formatQuizTime(e.quiz.finishedAt),
+              quizMinutes(e.quiz) ?? '',
             ]
-          : ['', '', '', '', '', '']
+          : ['', '', '', '', '', '', '', '', '']
         : []),
     ].map(esc).join(',');
   });

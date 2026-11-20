@@ -15,6 +15,9 @@ export interface QuizGrade {
   /** Part 1 and Part 2 scores: first try in full, second-pass fixes at half */
   planC: CombinedResult;
   fixC: CombinedResult | null;
+  /** When the student started Part 1 and finished the quiz (ms), if known */
+  startedAt?: number;
+  finishedAt?: number;
   /** Sources the student ticked in the Part 2 line check (not graded) */
   lineChecked: string[];
   explainAbout: QuizSource;
@@ -59,6 +62,8 @@ export function gradeQuiz(project: StudioProjectState): QuizGrade | null {
   return {
     scenario, plan, planC, fixC, explainAbout,
     lineChecked: rec.lc ?? [],
+    startedAt: typeof rec.st === 'number' ? rec.st : undefined,
+    finishedAt: typeof rec.fn === 'number' ? rec.fn : undefined,
     whyQuestion: explainQuestion(explainAbout),
     fixQuestion: FIX_QUESTION,
     why: rec.w1 ?? '',
@@ -120,3 +125,11 @@ export function quizPatterns(grades: QuizGrade[]): MissPattern[] {
     .filter((p) => p.studentsMissing > 0)
     .sort((a, b) => b.studentsMissing - a.studentsMissing || b.studentsMissing / b.totalApplicable - a.studentsMissing / a.totalApplicable);
 }
+
+/** "Thu Nov 20, 10:42 AM" in the teacher's own time zone. */
+export const formatQuizTime = (ms?: number) =>
+  ms ? new Date(ms).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+
+/** Minutes from starting Part 1 to finishing, or null when either time is missing. */
+export const quizMinutes = (g: QuizGrade): number | null =>
+  g.startedAt && g.finishedAt && g.finishedAt >= g.startedAt ? Math.round((g.finishedAt - g.startedAt) / 60000) : null;

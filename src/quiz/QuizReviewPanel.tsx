@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, ClipboardCheck, Minus, X } from 'lucide-react';
-import { QuizGrade, quizTotal } from './quizBatch';
+import { QuizGrade, formatQuizTime, quizMinutes, quizTotal } from './quizBatch';
 import { CHECK_LABELS, CheckId, CombinedResult, Credit, QUIZ_WEIGHTS } from './quizEngine';
 
 const CHECK_ORDER: CheckId[] = ['input', 'cable', 'phantom', 'stereo', 'channel'];
@@ -117,6 +117,19 @@ const Part3Input: React.FC<{ value?: number; onChange: (v: number | null) => voi
   </label>
 );
 
+/** Start, finish and time taken: helps spot a retake (a second window, a different day). */
+const Timing: React.FC<{ grade: QuizGrade }> = ({ grade }) => {
+  if (!grade.startedAt && !grade.finishedAt) return null;
+  const mins = quizMinutes(grade);
+  return (
+    <div className="text-[11px] text-stone-400">
+      {grade.startedAt && <>Started {formatQuizTime(grade.startedAt)}</>}
+      {grade.finishedAt && <> · finished {formatQuizTime(grade.finishedAt)}</>}
+      {mins != null && <> · <b className="text-stone-200">{mins} min</b></>}
+    </div>
+  );
+};
+
 /** Expanded row in the batch list. */
 export const QuizBatchDetails: React.FC<{ grade: QuizGrade; part3?: number; onPart3: (v: number | null) => void }> = ({ grade, part3, onPart3 }) => {
   const total = quizTotal(grade, part3);
@@ -143,6 +156,7 @@ export const QuizBatchDetails: React.FC<{ grade: QuizGrade; part3?: number; onPa
             </span>
           </div>
         </Section>
+        <Timing grade={grade} />
         {!grade.finished && <div className="text-[11px] text-amber-300">This student had not finished the quiz when they made the code.</div>}
       </div>
     </div>
@@ -160,6 +174,7 @@ export const QuizReviewPanel: React.FC<{ grade: QuizGrade; part: 1 | 2; onPart: 
         <div className="min-w-0">
           <div className="text-sm font-extrabold truncate">Quiz · {grade.scenario.title}</div>
           <div className="text-[11px] text-stone-400 truncate">{grade.scenario.sources.map((s) => s.label).join(' · ')}</div>
+          <Timing grade={grade} />
         </div>
       </div>
       <div className="flex gap-1">

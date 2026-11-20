@@ -211,6 +211,9 @@ challenges can reach 100%. Setups of 4+ score as before.
   down, DJ gain too high). One per source. Score = faults fixed + "left everything else
   working". Part 2 has a Line check: students tick each source once they hear it on its own
   channel (their own tick, not graded; unticked ones get a reminder at submit; kept as `lc`).
+- The code records when Part 1 started (`st`) and when the quiz was finished (`fn`). The batch
+  view and CSV show both and the minutes taken, to help spot retakes in another window
+  (there is no way to block them without logins). Random `/quiz` gives a retake a new gig.
 - Kept in the browser as `audioplot:v1:quiz` (seed, part, frozen plots, answers; never the
   name). The code's main plot is Part 1; `qz` holds the record with Part 2 packed inside.
 - Batch view: quiz codes show Part 1 · Part 2 %, a Part 3 box (in the tab only, goes into

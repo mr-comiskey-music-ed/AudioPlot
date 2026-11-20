@@ -979,6 +979,8 @@ export interface QuizRecord {
   p2?: Record<string, unknown>; // packed Part 2 plot, frozen at submit
   p1r?: Record<string, unknown>; // Part 1 after "another pass" (fixes earn half)
   p2r?: Record<string, unknown>; // Part 2 after "another pass"
+  st?: number; // when Part 1 started (ms since 1970)
+  fn?: number; // when the quiz was finished (ms since 1970)
   lc?: string[]; // Part 2 line check: sources the student ticked as heard on the mixer (not graded)
   w1?: string; // Part 3: why this mic / DI
   w2?: string; // Part 3: one fix explained

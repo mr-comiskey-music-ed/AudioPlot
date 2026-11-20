@@ -1183,7 +1183,7 @@ export default function App() {
 
   const handleQuizStart = () => {
     loadQuizPlot(emptyQuizPlot());
-    updateQuiz({ ph: 'plan' });
+    updateQuiz({ ph: 'plan', st: quizRec?.st ?? Date.now() });
   };
   const handleQuizSubmitPlan = () => {
     const second = quizRec?.ph === 'plan_revise';
@@ -1406,7 +1406,7 @@ export default function App() {
             onStartExplain={() => updateQuiz({ ph: 'explain' })}
             onWhyChange={(v) => updateQuiz({ w1: v })}
             onFixNoteChange={(v) => updateQuiz({ w2: v })}
-            onFinish={() => updateQuiz({ ph: 'done' })}
+            onFinish={() => updateQuiz({ ph: 'done', fn: quizRec.fn ?? Date.now() })}
             onNameChange={(v) => {
               setStudentName(v);
               setQuizCode(null);
