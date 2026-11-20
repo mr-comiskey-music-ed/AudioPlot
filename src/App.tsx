@@ -1114,6 +1114,9 @@ export default function App() {
     });
 
   // ---------- Quiz Mode (/quiz) ----------
+  const [quizMixerHint, setQuizMixerHint] = useState(false);
+  const [quizView, setQuizView] = useState<1 | 2 | null>(null);
+  const quizViewStash = useRef<QuizPlot | null>(null);
   const quizScenario = useMemo(() => (quizRec ? scenarioFromRecord(quizRec) : null), [quizRec?.sd, quizRec?.tp]);
   const quizFix = useMemo(() => (quizScenario ? buildFixScenario(quizScenario) : null), [quizScenario]);
   const packPlot = (p: QuizPlot) => packProject(p as unknown as StudioProjectState);
@@ -1150,8 +1153,11 @@ export default function App() {
     setActiveChallengeId(null);
     if (stored && (stored.rec.tp ?? null) === quizLink.template) {
       setQuizRec(stored.rec);
-      loadQuizPlot(stored.plot ? unpackPlot(stored.plot) : emptyQuizPlot());
-      if (stored.rec.ph === 'fix') setIsMixerCollapsed(false);
+      // Part 3 and after work from the finished Part 2 plot (the saved plot may have been a "look back" view)
+      const p2 = stored.rec.p2r ?? stored.rec.p2;
+      const later = stored.rec.ph === 'explain' || stored.rec.ph === 'done';
+      loadQuizPlot(later && p2 ? unpackPlot(p2) : stored.plot ? unpackPlot(stored.plot) : emptyQuizPlot());
+      if (stored.rec.ph === 'fix') setQuizMixerHint(true);
     } else {
       setQuizRec({ v: QUIZ_VERSION, sd: newQuizSeed(), tp: quizLink.template ?? undefined, ph: 'intro' });
       loadQuizPlot(emptyQuizPlot());
@@ -1190,7 +1196,7 @@ export default function App() {
   };
 
   const handleQuizStart = () => {
-    loadQuizPlot(emptyQuizPlot());
+    // Keep whatever is already on the stage: students may start building while reading the intro.
     updateQuiz({ ph: 'plan', st: quizRec?.st ?? Date.now() });
   };
   const handleQuizSubmitPlan = () => {
@@ -1216,7 +1222,8 @@ export default function App() {
   const handleQuizStartFix = () => {
     if (!quizFix) return;
     loadQuizPlot(JSON.parse(JSON.stringify(quizFix.broken)));
-    setIsMixerCollapsed(false);
+    setIsMixerCollapsed(true);
+    setQuizMixerHint(true);
     updateQuiz({ ph: 'fix' });
   };
   const handleQuizResetFix = () => {
@@ -1232,6 +1239,25 @@ export default function App() {
     if (!window.confirm(reminder + (second ? 'Submit your second pass?' : 'Submit Part 2? Your fixes are checked and you get your score.'))) return;
     stopAudio();
     updateQuiz(second ? { ph: 'fix_final', p2r: packPlot(quizPlotNow()) } : { ph: 'fix_done', p2: packPlot(quizPlotNow()) });
+  };
+  // Part 3: look back at the Part 1 or Part 2 setup. Edits made while looking aren't kept.
+  const handleQuizView = (part: 1 | 2 | null) => {
+    stopAudio();
+    if (part === null) {
+      if (quizViewStash.current) loadQuizPlot(quizViewStash.current);
+      quizViewStash.current = null;
+      setQuizView(null);
+      return;
+    }
+    const packed = part === 1 ? quizRec?.p1r ?? quizRec?.p1 : quizRec?.p2r ?? quizRec?.p2;
+    if (!packed) return;
+    if (quizView === null) quizViewStash.current = quizPlotNow();
+    loadQuizPlot(unpackPlot(packed));
+    setQuizView(part);
+  };
+  const handleQuizFinish = () => {
+    handleQuizView(null);
+    updateQuiz({ ph: 'done', fn: quizRec?.fn ?? Date.now() });
   };
   const handleQuizMakeCode = () => {
     if (!quizRec?.p1 || !quizScenario) return;
@@ -1414,7 +1440,9 @@ export default function App() {
             onStartExplain={() => updateQuiz({ ph: 'explain' })}
             onWhyChange={(v) => updateQuiz({ w1: v })}
             onFixNoteChange={(v) => updateQuiz({ w2: v })}
-            onFinish={() => updateQuiz({ ph: 'done', fn: quizRec.fn ?? Date.now() })}
+            onFinish={handleQuizFinish}
+            viewing={quizView}
+            onView={handleQuizView}
             onNameChange={(v) => {
               setStudentName(v);
               setQuizCode(null);
@@ -1476,7 +1504,11 @@ export default function App() {
         masterBus={masterBus}
         onUpdateMasterBus={handleUpdateMasterBus}
         isCollapsed={isMixerCollapsed}
-        onToggleCollapse={() => setIsMixerCollapsed((prev) => !prev)}
+        onToggleCollapse={() => {
+          setQuizMixerHint(false);
+          setIsMixerCollapsed((prev) => !prev);
+        }}
+        showHint={quizMixerHint && quizRec?.ph === 'fix'}
       />
 
       {/* Guided Walkthrough / Interactive Tour */}

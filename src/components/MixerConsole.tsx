@@ -45,6 +45,8 @@ interface MixerConsoleProps {
   onUpdateMasterBus?: (updates: Partial<MasterBusState>) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  /** Quiz Part 2: a bouncing bubble pointing at the (closed) mixer, so students remember it is there */
+  showHint?: boolean;
 }
 
 // Channel trim knob (72 = 0 dB, down to -48 dB, up to +12 dB) as a number: the same law as the knob's label
@@ -301,6 +303,7 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
   onUpdateMasterBus,
   isCollapsed: propIsCollapsed,
   onToggleCollapse,
+  showHint,
 }) => {
   const quietChecks = useQuietChecks();
   const [internalCollapsed, setInternalCollapsed] = useState(true);
@@ -427,8 +430,20 @@ export const MixerConsole: React.FC<MixerConsoleProps> = ({
   return (
     <footer
       id="mixer-console-container"
-      className="bg-black/85 backdrop-blur-2xl border-t border-white/10 text-stone-100 shadow-2xl z-30 select-none transition-all duration-200 shrink-0"
+      className="relative bg-black/85 backdrop-blur-2xl border-t border-white/10 text-stone-100 shadow-2xl z-30 select-none transition-all duration-200 shrink-0"
     >
+      {showHint && isCollapsed && (
+        <div
+          id="quiz-mixer-hint"
+          onClick={() => setIsCollapsed(false)}
+          className="absolute right-6 bottom-full mb-2 z-40 cursor-pointer animate-bounce"
+        >
+          <div className="max-w-[240px] rounded-2xl bg-amber-400 text-stone-950 px-3.5 py-2 text-[12.5px] font-bold leading-snug shadow-xl shadow-black/50">
+            The mixer is down here. Some problems may be hiding in it. Tap to open.
+          </div>
+          <div className="mr-6 ml-auto w-0 h-0 border-x-[9px] border-x-transparent border-t-[10px] border-t-amber-400" />
+        </div>
+      )}
       {/* Console Top Header Strip */}
       <div
         id="mixer-console-header-strip"
