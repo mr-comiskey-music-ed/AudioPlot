@@ -71,7 +71,7 @@ master bus → snake outputs (MAIN L/R, MON 1/2) → PA / monitors.
   source by `latchedSourceInstanceId` (an instance id, `'room'`, or
   `'drummer'`), or failing that by distance (within ~140px of an
   instrument or amp).
-- Cables are `xlr`, `quarter_inch`, `speaker` or `breakout` (DJ Rig only). Each cable is checked
+- Cables are `xlr`, `quarter_inch`, `speaker` or `breakout` (Laptop / Phone only). Each cable is checked
   as it's drawn (`src/components/canvas/signalValidation.ts`): e.g.
   electric guitar/bass/keys need 1/4" into an amp or DI; acoustic
   sources have no jack and need a mic; mics, DIs and bass-amp direct
@@ -186,8 +186,8 @@ challenges can reach 100%. Setups of 4+ score as before.
 
 ## Quiz Mode (`src/quiz/`, hidden link `/quiz`)
 - Nothing in the app links to it. `/quiz` draws a random gig; `/quiz?t=<id>` picks a named
-  one (`QUIZ_TEMPLATES`: coffeehouse, rock, worship, jazz, school-dance). The DJ Rig
-  is just one source in the random pool, not a featured pairing. Never
+  one (`QUIZ_TEMPLATES`: coffeehouse, rock, worship, jazz, school-dance). No source is a
+  featured pairing. Never
   rename a template id or change the draw order: codes rebuild the gig from the seed.
 - Source names in the prompt come from the equipment locker (`SOURCE_LABELS` reads the
   gear catalog: Voice, Keyboard, Acoustic Piano, Hi-Hats...), so they match what students drag in.
@@ -203,7 +203,7 @@ challenges can reach 100%. Setups of 4+ score as before.
 - No coaching while it runs (`QuietChecksContext`): no "!" badges, no mixer chain warnings,
   no signal-path HUD, and refused cables say only "That connection isn't possible."
 - Part 1 checklist per source (`evaluatePlan`): right input (mic / DI / direct), cabled to
-  the snake, 48V only where needed, stereo on two channels (DJ Rig; keys on one channel
+  the snake, 48V only where needed, stereo on two channels (DJ Rig, Laptop / Phone; keys on one channel
   are fine), own channel with no doubles, plus no extra/dead channels, PA speakers on MAIN
   L/R and stage monitors on MON 1/2 (submitting without either gets a reminder first).
   Students see the % and Pass / Partly / Missed (green / yellow / red) per source, no reasons.
@@ -223,7 +223,8 @@ challenges can reach 100%. Setups of 4+ score as before.
   view and CSV show both and the minutes taken, to help spot retakes in another window
   (there is no way to block them without logins). Random `/quiz` gives a retake a new gig.
 - Kept in the browser as `audioplot:v1:quiz` (seed, part, frozen plots, answers; never the
-  name). The code's main plot is Part 1; `qz` holds the record with Part 2 packed inside.
+  name). A finished quiz comes back for 12 hours
+  (`QUIZ_DONE_KEEP_MS`), then the next `/quiz` visit starts a new gig (shared Chromebooks). The code's main plot is Part 1; `qz` holds the record with Part 2 packed inside.
 - Batch view: quiz codes show Part 1 · Part 2 %, a Part 3 box (in the tab only, goes into
   the CSV), a class summary of the most-missed checks and faults, and a review panel with
   the regenerated gig and a Part 1 / Part 2 plot switch (`QuizReviewPanel.tsx`).
@@ -239,7 +240,7 @@ engine's output gate is closed and a notice explains why. Learn is exempt (its P
   breakout: that's not how a DJ controller is hooked up); first patch sets gain to 54 since line level is ~12 dB hot
   (`LINE_LEVEL_BOOST` in the audio engine). Its sound is built in the browser from the
   kick, snare, bass and keys loops (`DERIVED_STEMS`), so no extra download.
-- `gear_di_stereo`: shows in the locker once keys or a DJ Rig is on the plot. Stereo gear
+- `gear_di_stereo`: shows in the locker once keys, a DJ Rig, a Laptop / Phone or a Stereo DI is on the plot. Stereo gear
   (`isStereoGearId`) can hold two mixer channels; the lower is labelled L, the higher R.
   Its badge on the plot shows both ("CH 3 & 4"). A stereo source only counts as wired when
   both sides reach the snake on their own XLR runs (Stereo DI: both outputs; DJ Rig / Laptop:

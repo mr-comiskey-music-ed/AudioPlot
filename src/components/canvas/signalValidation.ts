@@ -339,7 +339,7 @@ export function validateGearToSnakeConnection(
       return {
         valid: false,
         title: 'Snake Inputs Take XLR',
-        error: 'Snake inputs are XLR. Use the DJ Rig\'s XLR outs (L and R), or run the Stereo Breakout into a Stereo DI first.',
+        error: 'Snake inputs are XLR. Use the DJ Rig\'s XLR outs (L and R), or run its 1/4" outs into a Stereo DI or two DIs first.',
       };
     }
     return { valid: true };

@@ -83,7 +83,7 @@ export interface PlacedGear {
   customHeight?: number;
 }
 
-// 'breakout' = Stereo Breakout: 1/8" (3.5 mm) TRS to two 1/4" TS plugs, L and R (DJ Rig only)
+// 'breakout' = Stereo Breakout: 1/8" (3.5 mm) TRS to two 1/4" TS plugs, L and R (Laptop / Phone only)
 export type CableType = 'xlr' | 'quarter_inch' | 'speaker' | 'breakout';
 
 export interface CableConnection {

@@ -8,7 +8,7 @@ interface CableHooksProps {
   onSelectCableTool: (type: CableType | null) => void;
   isXlrHighlighted?: boolean;
   isQuarterInchHighlighted?: boolean;
-  /** The Stereo Breakout (1/8" to two 1/4") shows only while a DJ Rig is on the plot */
+  /** The Stereo Breakout (1/8" to two 1/4") shows only while a Laptop / Phone is on the plot */
   showBreakout?: boolean;
 }
 
@@ -80,7 +80,7 @@ export const CableHooks: React.FC<CableHooksProps> = ({
                 ? 'bg-purple-500 border-purple-300 text-stone-950 shadow-2xl shadow-purple-500/80 ring-4 ring-purple-400'
                 : 'bg-white/5 hover:bg-white/10 border-white/10 text-purple-300 hover:border-purple-400/40'
             }`}
-            title='Stereo Breakout: 1/8" (3.5 mm) stereo plug to two 1/4" plugs (L and R). From the DJ Rig aux out into a DI.'
+            title='Stereo Breakout: 1/8" (3.5 mm) stereo plug to two 1/4" plugs (L and R). From a Laptop / Phone headphone out into a DI.'
           >
             <div className="w-5 h-5 flex items-center justify-center shrink-0">
               <StudioIcon iconType="BreakoutCable" size={20} />
