@@ -13,7 +13,7 @@ const Mark: React.FC<{ credit?: Credit }> = ({ credit }) =>
   ) : credit === 1 ? (
     <Check className="w-3.5 h-3.5 text-emerald-400 mx-auto" />
   ) : credit === 0.5 ? (
-    <span className="block mx-auto w-3.5 text-center text-[10px] font-black text-yellow-300" title="Fixed on the second pass (half credit)">½</span>
+    <span className="block mx-auto w-3.5 text-center text-[10px] font-black text-yellow-300" title="Half credit (fixed on the second pass, or only one side of a stereo source)">½</span>
   ) : (
     <X className="w-3.5 h-3.5 text-rose-400 mx-auto" />
   );

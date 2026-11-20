@@ -455,11 +455,13 @@ export interface ScoredItem {
   missed: string;
   source?: SourceKind;
   ok: boolean;
+  /** Not fixed all the way but half there (one side of a stereo source): earns half credit on the first try */
+  part?: boolean;
 }
 
 export type Credit = 0 | 0.5 | 1;
 export interface CombinedResult {
-  items: Array<ScoredItem & { credit: Credit }>;
+  items: Array<ScoredItem & { credit: Credit; partial?: boolean }>;
   earned: number;
   possible: number;
   percentage: number;
@@ -500,9 +502,10 @@ export function fixItems(r: FixResult): ScoredItem[] {
       return {
         id: `${e.kind}:${e.source ?? 'mix'}`,
         label: `${where}${errorLabel(e.kind, e.source)}`,
-        missed: e.note ? `${where}${e.note} (not fixed)` : `${where}${errorLabel(e.kind, e.source).toLowerCase()} (not fixed)`,
+        missed: e.note ? `${where}${e.note} (${e.partial ? 'half fixed' : 'not fixed'})` : `${where}${errorLabel(e.kind, e.source).toLowerCase()} (not fixed)`,
         source: e.source,
         ok: e.fixed,
+        part: e.partial,
       };
     }),
     { id: 'rest', label: 'Left everything else working', missed: 'Something that was working got broken while fixing', ok: r.restOk },
@@ -513,8 +516,10 @@ export function fixItems(r: FixResult): ScoredItem[] {
 export function combineAttempts(first: ScoredItem[], second?: ScoredItem[] | null): CombinedResult {
   const items = first.map((it) => {
     const later = second?.find((x) => x.id === it.id);
-    const credit: Credit = it.ok ? 1 : later?.ok ? 0.5 : 0;
-    return { ...it, ok: it.ok || !!later?.ok, credit };
+    // Full on the first try; a second pass that finishes it, or a first try that got halfway, earns half
+    const half = !it.ok && !later?.ok && !!(it.part || later?.part);
+    const credit: Credit = it.ok ? 1 : later?.ok || half ? 0.5 : 0;
+    return { ...it, ok: it.ok || !!later?.ok, credit, partial: half };
   });
   const earned = items.reduce((n, i) => n + i.credit, 0);
   return { items, earned, possible: items.length, percentage: items.length ? Math.round((earned / items.length) * 100) : 0, revised: !!second };
@@ -1007,7 +1012,7 @@ export function buildFixScenario(scenario: QuizScenario): FixScenario {
 // ---------- Part 2 scoring ----------
 
 export interface FixResult {
-  errors: Array<InjectedError & { fixed: boolean; note?: string }>;
+  errors: Array<InjectedError & { fixed: boolean; partial?: boolean; note?: string }>;
   restOk: boolean;
   earned: number;
   possible: number;
@@ -1030,6 +1035,9 @@ function mixOk(p: QuizPlot, r: SourceResult, key: SourceKind, matched: PlacedGea
     djGain: key !== 'dj_rig' || !direct || chs.every((c) => c.gain <= DJ_GAIN_MAX),
   };
 }
+
+const stereoSource = (k?: SourceKind) => k === 'laptop' || k === 'dj_rig';
+const STEREO_NOTE = 'Only one side (L or R) is connected. A stereo source needs both, on two channels';
 
 /** For an unfixed mic / DI fault: say what is still wrong with it, so "No mic" never reads as "put one on the guitar". */
 function micNote(p: QuizPlot, e: InjectedError, inst: PlacedGear | undefined): string | undefined {
@@ -1065,14 +1073,21 @@ export function evaluateFix(p: QuizPlot, scenario: QuizScenario, errors: Injecte
       case 'pan_hard': return mix.pan;
       case 'phantom_off': return !!r.checks.phantom && !!r.checks.cable;
       case 'dj_gain_high': return mix.djGain && mix.gain;
-      case 'unpatched': return !!r.checks.cable && !!r.checks.channel;
+      case 'unpatched': return !!r.checks.cable && !!r.checks.channel && !(stereoSource(e.source) && r.checks.stereo === false);
       default: return r.passed; // wrong_mic, no_mic, mic_on_instrument, missing_di, wrong_di
     }
   };
 
+  // A Laptop / Phone or DJ Rig needs both sides. Getting one side through is half the fix.
+  const halfway = (e: InjectedError): boolean => {
+    const r = e.source ? bySource.get(e.source) : undefined;
+    return !!r && stereoSource(e.source) && ['wrong_di', 'unpatched'].includes(e.kind) &&
+      r.channels.length === 1 && !!r.checks.input && !!r.checks.phantom && r.checks.stereo === false;
+  };
   const results = errors.map((e) => {
     const fixed = fixedOne(e);
-    return { ...e, fixed, note: fixed ? undefined : micNote(p, e, matched.get(e.source as SourceKind)) };
+    const partial = !fixed && halfway(e);
+    return { ...e, fixed, partial, note: fixed ? undefined : partial ? STEREO_NOTE : micNote(p, e, matched.get(e.source as SourceKind)) };
   });
   const broken = new Set(errors.map((e) => e.source).filter(Boolean));
   const globalBroken = new Set(errors.filter((e) => !e.source).map((e) => e.kind));
@@ -1088,7 +1103,7 @@ export function evaluateFix(p: QuizPlot, scenario: QuizScenario, errors: Injecte
     (globalBroken.has('main_down') || mainOk) &&
     (globalBroken.has('pa_unplugged') || plan.pa) &&
     (globalBroken.has('monitor_unplugged') || plan.monitors);
-  const earned = results.filter((r) => r.fixed).length + (restOk ? 1 : 0);
+  const earned = results.filter((r) => r.fixed).length + results.filter((r) => r.partial).length * 0.5 + (restOk ? 1 : 0);
   const possible = results.length + 1;
   return { errors: results, restOk, earned, possible, percentage: Math.round((earned / possible) * 100) };
 }

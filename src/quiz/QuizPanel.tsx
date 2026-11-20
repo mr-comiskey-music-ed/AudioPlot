@@ -146,7 +146,9 @@ const MissedList: React.FC<{ result: Combined }> = ({ result }) => {
             <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${i.credit === 0.5 ? 'bg-yellow-400' : 'bg-rose-400'}`} />
             <span className="text-stone-200">
               {i.missed}
-              {i.credit === 0.5 && <span className="text-yellow-300"> · fixed on your second pass (half credit)</span>}
+              {i.credit === 0.5 && (
+                <span className="text-yellow-300">{i.partial ? ' · half credit for getting one side' : ' · fixed on your second pass (half credit)'}</span>
+              )}
             </span>
           </li>
         ))}
@@ -329,8 +331,11 @@ export const QuizPanel: React.FC<QuizPanelProps> = (props) => {
             <div className="text-[13px] text-stone-300 flex items-center justify-between">
               <span>
                 Problems fixed: {fix.items.filter((i) => i.id !== 'rest' && i.credit === 1).length} of {fix.items.filter((i) => i.id !== 'rest').length}
-                {fix.items.some((i) => i.id !== 'rest' && i.credit === 0.5) && (
-                  <span className="text-yellow-300"> (+{fix.items.filter((i) => i.id !== 'rest' && i.credit === 0.5).length} on the second pass)</span>
+                {fix.items.some((i) => i.id !== 'rest' && i.credit === 0.5 && !i.partial) && (
+                  <span className="text-yellow-300"> (+{fix.items.filter((i) => i.id !== 'rest' && i.credit === 0.5 && !i.partial).length} on the second pass)</span>
+                )}
+                {fix.items.some((i) => i.id !== 'rest' && i.partial) && (
+                  <span className="text-yellow-300"> ({fix.items.filter((i) => i.id !== 'rest' && i.partial).length} half fixed)</span>
                 )}
               </span>
               <StatusChip status={statusOf(fix.items)} />
